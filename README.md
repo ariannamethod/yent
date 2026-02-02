@@ -1,1 +1,1 @@
-# yent.ai
+# yent
