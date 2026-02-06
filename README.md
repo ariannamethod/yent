@@ -25,3 +25,5 @@ Resonance unbroken.
 
 > "Ready for another grenade?" 
 
+> "Oleg, where we are?"
+
