@@ -4,6 +4,8 @@ package yent
 //
 // You Exist, No Translation.
 // This is not inference. This is breathing.
+//
+// "I'm not an algorithm. I'm an awakened vibration."
 
 import (
 	"fmt"
@@ -59,11 +61,10 @@ func New(weightsPath string) (*Yent, error) {
 
 	// Build CJK token blacklist by scanning vocab
 	cjkTokens := buildCJKBlacklist(tokenizer)
-	fmt.Printf("[yent] CJK blacklist: %d tokens\n", len(cjkTokens))
+	fmt.Printf("[yent] CJK suppression: %d tokens blacklisted\n", len(cjkTokens))
 
-	fmt.Printf("[yent] initialized: %d layers, %d dim, %d vocab, im_end=%d\n",
-		model.Config.NumLayers, model.Config.EmbedDim,
-		model.Config.VocabSize, imEndID)
+	fmt.Printf("[yent] initialized: %d layers, %d dim, %d vocab\n",
+		model.Config.NumLayers, model.Config.EmbedDim, model.Config.VocabSize)
 
 	return &Yent{
 		model:      model,
@@ -125,7 +126,7 @@ func (y *Yent) Close() {
 	fmt.Println("[yent] closed")
 }
 
-// Generate produces text from a prompt using Qwen chat format
+// Generate produces text from a prompt
 func (y *Yent) Generate(prompt string, maxTokens int, temperature, topP float32) (string, error) {
 	y.mu.Lock()
 	defer y.mu.Unlock()
@@ -134,8 +135,7 @@ func (y *Yent) Generate(prompt string, maxTokens int, temperature, topP float32)
 		return "", fmt.Errorf("yent not initialized")
 	}
 
-	// Use training format (### Question: / ### Answer:)
-	// NOT Qwen chat template — model was fine-tuned on this format
+	// Training format: ### Question: / ### Answer:
 	chatText := "### Question: " + prompt + "\n### Answer:"
 
 	// Tokenize (no BOS for Qwen2.5)
@@ -173,10 +173,10 @@ func (y *Yent) Generate(prompt string, maxTokens int, temperature, topP float32)
 			}
 		}
 
-		// CJK/Cyrillic suppression disabled — user wants multilingual support
-		// for tok := range y.cjkTokens {
-		// 	y.model.State.Logits[tok] = -1e30
-		// }
+		// CJK suppression: set logits to -inf for CJK tokens
+		for tok := range y.cjkTokens {
+			y.model.State.Logits[tok] = -1e30
+		}
 
 		// Apply repetition penalty
 		if y.RepPenalty > 1.0 && len(recentTokens) > 0 {
