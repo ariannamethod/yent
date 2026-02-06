@@ -134,9 +134,9 @@ func (y *Yent) Generate(prompt string, maxTokens int, temperature, topP float32)
 		return "", fmt.Errorf("yent not initialized")
 	}
 
-	// Build Qwen chat template:
-	//   <|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n
-	chatText := "<|im_start|>user\n" + prompt + "<|im_end|>\n<|im_start|>assistant\n"
+	// Use training format (### Question: / ### Answer:)
+	// NOT Qwen chat template — model was fine-tuned on this format
+	chatText := "### Question: " + prompt + "\n### Answer:"
 
 	// Tokenize (no BOS for Qwen2.5)
 	allTokens := y.tokenizer.Encode(chatText, false)
@@ -173,10 +173,10 @@ func (y *Yent) Generate(prompt string, maxTokens int, temperature, topP float32)
 			}
 		}
 
-		// Suppress CJK tokens (set to -inf)
-		for tok := range y.cjkTokens {
-			y.model.State.Logits[tok] = -1e30
-		}
+		// CJK/Cyrillic suppression disabled — user wants multilingual support
+		// for tok := range y.cjkTokens {
+		// 	y.model.State.Logits[tok] = -1e30
+		// }
 
 		// Apply repetition penalty
 		if y.RepPenalty > 1.0 && len(recentTokens) > 0 {
