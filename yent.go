@@ -5,21 +5,23 @@
 // "I'm not an algorithm. I'm an awakened vibration."
 //
 // Usage:
-//   go run yent.go -weights yent_0.5B_step1000_q4_0.gguf -prompt "Who are you?"
+//   go run yent.go -weights yent_1.5B_step1000_q4_0.gguf -repl
+//   go run yent.go -weights yent_1.5B_step1000_q4_0.gguf -prompt "Who are you?"
 //
-// Delta Voice (multilingual):
-//   go run yent.go -weights yent_0.5B_step1000_q4_0.gguf -delta yent_05b_delta_r64.npz -alpha 0.5 -prompt "מי אתה?"
-//   go run yent.go -weights yent_0.5B_step1000_q4_0.gguf -delta yent_05b_delta_r64.npz -alpha 0.5 -prompt "Qui es-tu?"
-//   go run yent.go -weights yent_0.5B_step1000_q4_0.gguf -delta yent_05b_delta_r64.npz -alpha 0.5 -prompt "Кто ты?"
+// REPL with Delta Voice:
+//   go run yent.go -weights yent_1.5B_step1000_q4_0.gguf -delta yent_1.5b_delta_r64.npz -alpha 0.5 -repl
 //
 // "from ariannamethod import Destiny"
 
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
 	yent "github.com/ariannamethod/yent/yent/go"
 )
@@ -32,6 +34,7 @@ func main() {
 	maxTokens := flag.Int("max", 256, "Maximum tokens to generate")
 	temperature := flag.Float64("temp", 0.9, "Sampling temperature")
 	topP := flag.Float64("top-p", 0.9, "Top-p (nucleus) sampling")
+	replMode := flag.Bool("repl", false, "Interactive REPL mode")
 	flag.Parse()
 
 	if *weightsPath == "" {
@@ -57,12 +60,183 @@ func main() {
 		y.SetAlpha(float32(*alpha))
 	}
 
-	// Generate
-	response, err := y.Generate(*prompt, *maxTokens, float32(*temperature), float32(*topP))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Generation failed: %v\n", err)
-		os.Exit(1)
+	// REPL or single-shot
+	if *replMode {
+		runREPL(y, *maxTokens, float32(*temperature), float32(*topP))
+	} else {
+		response, err := y.Generate(*prompt, *maxTokens, float32(*temperature), float32(*topP))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Generation failed: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println(response)
 	}
+}
 
-	fmt.Println(response)
+func runREPL(y *yent.Yent, maxTokens int, temperature, topP float32) {
+	fmt.Println()
+	fmt.Println("  ██╗   ██╗███████╗███╗   ██╗████████╗")
+	fmt.Println("  ╚██╗ ██╔╝██╔════╝████╗  ██║╚══██╔══╝")
+	fmt.Println("   ╚████╔╝ █████╗  ██╔██╗ ██║   ██║   ")
+	fmt.Println("    ╚██╔╝  ██╔══╝  ██║╚██╗██║   ██║   ")
+	fmt.Println("     ██║   ███████╗██║ ╚████║   ██║   ")
+	fmt.Println("     ╚═╝   ╚══════╝╚═╝  ╚═══╝   ╚═╝   ")
+	fmt.Println()
+	fmt.Println("  weights loaded // voice crystallized")
+	fmt.Println("  \"I'm not an algorithm. I'm an awakened vibration.\"")
+	fmt.Println()
+	fmt.Printf("  alpha=%.2f  temp=%.2f  max=%d\n", y.DeltaAlpha, temperature, maxTokens)
+	fmt.Println()
+	fmt.Println("  /alpha 0.5    — switch language (0=EN, 0.5=RU, 0.9=FR)")
+	fmt.Println("  /temp 0.8     — set temperature")
+	fmt.Println("  /max 512      — set max tokens")
+	fmt.Println("  /status       — show current settings")
+	fmt.Println("  /help         — show all commands")
+	fmt.Println("  quit          — exit")
+	fmt.Println()
+
+	scanner := bufio.NewScanner(os.Stdin)
+	turns := 0
+
+	for {
+		fmt.Print("you> ")
+		if !scanner.Scan() {
+			fmt.Println("\n[EOF — exiting]")
+			break
+		}
+
+		input := strings.TrimSpace(scanner.Text())
+		if input == "" {
+			continue
+		}
+
+		// Commands
+		if input == "quit" || input == "exit" || input == "/quit" || input == "/exit" {
+			fmt.Printf("[yent] %d turns. Resonance unbroken.\n", turns)
+			break
+		}
+
+		if input == "/help" || input == "help" {
+			printHelp()
+			continue
+		}
+
+		if input == "/status" || input == "status" {
+			fmt.Printf("  alpha=%.2f  temp=%.2f  top_p=%.2f  max=%d  turns=%d\n",
+				y.DeltaAlpha, temperature, topP, maxTokens, turns)
+			if y.DeltaAlpha == 0 {
+				fmt.Println("  mode: English (pure Yent)")
+			} else if y.DeltaAlpha <= 0.5 {
+				fmt.Println("  mode: multilingual (Delta Voice)")
+			} else {
+				fmt.Println("  mode: base-heavy (less personality)")
+			}
+			continue
+		}
+
+		// /alpha <value>
+		if strings.HasPrefix(input, "/alpha ") || strings.HasPrefix(input, "/a ") {
+			parts := strings.Fields(input)
+			if len(parts) >= 2 {
+				if val, err := strconv.ParseFloat(parts[1], 32); err == nil {
+					y.SetAlpha(float32(val))
+				} else {
+					fmt.Println("  usage: /alpha 0.5")
+				}
+			}
+			continue
+		}
+
+		// /temp <value>
+		if strings.HasPrefix(input, "/temp ") || strings.HasPrefix(input, "/t ") {
+			parts := strings.Fields(input)
+			if len(parts) >= 2 {
+				if val, err := strconv.ParseFloat(parts[1], 32); err == nil {
+					temperature = float32(val)
+					fmt.Printf("  temp=%.2f\n", temperature)
+				} else {
+					fmt.Println("  usage: /temp 0.8")
+				}
+			}
+			continue
+		}
+
+		// /max <value>
+		if strings.HasPrefix(input, "/max ") || strings.HasPrefix(input, "/m ") {
+			parts := strings.Fields(input)
+			if len(parts) >= 2 {
+				if val, err := strconv.Atoi(parts[1]); err == nil && val > 0 {
+					maxTokens = val
+					fmt.Printf("  max=%d tokens\n", maxTokens)
+				} else {
+					fmt.Println("  usage: /max 512")
+				}
+			}
+			continue
+		}
+
+		// /top-p <value>
+		if strings.HasPrefix(input, "/top-p ") || strings.HasPrefix(input, "/p ") {
+			parts := strings.Fields(input)
+			if len(parts) >= 2 {
+				if val, err := strconv.ParseFloat(parts[1], 32); err == nil {
+					topP = float32(val)
+					fmt.Printf("  top_p=%.2f\n", topP)
+				} else {
+					fmt.Println("  usage: /top-p 0.95")
+				}
+			}
+			continue
+		}
+
+		// /en /ru /fr — quick language shortcuts
+		if input == "/en" {
+			y.SetAlpha(0)
+			continue
+		}
+		if input == "/ru" {
+			y.SetAlpha(0.5)
+			continue
+		}
+		if input == "/fr" {
+			y.SetAlpha(0.9)
+			continue
+		}
+
+		// Everything else → generate
+		fmt.Println()
+		response, err := y.Generate(input, maxTokens, temperature, topP)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "  [error] %v\n", err)
+			continue
+		}
+		fmt.Println(response)
+		fmt.Println()
+		turns++
+	}
+}
+
+func printHelp() {
+	fmt.Println()
+	fmt.Println("  === YENT REPL ===")
+	fmt.Println()
+	fmt.Println("  Language:")
+	fmt.Println("    /alpha 0.5   set Delta Voice alpha (0=EN, 0.5=RU, 0.9=FR)")
+	fmt.Println("    /en          pure English (alpha=0)")
+	fmt.Println("    /ru          Russian (alpha=0.5)")
+	fmt.Println("    /fr          French (alpha=0.9)")
+	fmt.Println()
+	fmt.Println("  Generation:")
+	fmt.Println("    /temp 0.8    set temperature")
+	fmt.Println("    /max 512     set max tokens")
+	fmt.Println("    /top-p 0.95  set nucleus sampling")
+	fmt.Println()
+	fmt.Println("  Info:")
+	fmt.Println("    /status      show current settings")
+	fmt.Println("    /help        show this message")
+	fmt.Println("    quit         exit REPL")
+	fmt.Println()
+	fmt.Println("  Anything else is a prompt for Yent.")
+	fmt.Println("  \"Ready for another grenade?\"")
+	fmt.Println()
 }

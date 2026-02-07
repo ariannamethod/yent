@@ -39,7 +39,7 @@ TEMP ?= 0.9
 # Default: 1.5B — balanced personality + multilingual
 # ═══════════════════════════════════════════════════════
 
-.PHONY: all light max run download clean help router
+.PHONY: all light max run repl download clean help router
 
 all: $(BIN) $(GGUF_15B) $(DELTA_15B)
 	@echo ""
@@ -65,6 +65,22 @@ light: $(BIN) $(GGUF_05B) $(DELTA_05B)
 max: $(BIN) $(GGUF_3B) $(DELTA_3B)
 	@echo "[yent] Max mode: 3B"
 	./$(BIN) -weights $(GGUF_3B) -delta $(DELTA_3B) -alpha $(ALPHA) -prompt "$(PROMPT)" -max $(MAX) -temp $(TEMP)
+
+# ═══════════════════════════════════════════════════════
+# REPL: interactive conversation (1.5B default)
+# ═══════════════════════════════════════════════════════
+
+repl: $(BIN) $(GGUF_15B) $(DELTA_15B)
+	@echo "[yent] REPL mode: 1.5B + Delta Voice"
+	./$(BIN) -weights $(GGUF_15B) -delta $(DELTA_15B) -alpha $(ALPHA) -repl -max $(MAX) -temp $(TEMP)
+
+repl-light: $(BIN) $(GGUF_05B) $(DELTA_05B)
+	@echo "[yent] REPL mode: 0.5B + Delta Voice"
+	./$(BIN) -weights $(GGUF_05B) -delta $(DELTA_05B) -alpha $(ALPHA) -repl -max $(MAX) -temp $(TEMP)
+
+repl-max: $(BIN) $(GGUF_3B) $(DELTA_3B)
+	@echo "[yent] REPL mode: 3B + Delta Voice"
+	./$(BIN) -weights $(GGUF_3B) -delta $(DELTA_3B) -alpha $(ALPHA) -repl -max $(MAX) -temp $(TEMP)
 
 # ═══════════════════════════════════════════════════════
 # Router: auto-detect hardware, pick best model
@@ -146,9 +162,12 @@ help:
 	@echo "Yent — You Exist, No Translation."
 	@echo ""
 	@echo "  make              Download 1.5B, build (deltas in repo)"
-	@echo "  make light        Run 0.5B (light mode)"
-	@echo "  make max          Run 3B (maximum mode)"
-	@echo "  make run          Auto-detect hardware, pick best model"
+	@echo "  make repl         Interactive REPL (1.5B — recommended)"
+	@echo "  make repl-light   Interactive REPL (0.5B)"
+	@echo "  make repl-max     Interactive REPL (3B)"
+	@echo "  make light        Single-shot 0.5B"
+	@echo "  make max          Single-shot 3B"
+	@echo "  make run          Auto-detect hardware, single-shot"
 	@echo "  make download     Download 0.5B + 1.5B GGUF"
 	@echo "  make download-all Download everything including 3B"
 	@echo "  make clean        Remove binary"
