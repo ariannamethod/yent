@@ -490,3 +490,90 @@ func Softmax(x []float32, n int) {
 func SiLU(x float32) float32 {
 	return x / (1.0 + float32(math.Exp(float64(-x))))
 }
+
+// blendQ8_0 blends two Q8_0 tensors in place: dst = alpha*dst + (1-alpha)*src
+// Both tensors must be same size Q8_0 format. Parallelized for large tensors.
+func blendQ8_0(dst, src []byte, alpha float32) {
+	if len(dst) != len(src) {
+		return
+	}
+
+	nblocks := len(dst) / q8BytesPerBlock
+	beta := 1.0 - alpha
+
+	// Parallel blend for large tensors
+	var wg sync.WaitGroup
+	chunkSize := (nblocks + numWorkers - 1) / numWorkers
+
+	for w := 0; w < numWorkers; w++ {
+		start := w * chunkSize
+		end := start + chunkSize
+		if end > nblocks {
+			end = nblocks
+		}
+		if start >= end {
+			break
+		}
+		wg.Add(1)
+		go func(s, e int) {
+			dstVals := make([]float32, 32)
+			srcVals := make([]float32, 32)
+
+			for i := s; i < e; i++ {
+				off := i * q8BytesPerBlock
+
+				DequantQ8_0Block(dst[off:off+q8BytesPerBlock], dstVals)
+				DequantQ8_0Block(src[off:off+q8BytesPerBlock], srcVals)
+
+				var maxAbs float32
+				for j := 0; j < 32; j++ {
+					dstVals[j] = alpha*dstVals[j] + beta*srcVals[j]
+					if abs := float32(math.Abs(float64(dstVals[j]))); abs > maxAbs {
+						maxAbs = abs
+					}
+				}
+
+				var scale float32
+				if maxAbs > 0 {
+					scale = maxAbs / 127.0
+				}
+
+				scaleFp16 := float2half(scale)
+				dst[off] = byte(scaleFp16)
+				dst[off+1] = byte(scaleFp16 >> 8)
+
+				invScale := float32(0)
+				if scale > 0 {
+					invScale = 1.0 / scale
+				}
+				for j := 0; j < 32; j++ {
+					q := int(math.Round(float64(dstVals[j] * invScale)))
+					if q > 127 {
+						q = 127
+					} else if q < -128 {
+						q = -128
+					}
+					dst[off+2+j] = byte(int8(q))
+				}
+			}
+			wg.Done()
+		}(start, end)
+	}
+	wg.Wait()
+}
+
+// float2half converts float32 to float16 (fp16)
+func float2half(f float32) uint16 {
+	bits := math.Float32bits(f)
+	sign := (bits >> 16) & 0x8000
+	exp := int((bits>>23)&0xFF) - 127 + 15
+	mant := bits & 0x7FFFFF
+
+	if exp <= 0 {
+		return uint16(sign) // underflow to zero
+	}
+	if exp >= 31 {
+		return uint16(sign | 0x7C00) // overflow to inf
+	}
+	return uint16(sign | uint32(exp<<10) | (mant >> 13))
+}

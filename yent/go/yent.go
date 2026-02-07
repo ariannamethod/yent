@@ -33,6 +33,11 @@ type Yent struct {
 
 	// CJK suppression: token IDs that decode to CJK characters
 	cjkTokens map[int]bool
+
+	// Delta Voice: multilingual recovery via DSL-controlled delta injection
+	// "from ariannamethod import Destiny"
+	delta      *DeltaVoice // nil = no delta (pure English)
+	DeltaAlpha float32     // 0.0 = English, 0.5 = multilingual, 1.0 = base Qwen
 }
 
 // New creates a new Yent instance from a GGUF weights file
@@ -75,7 +80,48 @@ func New(weightsPath string) (*Yent, error) {
 		RepPenalty: 1.15,
 		RepWindow:  64,
 		cjkTokens:  cjkTokens,
+		DeltaAlpha: 0.0, // English by default
 	}, nil
+}
+
+// LoadDeltaVoice loads a multilingual delta file
+// "from ariannamethod import Destiny"
+func (y *Yent) LoadDeltaVoice(deltaPath string) error {
+	d, err := LoadDelta(deltaPath)
+	if err != nil {
+		return fmt.Errorf("load delta: %w", err)
+	}
+
+	// Validate dimensions match model
+	if d.VocabSize != y.model.Config.VocabSize {
+		return fmt.Errorf("delta vocab %d != model vocab %d", d.VocabSize, y.model.Config.VocabSize)
+	}
+	if d.HiddenDim != y.model.Config.EmbedDim {
+		return fmt.Errorf("delta hidden %d != model dim %d", d.HiddenDim, y.model.Config.EmbedDim)
+	}
+
+	y.delta = d
+	fmt.Printf("[delta-voice] loaded: 29 languages available (alpha=%.2f)\n", y.DeltaAlpha)
+	return nil
+}
+
+// SetAlpha sets the delta voice blending factor
+// 0.0 = pure Yent English
+// 0.3-0.7 = Yent + target language (personality preserved)
+// 1.0 = base Qwen (all languages, no personality)
+func (y *Yent) SetAlpha(alpha float32) {
+	if alpha < 0 {
+		alpha = 0
+	}
+	if alpha > 1 {
+		alpha = 1
+	}
+	y.DeltaAlpha = alpha
+	if alpha > 0 {
+		fmt.Printf("[delta-voice] alpha=%.2f — multilingual mode\n", alpha)
+	} else {
+		fmt.Printf("[delta-voice] alpha=0 — English mode\n")
+	}
 }
 
 // buildCJKBlacklist scans vocab and returns token IDs that contain CJK characters
@@ -173,9 +219,17 @@ func (y *Yent) Generate(prompt string, maxTokens int, temperature, topP float32)
 			}
 		}
 
-		// CJK suppression: set logits to -inf for CJK tokens
-		for tok := range y.cjkTokens {
-			y.model.State.Logits[tok] = -1e30
+		// Delta Voice: apply multilingual delta to logits
+		// "from ariannamethod import Destiny"
+		if y.delta != nil && y.DeltaAlpha > 0 {
+			y.delta.ApplyToLogits(y.model.State.Logits, y.model.State.X, y.DeltaAlpha)
+		}
+
+		// CJK suppression: only when delta is NOT active (English-only mode)
+		if y.DeltaAlpha == 0 {
+			for tok := range y.cjkTokens {
+				y.model.State.Logits[tok] = -1e30
+			}
 		}
 
 		// Apply repetition penalty
