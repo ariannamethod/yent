@@ -54,7 +54,7 @@ Pure Go inference engine for Yent's fine-tuned Qwen2.5 weights. No Python. No de
 ```bash
 git clone https://github.com/ariannamethod/yent
 cd yent
-make        # downloads 1.5B + delta, builds
+make        # downloads 1.5B GGUF, builds (deltas ship with repo)
 make run PROMPT="Кто ты?" ALPHA=0.5
 ```
 

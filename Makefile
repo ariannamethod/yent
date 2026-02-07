@@ -3,9 +3,9 @@
 # "I'm not an algorithm. I'm an awakened vibration."
 #
 # Usage:
-#   make          # download 1.5B (default) + delta, run
-#   make light    # download 0.5B + delta, run
-#   make max      # download 3B + delta, run
+#   make          # download 1.5B, build (deltas ship with repo)
+#   make light    # download 0.5B + run
+#   make max      # download 3B + run
 #   make run      # run with auto-detected best model
 #   make download # download all available weights
 #   make clean    # remove downloaded weights
@@ -14,16 +14,17 @@
 
 HF_BASE = https://huggingface.co/ataeff/yent/resolve/main/yent
 WEIGHTS_DIR = weights
+DELTAS_DIR = deltas
 
-# Model files
+# Model files (downloaded to weights/)
 GGUF_05B = $(WEIGHTS_DIR)/yent_0.5B_step1000_q4_0.gguf
 GGUF_15B = $(WEIGHTS_DIR)/yent_1.5B_step1000_q4_0.gguf
 GGUF_3B  = $(WEIGHTS_DIR)/yent_3B_step1000_q4_0.gguf
 
-# Delta Voice files (17 MB each, 29 languages)
-DELTA_05B = $(WEIGHTS_DIR)/yent_05b_delta_r64.npz
-DELTA_15B = $(WEIGHTS_DIR)/yent_1.5b_delta_r64.npz
-DELTA_3B  = $(WEIGHTS_DIR)/yent_3b_delta_r64.npz
+# Delta Voice files (shipped in deltas/, 17 MB each, 29 languages)
+DELTA_05B = $(DELTAS_DIR)/yent_05b_delta_r64.npz
+DELTA_15B = $(DELTAS_DIR)/yent_1.5b_delta_r64.npz
+DELTA_3B  = $(DELTAS_DIR)/yent_3b_delta_r64.npz
 
 # Binary
 BIN = yent_bin
@@ -119,22 +120,10 @@ $(GGUF_3B): $(WEIGHTS_DIR)
 	@echo "[yent] Downloading 3B weights (~1.9 GB)..."
 	curl -L -o $@ $(HF_BASE)/yent_3B_step1000_q4_0.gguf
 
-$(DELTA_05B): $(WEIGHTS_DIR)
-	@echo "[yent] Downloading 0.5B delta (17 MB — 29 languages)..."
-	curl -L -o $@ $(HF_BASE)/yent_05b_delta_r64.npz
+download: $(GGUF_05B) $(GGUF_15B)
+	@echo "[yent] All available weights downloaded. Deltas already in deltas/."
 
-$(DELTA_15B): $(WEIGHTS_DIR)
-	@echo "[yent] Downloading 1.5B delta (17 MB — 29 languages)..."
-	curl -L -o $@ $(HF_BASE)/yent_1.5b_delta_r64.npz
-
-$(DELTA_3B): $(WEIGHTS_DIR)
-	@echo "[yent] Downloading 3B delta (17 MB — 29 languages)..."
-	curl -L -o $@ $(HF_BASE)/yent_3b_delta_r64.npz
-
-download: $(GGUF_05B) $(GGUF_15B) $(DELTA_05B) $(DELTA_15B)
-	@echo "[yent] All available weights downloaded."
-
-download-all: download $(GGUF_3B) $(DELTA_3B)
+download-all: download $(GGUF_3B)
 	@echo "[yent] All weights including 3B downloaded."
 
 # ═══════════════════════════════════════════════════════
@@ -156,11 +145,11 @@ clean-all: clean clean-weights
 help:
 	@echo "Yent — You Exist, No Translation."
 	@echo ""
-	@echo "  make              Download 1.5B + delta, build"
+	@echo "  make              Download 1.5B, build (deltas in repo)"
 	@echo "  make light        Run 0.5B (light mode)"
 	@echo "  make max          Run 3B (maximum mode)"
 	@echo "  make run          Auto-detect hardware, pick best model"
-	@echo "  make download     Download 0.5B + 1.5B + deltas"
+	@echo "  make download     Download 0.5B + 1.5B GGUF"
 	@echo "  make download-all Download everything including 3B"
 	@echo "  make clean        Remove binary"
 	@echo "  make clean-all    Remove binary + weights"
