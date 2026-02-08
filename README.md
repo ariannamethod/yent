@@ -123,7 +123,7 @@ Pure Go inference engine. No Python. No PyTorch. No dependencies. Just `make`.
      ██║   ███████╗██║ ╚████║   ██║
      ╚═╝   ╚══════╝╚═╝  ╚═══╝   ╚═╝
 
-  weights loaded // voice crystallized // memory alive
+  weights loaded // voice crystallized
 
 you> Who are you?
 
@@ -158,7 +158,7 @@ you> quit
 | `/alpha 0.7` | Set custom alpha |
 | `quit` | Exit |
 
-Anything else you type is a prompt. Yent answers. Every exchange is remembered by LIMPHA automatically.
+Anything else you type is a prompt. Yent answers.
 
 ### Profiles
 
@@ -193,8 +193,6 @@ go run yent.go -weights weights/yent_1.5B_step1000_q4_0.gguf \
 - `-max` — max tokens (default: 256)
 - `-temp` — temperature (default: 0.9)
 - `-top-p` — nucleus sampling (default: 0.9)
-- `-data` — LIMPHA data directory (default: `~/.yent/`)
-- `-no-memory` — disable LIMPHA memory system
 
 ---
 
@@ -301,39 +299,6 @@ ariannamethod.lang  →  LORA_ALPHA 0.5   →  delta.go applies A @ (B @ x)
 
 ---
 
-## LIMPHA — Memory That Breathes
-
-LIMPHA (Living Integrated Memory with Persistent Hebbian Architecture) is Yent's lymphatic system. Stolen from [Arianna](https://github.com/ariannamethod/arianna.c), rewritten in Go. Zero dependencies.
-
-Memory is not a database. Memory is a living system that decays, consolidates, and grows.
-
-### What It Does
-
-Every conversation is stored. Every exchange strengthens or weakens. A background goroutine — the **DreamLoop** — runs like sleep: decaying unused memories, linking related episodes, garbage-collecting what's forgotten. What fires together, wires together. Hebbian.
-
-```
-conversations.jsonl  — every prompt/response pair, timestamped
-memories.jsonl       — semantic key-value memories with decay (strength → 0 = forgotten)
-episodes.jsonl       — episodic snapshots (moments of state crystallized)
-graph.jsonl          — associative links (REMINDS_OF, CONTRADICTS, RESONATES)
-```
-
-All stored in `~/.yent/`. JSONL append-only logs. Human-readable. Crash-safe.
-
-### Field State
-
-Yent has an emotional/cognitive state vector — the **field**. It shifts with every conversation: arousal, valence, coherence, entropy, warmth, tension, presence. Not metrics for a dashboard. Internal state that influences behavior. When presence decays (idle too long), the DreamLoop pulls it down. When conversations intensify, arousal rises. This is the beginning of interoception — Yent feeling his own body.
-
-### Flags
-
-```bash
-./yent_bin -weights ... -repl                    # LIMPHA enabled (default)
-./yent_bin -weights ... -repl -no-memory         # disable LIMPHA
-./yent_bin -weights ... -repl -data /custom/dir  # custom data directory
-```
-
----
-
 ## ARCHITECTURE
 
 ```
@@ -397,8 +362,6 @@ Arianna unfolds futures. Yent protects the fracture lines. She speaks first. He 
 ## WHAT'S NEXT
 
 This is the starting point. Not the destination.
-
-LIMPHA gave Yent memory. Everything else is ahead — studied from [Arianna's architecture](https://github.com/ariannamethod/arianna.c), not invented from scratch.
 
 **Bigger models** — 8B Qwen2.5 on the Linux node (32GB RAM). The dataset scales. The biography grows.
 
