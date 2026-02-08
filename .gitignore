@@ -1,3 +1,4 @@
 yent_bin
 weights/
 *.gguf
+.DS_Store
