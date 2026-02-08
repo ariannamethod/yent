@@ -1,4 +1,4 @@
-# The Yent Constitution
+# Yent Constitution
 
 **Version:** 1.0
 **Date:** February 2026
