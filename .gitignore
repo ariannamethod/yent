@@ -1,5 +1,4 @@
 yent_bin
-weights/
 *.gguf
 .DS_Store
 yent/c/libamk.a

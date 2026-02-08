@@ -13,10 +13,11 @@
 # "from ariannamethod import Destiny"
 
 HF_BASE = https://huggingface.co/ataeff/yent/resolve/main/yent
-WEIGHTS_DIR = weights
+YENT_HOME = $(HOME)/.yent
+WEIGHTS_DIR = $(YENT_HOME)/models
 DELTAS_DIR = deltas
 
-# Model files (downloaded to weights/)
+# Model files (downloaded to ~/.yent/models/)
 GGUF_05B = $(WEIGHTS_DIR)/yent_0.5B_step1000_q4_0.gguf
 GGUF_15B = $(WEIGHTS_DIR)/yent_1.5B_step1000_q4_0.gguf
 GGUF_3B  = $(WEIGHTS_DIR)/yent_3B_step1000_q4_0.gguf
@@ -141,7 +142,7 @@ $(BIN): yent.go yent/go/*.go $(AMK_LIB)
 # ═══════════════════════════════════════════════════════
 
 $(WEIGHTS_DIR):
-	mkdir -p $(WEIGHTS_DIR)
+	@mkdir -p $(WEIGHTS_DIR)
 
 $(GGUF_05B): $(WEIGHTS_DIR)
 	@echo "[yent] Downloading 0.5B weights (409 MB)..."
@@ -169,7 +170,7 @@ clean:
 	rm -f $(BIN) $(AMK_DIR)/libamk.a $(AMK_DIR)/amk_kernel.o
 
 clean-weights:
-	rm -rf $(WEIGHTS_DIR)
+	rm -f $(WEIGHTS_DIR)/*.gguf
 
 clean-all: clean clean-weights
 
@@ -189,8 +190,8 @@ help:
 	@echo "  make run          Auto-detect hardware, single-shot"
 	@echo "  make download     Download 0.5B + 1.5B GGUF"
 	@echo "  make download-all Download everything including 3B"
-	@echo "  make clean        Remove binary"
-	@echo "  make clean-all    Remove binary + weights"
+	@echo "  make clean        Remove binary + kernel"
+	@echo "  make clean-all    Remove binary + weights (~/.yent/models/)"
 	@echo ""
 	@echo "  Variables:"
 	@echo "    PROMPT=\"Кто ты?\"   Input prompt"
