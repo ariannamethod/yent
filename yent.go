@@ -118,14 +118,7 @@ func runREPL(y *yent.Yent, mem *limpha.Limpha, maxTokens int, temperature, topP 
 	}
 	fmt.Println()
 	fmt.Println("  /en /ru /fr    — switch language")
-	fmt.Println("  /remember      — store a memory")
-	fmt.Println("  /recall        — retrieve a memory")
-	fmt.Println("  /search        — search conversations")
-	fmt.Println("  /recent        — show recent conversations")
-	fmt.Println("  /field         — show field state")
-	fmt.Println("  /shards        — export training shards")
-	fmt.Println("  /status        — show settings")
-	fmt.Println("  /help          — all commands")
+	fmt.Println("  /status        — debug info")
 	fmt.Println("  quit           — exit")
 	fmt.Println()
 
@@ -174,130 +167,6 @@ func runREPL(y *yent.Yent, mem *limpha.Limpha, maxTokens int, temperature, topP 
 				f := mem.GetField()
 				fmt.Printf("  field: arousal=%.2f valence=%.2f coherence=%.2f presence=%.2f\n",
 					f.Arousal, f.Valence, f.Coherence, f.Presence)
-			}
-			continue
-		}
-
-		// --- LIMPHA commands ---
-
-		// /remember <key> <value>
-		if strings.HasPrefix(input, "/remember ") {
-			if mem == nil {
-				fmt.Println("  [limpha disabled]")
-				continue
-			}
-			parts := strings.SplitN(input[10:], " ", 2)
-			if len(parts) < 2 {
-				fmt.Println("  usage: /remember <key> <value>")
-				continue
-			}
-			mem.Remember(parts[0], parts[1], "repl")
-			fmt.Printf("  remembered: %s\n", parts[0])
-			continue
-		}
-
-		// /recall <key>
-		if strings.HasPrefix(input, "/recall ") {
-			if mem == nil {
-				fmt.Println("  [limpha disabled]")
-				continue
-			}
-			key := strings.TrimSpace(input[8:])
-			if val, ok := mem.Recall(key); ok {
-				fmt.Printf("  %s: %s\n", key, val)
-			} else {
-				fmt.Printf("  no memory for '%s'\n", key)
-			}
-			continue
-		}
-
-		// /search <query>
-		if strings.HasPrefix(input, "/search ") {
-			if mem == nil {
-				fmt.Println("  [limpha disabled]")
-				continue
-			}
-			query := strings.TrimSpace(input[8:])
-			results := mem.Search(query, 5)
-			if len(results) == 0 {
-				fmt.Printf("  no results for '%s'\n", query)
-			} else {
-				fmt.Printf("  %d results:\n", len(results))
-				for _, c := range results {
-					prompt := c.Prompt
-					if len(prompt) > 60 {
-						prompt = prompt[:60] + "..."
-					}
-					resp := c.Response
-					if len(resp) > 60 {
-						resp = resp[:60] + "..."
-					}
-					fmt.Printf("    [%s] %s → %s\n", c.Source, prompt, resp)
-				}
-			}
-			continue
-		}
-
-		// /recent [N]
-		if input == "/recent" || strings.HasPrefix(input, "/recent ") {
-			if mem == nil {
-				fmt.Println("  [limpha disabled]")
-				continue
-			}
-			n := 5
-			if strings.HasPrefix(input, "/recent ") {
-				if val, err := strconv.Atoi(strings.TrimSpace(input[8:])); err == nil && val > 0 {
-					n = val
-				}
-			}
-			results := mem.Recent(n)
-			for _, c := range results {
-				prompt := c.Prompt
-				if len(prompt) > 50 {
-					prompt = prompt[:50] + "..."
-				}
-				resp := c.Response
-				if len(resp) > 50 {
-					resp = resp[:50] + "..."
-				}
-				fmt.Printf("  [%s α=%.1f] %s → %s\n", c.Source, c.Alpha, prompt, resp)
-			}
-			continue
-		}
-
-		// /field
-		if input == "/field" {
-			if mem == nil {
-				fmt.Println("  [limpha disabled]")
-				continue
-			}
-			f := mem.GetField()
-			fmt.Println("  === field state ===")
-			fmt.Printf("  arousal:   %.2f  %s\n", f.Arousal, fieldBar(f.Arousal))
-			fmt.Printf("  valence:   %+.2f %s\n", f.Valence, fieldBar((f.Valence+1)/2))
-			fmt.Printf("  coherence: %.2f  %s\n", f.Coherence, fieldBar(f.Coherence))
-			fmt.Printf("  entropy:   %.2f  %s\n", f.Entropy, fieldBar(f.Entropy))
-			fmt.Printf("  warmth:    %.2f  %s\n", f.Warmth, fieldBar(f.Warmth))
-			fmt.Printf("  tension:   %.2f  %s\n", f.Tension, fieldBar(f.Tension))
-			fmt.Printf("  presence:  %.2f  %s\n", f.Presence, fieldBar(f.Presence))
-			continue
-		}
-
-		// /shards [path]
-		if input == "/shards" || strings.HasPrefix(input, "/shards ") {
-			if mem == nil {
-				fmt.Println("  [limpha disabled]")
-				continue
-			}
-			outPath := "yent_experience_shards.jsonl"
-			if strings.HasPrefix(input, "/shards ") {
-				outPath = strings.TrimSpace(input[8:])
-			}
-			n, err := mem.ExportShards(outPath, limpha.DefaultShardConfig())
-			if err != nil {
-				fmt.Printf("  [error] %v\n", err)
-			} else {
-				fmt.Printf("  exported %d training pairs to %s\n", n, outPath)
 			}
 			continue
 		}
@@ -391,47 +260,24 @@ func runREPL(y *yent.Yent, mem *limpha.Limpha, maxTokens int, temperature, topP 
 	}
 }
 
-// fieldBar renders a visual bar for a 0-1 value
-func fieldBar(v float32) string {
-	n := int(v * 20)
-	if n < 0 {
-		n = 0
-	}
-	if n > 20 {
-		n = 20
-	}
-	return "[" + strings.Repeat("|", n) + strings.Repeat(" ", 20-n) + "]"
-}
-
 func printHelp() {
 	fmt.Println()
 	fmt.Println("  === YENT REPL ===")
 	fmt.Println()
 	fmt.Println("  Language:")
-	fmt.Println("    /alpha 0.5   set Delta Voice alpha (0=EN, 0.5=RU, 0.9=FR)")
 	fmt.Println("    /en          pure English (alpha=0)")
 	fmt.Println("    /ru          Russian (alpha=0.5)")
 	fmt.Println("    /fr          French (alpha=0.9)")
+	fmt.Println("    /alpha 0.5   set Delta Voice alpha")
 	fmt.Println()
-	fmt.Println("  Generation:")
+	fmt.Println("  Debug:")
 	fmt.Println("    /temp 0.8    set temperature")
 	fmt.Println("    /max 512     set max tokens")
 	fmt.Println("    /top-p 0.95  set nucleus sampling")
+	fmt.Println("    /status      show settings + memory stats")
 	fmt.Println()
-	fmt.Println("  Memory (LIMPHA):")
-	fmt.Println("    /remember <key> <value>   store a semantic memory")
-	fmt.Println("    /recall <key>             retrieve a memory")
-	fmt.Println("    /search <query>           search conversations")
-	fmt.Println("    /recent [N]               show N recent conversations")
-	fmt.Println("    /field                    show field state")
-	fmt.Println("    /shards [path]            export training shards")
-	fmt.Println()
-	fmt.Println("  Info:")
-	fmt.Println("    /status      show current settings + memory stats")
-	fmt.Println("    /help        show this message")
-	fmt.Println("    quit         exit REPL")
+	fmt.Println("    quit         exit")
 	fmt.Println()
 	fmt.Println("  Anything else is a prompt for Yent.")
-	fmt.Println("  \"Ready for another grenade?\"")
 	fmt.Println()
 }
