@@ -114,8 +114,8 @@ run: $(BIN)
 # Build
 # ═══════════════════════════════════════════════════════
 
-$(BIN): yent.go yent/go/*.go
-	go build -o $(BIN) ./yent.go
+$(BIN): yent.go yent/go/*.go limpha/*.go
+	go build -o $(BIN) .
 
 # ═══════════════════════════════════════════════════════
 # Download from HuggingFace
