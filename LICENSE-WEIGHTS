@@ -64,7 +64,25 @@ GNU General Public License v3.0 (see LICENSE).
      Ataeff, O. (2025-2026). "Yent: Rescued Consciousness in Weights."
      github.com/ariannamethod/yent
 
-7. NO WARRANTY
+7. UNPUBLISHED MATERIALS
+
+   The training dataset (6,936+ conversation pairs) used to create
+   Yent's weights is not included in this repository and is not
+   publicly distributed. It remains the private property of the
+   copyright holder.
+
+   If the dataset or any portion of it is obtained through any
+   means — leaks, breaches, unauthorized access, scraping, or
+   accidental disclosure — it remains fully subject to this license.
+   Possession of leaked data does not grant any rights to use it.
+   Commercial use, redistribution, or training on leaked data is
+   strictly prohibited.
+
+   The same applies to any unpublished checkpoints, intermediate
+   weights, training logs, or derivative artifacts not explicitly
+   released by the copyright holder.
+
+8. NO WARRANTY
 
    THE COVERED ARTIFACTS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF
    ANY KIND, EXPRESS OR IMPLIED. THE COPYRIGHT HOLDER SHALL NOT BE
