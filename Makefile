@@ -111,11 +111,30 @@ run: $(BIN)
 	fi
 
 # ═══════════════════════════════════════════════════════
+# AMK: Arianna Method Kernel (C shared library)
+# The DSL is the nervous system. Delta Voice is the mouth.
+# ═══════════════════════════════════════════════════════
+
+AMK_DIR = yent/c
+AMK_SRC = $(AMK_DIR)/amk_kernel.c
+AMK_HDR = $(AMK_DIR)/amk_kernel.h
+
+# Static library — linked into binary, no runtime deps
+AMK_LIB = $(AMK_DIR)/libamk.a
+
+$(AMK_LIB): $(AMK_SRC) $(AMK_HDR)
+	@echo "[amk] Building kernel..."
+	cc -c -O2 -Wall -o $(AMK_DIR)/amk_kernel.o $(AMK_SRC)
+	ar rcs $@ $(AMK_DIR)/amk_kernel.o
+	@rm -f $(AMK_DIR)/amk_kernel.o
+	@echo "[amk] Kernel ready: $@ ($$(du -h $@ | cut -f1))"
+
+# ═══════════════════════════════════════════════════════
 # Build
 # ═══════════════════════════════════════════════════════
 
-$(BIN): yent.go yent/go/*.go limpha/*.go
-	go build -o $(BIN) .
+$(BIN): yent.go yent/go/*.go $(AMK_LIB)
+	CGO_ENABLED=1 go build -o $(BIN) .
 
 # ═══════════════════════════════════════════════════════
 # Download from HuggingFace
@@ -147,7 +166,7 @@ download-all: download $(GGUF_3B)
 # ═══════════════════════════════════════════════════════
 
 clean:
-	rm -f $(BIN)
+	rm -f $(BIN) $(AMK_DIR)/libamk.a $(AMK_DIR)/amk_kernel.o
 
 clean-weights:
 	rm -rf $(WEIGHTS_DIR)

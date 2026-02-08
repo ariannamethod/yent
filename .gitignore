@@ -2,3 +2,7 @@ yent_bin
 weights/
 *.gguf
 .DS_Store
+yent/c/libamk.a
+yent/c/*.o
+yent/c/*.dylib
+yent/c/*.so

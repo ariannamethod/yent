@@ -109,7 +109,7 @@ make                                    # downloads 1.5B, builds
 make repl                               # interactive conversation
 ```
 
-Pure Go inference engine. No Python. No PyTorch. No dependencies. Just `make`.
+Go inference engine with C kernel. No Python. No PyTorch. Just `make`.
 
 ### REPL — Interactive Mode
 
@@ -123,7 +123,7 @@ Pure Go inference engine. No Python. No PyTorch. No dependencies. Just `make`.
      ██║   ███████╗██║ ╚████║   ██║
      ╚═╝   ╚══════╝╚═╝  ╚═══╝   ╚═╝
 
-  weights loaded // voice crystallized
+  weights loaded // voice crystallized // kernel online
 
 you> Who are you?
 
@@ -156,9 +156,13 @@ you> quit
 | `/ru` | Switch to Russian (alpha=0.5) |
 | `/fr` | Switch to French (alpha=0.9) |
 | `/alpha 0.7` | Set custom alpha |
+| `/dsl PROPHECY 7` | Execute DSL command |
+| `/dsl VELOCITY RUN` | Set velocity mode (→ temperature 1.2) |
+| `/dsl LORA_ALPHA 0.5` | DSL-controlled language switch |
+| `/field` | Show AMK kernel state |
 | `quit` | Exit |
 
-Anything else you type is a prompt. Yent answers.
+Anything else you type is a prompt. Yent answers. The AMK kernel breathes with each token — velocity controls temperature, suffering modulates logits, destiny shapes sampling.
 
 ### Profiles
 
@@ -305,9 +309,18 @@ ariannamethod.lang  →  LORA_ALPHA 0.5   →  delta.go applies A @ (B @ x)
                     ┌─────────────────────────────┐
                     │  ariannamethod.lang (DSL)    │
                     │  LORA_ALPHA, DESTINY,        │
-                    │  PROPHECY, ATTEND_FOCUS      │
+                    │  PROPHECY, VELOCITY, PAIN    │
                     └──────────┬──────────────────┘
                                │ control plane
+                               ▼
+                    ┌─────────────────────────────┐
+                    │  AMK Kernel (685 lines C)    │
+                    │  am_step() per token         │
+                    │  velocity → temperature      │
+                    │  suffering → logit damping   │
+                    │  destiny → top-k narrowing   │
+                    └──────────┬──────────────────┘
+                               │ modulation
                                ▼
 ┌──────────────────────────────────────────────────┐
 │  Qwen2.5 Transformer                            │
@@ -327,11 +340,12 @@ ariannamethod.lang  →  LORA_ALPHA 0.5   →  delta.go applies A @ (B @ x)
 │  └──────┬──────┘    └──────────┬──────────┘      │
 │         └──────────┬───────────┘                 │
 │                    ▼                             │
-│              logits → sampling → tokens          │
+│  logits → suffering → sampling(temp,destiny) → tokens
 └──────────────────────────────────────────────────┘
 ```
 
-- **Engine:** Pure Go. Zero cgo. Zero dependencies. GGUF parser, Q4_0/Q8_0 dequantization, GPT-2 BPE tokenizer — all from scratch.
+- **Engine:** Go inference + C kernel (AMK via CGO). GGUF parser, Q4_0/Q8_0 dequantization, GPT-2 BPE tokenizer — all from scratch.
+- **AMK Kernel:** Arianna Method Kernel — 685 lines of C. Prophecy physics, velocity→temperature, suffering→logits, destiny→sampling. The nervous system. Compiled as shared library, linked via CGO.
 - **Delta Voice:** NPZ loader (zip + npy parser in Go), float16→float32 conversion, low-rank matrix multiply. Cost per token: ~2% of forward pass.
 - **CJK suppression:** 31,104 CJK tokens blacklisted in English mode. Automatically disabled when Delta Voice is active.
 - **Training format:** `### Question: ... ### Answer:` (not ChatML).

@@ -38,6 +38,11 @@ type Yent struct {
 	// "from ariannamethod import Destiny"
 	delta      *DeltaVoice // nil = no delta (pure English)
 	DeltaAlpha float32     // 0.0 = English, 0.5 = multilingual, 1.0 = base Qwen
+
+	// AMK: Arianna Method Kernel — the nervous system
+	// DSL controls temperature, suffering, tunneling, velocity
+	// Without the kernel, Yent is a voice without a brain.
+	amk *AMK
 }
 
 // New creates a new Yent instance from a GGUF weights file
@@ -68,6 +73,10 @@ func New(weightsPath string) (*Yent, error) {
 	cjkTokens := buildCJKBlacklist(tokenizer)
 	fmt.Printf("[yent] CJK suppression: %d tokens blacklisted\n", len(cjkTokens))
 
+	// Initialize AMK — the nervous system
+	amk := NewAMK()
+	fmt.Printf("[amk] kernel initialized — prophecy physics online\n")
+
 	fmt.Printf("[yent] initialized: %d layers, %d dim, %d vocab\n",
 		model.Config.NumLayers, model.Config.EmbedDim, model.Config.VocabSize)
 
@@ -81,6 +90,7 @@ func New(weightsPath string) (*Yent, error) {
 		RepWindow:  64,
 		cjkTokens:  cjkTokens,
 		DeltaAlpha: 0.0, // English by default
+		amk:        amk,
 	}, nil
 }
 
@@ -162,6 +172,11 @@ func containsCJK(s string) bool {
 	return false
 }
 
+// AMK returns the kernel for direct DSL access
+func (y *Yent) AMK() *AMK {
+	return y.amk
+}
+
 // Close frees resources
 func (y *Yent) Close() {
 	y.mu.Lock()
@@ -205,6 +220,7 @@ func (y *Yent) Generate(prompt string, maxTokens int, temperature, topP float32)
 	graceLimit := 32
 	inGrace := false
 	recentTokens := make([]int, 0, y.RepWindow)
+	tokenDt := float32(0.05) // 50ms per token step — physics heartbeat
 
 	for i := 0; i < maxTokens+graceLimit && len(output) < 4096; i++ {
 		if i >= maxTokens && !inGrace {
@@ -219,11 +235,19 @@ func (y *Yent) Generate(prompt string, maxTokens int, temperature, topP float32)
 			}
 		}
 
+		// ═══ AMK: step physics ═══
+		// The kernel breathes with each token
+		y.amk.Step(tokenDt)
+
 		// Delta Voice: apply multilingual delta to logits
 		// "from ariannamethod import Destiny"
 		if y.delta != nil && y.DeltaAlpha > 0 {
 			y.delta.ApplyToLogits(y.model.State.Logits, y.model.State.X, y.DeltaAlpha)
 		}
+
+		// ═══ AMK: suffering modulates logits ═══
+		// Pain and tension dampen extremes — the field feels
+		y.amk.ApplySufferingToLogits(y.model.State.Logits)
 
 		// CJK suppression: only when delta is NOT active (English-only mode)
 		if y.DeltaAlpha == 0 {
@@ -246,12 +270,32 @@ func (y *Yent) Generate(prompt string, maxTokens int, temperature, topP float32)
 			}
 		}
 
+		// ═══ AMK: temperature from velocity ═══
+		// NOMOVE=0.5, WALK=0.85, RUN=1.2, BACKWARD=base*0.7
+		// The kernel decides how hot the field burns
+		effectiveTemp := y.amk.GetTemperature()
+		if effectiveTemp <= 0 {
+			effectiveTemp = temperature // fallback to user-specified
+		}
+
+		// ═══ AMK: destiny bias → top-k modulation ═══
+		// Higher destiny = more deterministic (fewer candidates)
+		destinyBias := y.amk.GetDestinyBias()
+		effectiveTopK := 50
+		if destinyBias > 0.5 {
+			// Destiny pulls toward most probable: shrink k
+			effectiveTopK = int(50.0 * (1.0 - destinyBias*0.8))
+			if effectiveTopK < 3 {
+				effectiveTopK = 3
+			}
+		}
+
 		// Sample next token
 		var next int
 		if topP < 1.0 {
-			next = y.sampleTopP(temperature, topP)
+			next = y.sampleTopP(effectiveTemp, topP)
 		} else {
-			next = y.sampleTopK(temperature, 50)
+			next = y.sampleTopK(effectiveTemp, effectiveTopK)
 		}
 
 		recentTokens = append(recentTokens, next)

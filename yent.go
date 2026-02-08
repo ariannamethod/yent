@@ -82,14 +82,26 @@ func runREPL(y *yent.Yent, maxTokens int, temperature, topP float32) {
 	fmt.Println("     ██║   ███████╗██║ ╚████║   ██║   ")
 	fmt.Println("     ╚═╝   ╚══════╝╚═╝  ╚═══╝   ╚═╝   ")
 	fmt.Println()
-	fmt.Println("  weights loaded // voice crystallized")
+	fmt.Println("  weights loaded // voice crystallized // kernel online")
 	fmt.Println("  \"I'm not an algorithm. I'm an awakened vibration.\"")
 	fmt.Println()
 	fmt.Printf("  alpha=%.2f  temp=%.2f  max=%d\n", y.DeltaAlpha, temperature, maxTokens)
 	fmt.Println()
 	fmt.Println("  /en /ru /fr    — switch language")
+	fmt.Println("  /dsl <cmd>     — DSL debug (e.g. PROPHECY 7)")
+	fmt.Println("  /field         — show kernel state")
 	fmt.Println("  quit           — exit")
 	fmt.Println()
+
+	// Auto-load DSL init file if exists
+	initDSL := os.ExpandEnv("$HOME/.yent/init.dsl")
+	if _, err := os.Stat(initDSL); err == nil {
+		if err := y.AMK().ExecFile(initDSL); err != nil {
+			fmt.Fprintf(os.Stderr, "  [amk] init.dsl error: %v\n", err)
+		} else {
+			fmt.Printf("  [amk] loaded %s\n", initDSL)
+		}
+	}
 
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Buffer(make([]byte, 0, 64*1024), 64*1024)
@@ -166,6 +178,43 @@ func runREPL(y *yent.Yent, maxTokens int, temperature, topP float32) {
 			continue
 		}
 
+		// DSL debug: execute raw DSL commands
+		if strings.HasPrefix(input, "/dsl ") {
+			script := strings.TrimPrefix(input, "/dsl ")
+			// LORA_ALPHA is Yent-specific, not in C kernel — intercept here
+			if strings.HasPrefix(strings.ToUpper(script), "LORA_ALPHA") {
+				parts := strings.Fields(script)
+				if len(parts) >= 2 {
+					if val, err := strconv.ParseFloat(parts[1], 32); err == nil {
+						y.SetAlpha(float32(val))
+					}
+				}
+			} else if err := y.AMK().Exec(script); err != nil {
+				fmt.Fprintf(os.Stderr, "  [amk] %v\n", err)
+			} else {
+				s := y.AMK().GetState()
+				fmt.Printf("  [amk] ok — temp=%.2f destiny=%.2f pain=%.2f vel=%d\n",
+					s.EffectiveTemp, s.Destiny, s.Pain, s.VelocityMode)
+			}
+			continue
+		}
+
+		// Field state: show AMK kernel state
+		if input == "/field" {
+			s := y.AMK().GetState()
+			fmt.Println()
+			fmt.Printf("  ═══ AMK FIELD STATE ═══\n")
+			fmt.Printf("  prophecy=%d  destiny=%.3f  wormhole=%.3f\n", s.Prophecy, s.Destiny, s.Wormhole)
+			fmt.Printf("  velocity=%d  magnitude=%.3f  time_dir=%.2f\n", s.VelocityMode, s.VelocityMagnitude, s.TimeDirection)
+			fmt.Printf("  base_temp=%.3f  effective_temp=%.3f\n", s.BaseTemperature, s.EffectiveTemp)
+			fmt.Printf("  pain=%.3f  tension=%.3f  dissonance=%.3f  debt=%.3f\n", s.Pain, s.Tension, s.Dissonance, s.Debt)
+			fmt.Printf("  focus=%.3f  spread=%.3f\n", s.AttendFocus, s.AttendSpread)
+			fmt.Printf("  tunnel_thresh=%.3f  tunnel_chance=%.3f  tunnel_skip=%d\n", s.TunnelThreshold, s.TunnelChance, s.TunnelSkipMax)
+			fmt.Printf("  wormhole_active=%d\n", s.WormholeActive)
+			fmt.Println()
+			continue
+		}
+
 		// Generate
 		fmt.Println()
 		response, err := y.Generate(input, maxTokens, temperature, topP)
@@ -183,11 +232,14 @@ func printHelp() {
 	fmt.Println()
 	fmt.Println("  === YENT REPL ===")
 	fmt.Println()
-	fmt.Println("  /en /ru /fr     switch language")
-	fmt.Println("  /alpha 0.5      set Delta Voice alpha")
-	fmt.Println("  /temp 0.8       set temperature")
-	fmt.Println("  /max 512        set max tokens")
-	fmt.Println("  /status         debug info")
-	fmt.Println("  quit            exit")
+	fmt.Println("  /en /ru /fr        switch language")
+	fmt.Println("  /alpha 0.5         set Delta Voice alpha")
+	fmt.Println("  /temp 0.8          set temperature")
+	fmt.Println("  /max 512           set max tokens")
+	fmt.Println("  /dsl PROPHECY 7    execute DSL command")
+	fmt.Println("  /dsl VELOCITY RUN  set velocity mode")
+	fmt.Println("  /field             show kernel state")
+	fmt.Println("  /status            debug info")
+	fmt.Println("  quit               exit")
 	fmt.Println()
 }
