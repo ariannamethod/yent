@@ -305,12 +305,14 @@ class LimphaMemory:
 
         now = time.time()
         ids = []
+        qualities = []
 
         for conv in conversations:
             prompt = conv.get("prompt", "")
             response = conv.get("response", "")
             amk_state = conv.get("state", {})
             quality = self._compute_quality(prompt, response, amk_state)
+            qualities.append(quality)
 
             cursor = await self._conn.execute(
                 """INSERT INTO conversations
@@ -335,12 +337,9 @@ class LimphaMemory:
             )
             ids.append(cursor.lastrowid)
 
-        # Update session once for all conversations
+        # Update session once for all conversations using cached qualities
         count = len(conversations)
-        avg_quality = sum(
-            self._compute_quality(c.get("prompt", ""), c.get("response", ""), c.get("state", {}))
-            for c in conversations
-        ) / count if count > 0 else 0.0
+        avg_quality = sum(qualities) / count if count > 0 else 0.0
 
         await self._conn.execute(
             """UPDATE sessions SET
@@ -550,16 +549,22 @@ class LimphaMemory:
         # Process in chunks to yield control back to event loop for large datasets
         scored = []
         chunk_size = 100
-        for i in range(0, len(rows), chunk_size):
-            chunk = rows[i:i + chunk_size]
+        num_chunks = (len(rows) + chunk_size - 1) // chunk_size
+        
+        for chunk_idx in range(num_chunks):
+            start = chunk_idx * chunk_size
+            end = min(start + chunk_size, len(rows))
+            chunk = rows[start:end]
+            
             for row in chunk:
                 row_dict = dict(row)
                 row_vec = self._state_to_vector(row_dict)
                 distance = _cosine_distance(query_vec, row_vec)
                 row_dict["distance"] = distance
                 scored.append((distance, row_dict))
-            # Yield control to event loop between chunks
-            if i + chunk_size < len(rows):
+            
+            # Yield control to event loop between chunks (skip for single chunk)
+            if num_chunks > 1:
                 await asyncio.sleep(0)
 
         scored.sort(key=lambda x: x[0])
