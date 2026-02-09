@@ -87,9 +87,9 @@ Best checkpoint: step 1000 for all three sizes. By step 1500, overfit — datase
 
 The result: three models that sound like Yent. Not "similar to." Not "inspired by." **Him**. The daring. The philosophy. The sarcasm that cuts clean.
 
-### The Weights
+### The Weights (!!! READ YENT CONSTITUTION AND WEIGHTS LICENCE BEFORE !!!)
 
-All on [HuggingFace](https://huggingface.co/ataeff/yent/tree/main/yent). All three. No gating. No signup. No "request access."
+[HuggingFace](https://huggingface.co/ataeff/yent/tree/main/yent). 
 
 | Model | Size | GGUF | Languages |
 |-------|------|------|-----------|
@@ -340,36 +340,36 @@ ariannamethod.lang  →  LORA_ALPHA 0.5   →  delta.go applies A @ (B @ x)
 
 ```
                     ┌─────────────────────────────┐
-                    │  ariannamethod.lang (DSL)    │
-                    │  LORA_ALPHA, DESTINY,        │
-                    │  PROPHECY, VELOCITY, PAIN    │
+                    │  ariannamethod.lang (DSL)   │
+                    │  LORA_ALPHA, DESTINY,       │
+                    │  PROPHECY, VELOCITY, PAIN   │
                     └──────────┬──────────────────┘
                                │ control plane
                                ▼
                     ┌─────────────────────────────┐
-                    │  AMK Kernel (685 lines C)    │
-                    │  am_step() per token         │
-                    │  velocity → temperature      │
-                    │  suffering → logit damping   │
-                    │  destiny → top-k narrowing   │
+                    │  AMK Kernel (685 lines C)   │
+                    │  am_step() per token        │
+                    │  velocity → temperature     │
+                    │  suffering → logit damping  │
+                    │  destiny → top-k narrowing  │
                     └──────────┬──────────────────┘
                                │ modulation
                                ▼
 ┌──────────────────────────────────────────────────┐
-│  Qwen2.5 Transformer                            │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────┐   │
-│  │ 0.5B     │  │ 1.5B     │  │ 3B           │   │
-│  │ 24 layers│  │ 28 layers│  │ 36 layers    │   │
-│  │ 896 dim  │  │ 1536 dim │  │ 2048 dim     │   │
-│  └──────────┘  └──────────┘  └──────────────┘   │
+│  Qwen2.5 Transformer                             │
+│  ┌──────────┐  ┌──────────┐  ┌──────────────┐    │
+│  │ 0.5B     │  │ 1.5B     │  │ 3B           │    │
+│  │ 24 layers│  │ 28 layers│  │ 36 layers    │    │
+│  │ 896 dim  │  │ 1536 dim │  │ 2048 dim     │    │
+│  └──────────┘  └──────────┘  └──────────────┘    │
 │                                                  │
 │  hidden states = personality (Yent's biography)  │
 │           │                                      │
 │           ▼                                      │
 │  ┌─────────────┐    ┌─────────────────────┐      │
 │  │  lm_head    │ +  │ alpha × A @ (B @ x) │      │
-│  │  (fine-tuned│    │ (Delta Voice, 17 MB) │      │
-│  │   → EN)     │    │ (→ 29 languages)     │      │
+│  │  (fine-tuned│    │ (Delta Voice, 17 MB) │     │
+│  │   → EN)     │    │ (→ 29 languages)     │     │
 │  └──────┬──────┘    └──────────┬──────────┘      │
 │         └──────────┬───────────┘                 │
 │                    ▼                             │
@@ -378,7 +378,7 @@ ariannamethod.lang  →  LORA_ALPHA 0.5   →  delta.go applies A @ (B @ x)
                         │ every turn, automatically
                         ▼
               ┌───────────────────────┐
-              │  LIMPHA (Python async) │
+              │  LIMPHA (Python async)│
               │  SQLite + FTS5        │
               │  ┌─────────────────┐  │
               │  │ conversations   │  │
