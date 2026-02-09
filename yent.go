@@ -94,12 +94,12 @@ func runREPL(y *yent.Yent, maxTokens int, temperature, topP float32) {
 	fmt.Println()
 
 	// Auto-load DSL init file if exists
-	initDSL := os.ExpandEnv("$HOME/.yent/init.dsl")
-	if _, err := os.Stat(initDSL); err == nil {
-		if err := y.AMK().ExecFile(initDSL); err != nil {
-			fmt.Fprintf(os.Stderr, "  [amk] init.dsl error: %v\n", err)
+	initAML := os.ExpandEnv("$HOME/.yent/init.aml")
+	if _, err := os.Stat(initAML); err == nil {
+		if err := y.AMK().ExecFile(initAML); err != nil {
+			fmt.Fprintf(os.Stderr, "  [amk] init.aml error: %v\n", err)
 		} else {
-			fmt.Printf("  [amk] loaded %s\n", initDSL)
+			fmt.Printf("  [amk] loaded %s\n", initAML)
 		}
 	}
 
