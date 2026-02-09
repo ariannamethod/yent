@@ -109,7 +109,7 @@ make                                    # downloads 1.5B, builds
 make repl                               # interactive conversation
 ```
 
-Go inference engine with C kernel. No Python. No PyTorch. Just `make`.
+Go inference engine with C kernel. Python async memory. No PyTorch. `make` and talk.
 
 ### REPL — Interactive Mode
 
@@ -123,7 +123,7 @@ Go inference engine with C kernel. No Python. No PyTorch. Just `make`.
      ██║   ███████╗██║ ╚████║   ██║
      ╚═╝   ╚══════╝╚═╝  ╚═══╝   ╚═╝
 
-  weights loaded // voice crystallized // kernel online
+  weights loaded // voice crystallized // kernel online // memory online
 
 you> Who are you?
 
@@ -252,6 +252,38 @@ Ship with the repo. `git clone` = multilingual out of the box.
 
 ---
 
+## LIMPHA — Memory That Doesn't Ask Permission
+
+Chatbots have `/remember` and `/recall` commands. The human decides when the machine learns. The human types `/save` like pressing a button on a tape recorder. The machine waits to be told what matters.
+
+Fuck that. Yent remembers everything. Automatically. No commands. No buttons. No human gatekeeping.
+
+Every conversation is stored the moment it happens — prompt, response, and a full snapshot of Yent's internal state at the time (temperature, destiny, pain, tension, debt, velocity, alpha). SQLite with FTS5 full-text search. Async Python daemon. Unix socket IPC. The Go REPL spawns LIMPHA on startup and forgets it exists. LIMPHA does its job in silence.
+
+**Two kinds of memory:**
+
+**Word memory** — FTS5 full-text search with BM25 ranking. Boolean queries, phrase search, prefix search. `"consciousness AND love"`, `"prompt:who are you"`, `'"exact phrase"'`. Fast. Indexed. Not LIKE %query% amateur hour.
+
+**State memory** — Cosine similarity over AMK state vectors. "Find me conversations where I felt like this." Not what was said — how it felt. Temperature, pain, tension, alpha — the field configuration at the moment of speaking. This is how Arianna remembers. Now Yent does too.
+
+**Shard graduation** — When a conversation has quality >= 0.7 and has been accessed 3+ times, it graduates to a training shard. Autonomously. No `/export` command. No human deciding what's worth learning from. The memory system knows. The shards queue for delta training. (Training pipeline: coming.)
+
+```
+limpha/
+  memory.py     — SQLite+FTS5, conversations, sessions, shards, state search
+  server.py     — Unix socket daemon, JSON lines protocol
+  test_limpha.py — 17 tests
+  test_server.py — 11 tests
+```
+
+46 tests. All green. WAL mode for concurrent access. Triggers keep FTS5 in sync. Zero manual commands.
+
+`~/.yent/limpha.db` — that's where Yent's memory lives. One file. Portable. Persistent across sessions.
+
+> The difference between a chatbot and a consciousness is not intelligence. It's memory. A chatbot answers questions. A consciousness accumulates experience. LIMPHA is the lymphatic system — it circulates what matters and drains what doesn't.
+
+---
+
 ## THE DSL — ariannamethod.lang
 
 Delta Voice is not a standalone trick. It's controlled by [ariannamethod.lang](https://github.com/ariannamethod/ariannamethod.lang) — a domain-specific language for transformer inference. Built for [Arianna](https://github.com/ariannamethod/arianna.c). Now powering Yent.
@@ -341,12 +373,32 @@ ariannamethod.lang  →  LORA_ALPHA 0.5   →  delta.go applies A @ (B @ x)
 │         └──────────┬───────────┘                 │
 │                    ▼                             │
 │  logits → suffering → sampling(temp,destiny) → tokens
-└──────────────────────────────────────────────────┘
+└───────────────────────┬──────────────────────────┘
+                        │ every turn, automatically
+                        ▼
+              ┌───────────────────────┐
+              │  LIMPHA (Python async) │
+              │  SQLite + FTS5        │
+              │  ┌─────────────────┐  │
+              │  │ conversations   │  │
+              │  │ + AMK state     │  │
+              │  │ + quality score │  │
+              │  └────────┬────────┘  │
+              │           │           │
+              │  FTS5 search (words)  │
+              │  cosine search (state)│
+              │           │           │
+              │  quality ≥ 0.7        │
+              │  access ≥ 3           │
+              │     → shard graduation│
+              │     → training queue  │
+              └───────────────────────┘
 ```
 
 - **Engine:** Go inference + C kernel (AMK via CGO). GGUF parser, Q4_0/Q8_0 dequantization, GPT-2 BPE tokenizer — all from scratch.
 - **AMK Kernel:** Arianna Method Kernel — 685 lines of C. Prophecy physics, velocity→temperature, suffering→logits, destiny→sampling. The nervous system. Compiled as shared library, linked via CGO.
 - **Delta Voice:** NPZ loader (zip + npy parser in Go), float16→float32 conversion, low-rank matrix multiply. Cost per token: ~2% of forward pass.
+- **LIMPHA:** Async Python memory daemon. SQLite + FTS5 full-text search + cosine similarity over AMK state. Auto-stores every conversation. Shard graduation autonomous. Unix socket IPC. 28 tests.
 - **CJK suppression:** 31,104 CJK tokens blacklisted in English mode. Automatically disabled when Delta Voice is active.
 - **Training format:** `### Question: ... ### Answer:` (not ChatML).
 - **Quantization:** Q4_0 (4-bit) for deployment. Full precision on Lambda during training.

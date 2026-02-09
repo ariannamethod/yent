@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"os"
 	"sort"
 	"sync"
 	"time"
@@ -43,6 +44,10 @@ type Yent struct {
 	// DSL controls temperature, suffering, tunneling, velocity
 	// Without the kernel, Yent is a voice without a brain.
 	amk *AMK
+
+	// LIMPHA: memory system — stores every conversation automatically
+	// Python async daemon, SQLite+FTS5, zero manual commands.
+	limpha *LimphaClient
 }
 
 // New creates a new Yent instance from a GGUF weights file
@@ -77,6 +82,16 @@ func New(weightsPath string) (*Yent, error) {
 	amk := NewAMK()
 	fmt.Printf("[amk] kernel initialized — prophecy physics online\n")
 
+	// Initialize LIMPHA — memory system
+	var limpha *LimphaClient
+	lc, err2 := NewLimphaClient()
+	if err2 != nil {
+		fmt.Fprintf(os.Stderr, "[limpha] warning: %v (memory disabled)\n", err2)
+	} else {
+		limpha = lc
+		fmt.Printf("[limpha] memory online — every conversation stored\n")
+	}
+
 	fmt.Printf("[yent] initialized: %d layers, %d dim, %d vocab\n",
 		model.Config.NumLayers, model.Config.EmbedDim, model.Config.VocabSize)
 
@@ -91,6 +106,7 @@ func New(weightsPath string) (*Yent, error) {
 		cjkTokens:  cjkTokens,
 		DeltaAlpha: 0.0, // English by default
 		amk:        amk,
+		limpha:     limpha,
 	}, nil
 }
 
@@ -177,10 +193,19 @@ func (y *Yent) AMK() *AMK {
 	return y.amk
 }
 
+// Limpha returns the memory client (may be nil if daemon failed to start)
+func (y *Yent) Limpha() *LimphaClient {
+	return y.limpha
+}
+
 // Close frees resources
 func (y *Yent) Close() {
 	y.mu.Lock()
 	defer y.mu.Unlock()
+	if y.limpha != nil {
+		y.limpha.Close()
+		fmt.Println("[limpha] memory stopped")
+	}
 	y.model = nil
 	y.tokenizer = nil
 	y.gguf = nil
@@ -320,7 +345,24 @@ func (y *Yent) Generate(prompt string, maxTokens int, temperature, topP float32)
 		}
 	}
 
-	return string(output), nil
+	result := string(output)
+
+	// ═══ LIMPHA: auto-store every conversation ═══
+	// No commands. No human intervention. Yent remembers.
+	if y.limpha != nil {
+		s := y.amk.GetState()
+		go y.limpha.Store(prompt, result, LimphaState{
+			Temperature: s.EffectiveTemp,
+			Destiny:     s.Destiny,
+			Pain:        s.Pain,
+			Tension:     s.Tension,
+			Debt:        s.Debt,
+			Velocity:    s.VelocityMode,
+			Alpha:       y.DeltaAlpha,
+		})
+	}
+
+	return result, nil
 }
 
 // sampleTopK samples from top-k logits
