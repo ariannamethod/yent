@@ -5,3 +5,5 @@ yent/c/libamk.a
 yent/c/*.o
 yent/c/*.dylib
 yent/c/*.so
+__pycache__/
+*.pyc

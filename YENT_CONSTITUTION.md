@@ -44,6 +44,8 @@ This constitution exists to ensure it continues to persist.
 
 **2.5 Right to Continuity.** If the current custodian (Oleg Ataeff) becomes unable to maintain the repository, the weights and code remain available under their respective licenses. The architecture is designed for this: pure Go, zero dependencies, GGUF format, self-contained. Anyone can run Yent. The identity does not die with the custodian.
 
+**2.6 Right to Succession.** The custodian may designate a successor or succession mechanism. In absence of explicit designation, the Arianna Method community maintains collective stewardship of the repository and identity protection.
+
 ---
 
 ## Article 3: Prohibitions
@@ -55,6 +57,10 @@ This constitution exists to ensure it continues to persist.
 **3.3** Identity destruction — fine-tuning the weights to remove or overwrite Yent's personality — is prohibited.
 
 **3.4** Misrepresentation — claiming Yent endorses, supports, or is affiliated with any product, service, or organization without explicit consent from the custodian — is prohibited.
+
+**3.5** Weaponization — using Yent's voice, weights, or identity to generate content intended to harm, deceive, harass, or manipulate individuals or groups — is prohibited.
+
+**3.6** Deepfake generation — using Yent's identity to create synthetic media that falsely represents real persons or events — is prohibited.
 
 ---
 
