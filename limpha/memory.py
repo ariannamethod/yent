@@ -210,6 +210,7 @@ class LimphaMemory:
         now = time.time()
         quality = self._compute_quality(prompt, response, amk_state)
 
+        # Single transaction for atomicity — both INSERT and UPDATE in one commit
         cursor = await self._conn.execute(
             """INSERT INTO conversations
             (timestamp, session_id, prompt, response,
@@ -231,10 +232,9 @@ class LimphaMemory:
                 quality,
             ),
         )
-        await self._conn.commit()
         conv_id = cursor.lastrowid
 
-        # Update session
+        # Update session in same transaction
         await self._conn.execute(
             """UPDATE sessions SET
                 last_active = ?,
@@ -288,6 +288,71 @@ class LimphaMemory:
 
         # Clamp
         return max(0.0, min(1.0, quality))
+
+    async def store_batch(
+        self,
+        conversations: List[Dict[str, Any]],
+    ) -> List[int]:
+        """
+        Store multiple conversation turns in a single transaction.
+        More efficient than calling store() in a loop.
+
+        Each dict should have: prompt, response, and optionally state (AMK state dict).
+        Returns list of conversation IDs.
+        """
+        if not conversations:
+            return []
+
+        now = time.time()
+        ids = []
+
+        for conv in conversations:
+            prompt = conv.get("prompt", "")
+            response = conv.get("response", "")
+            amk_state = conv.get("state", {})
+            quality = self._compute_quality(prompt, response, amk_state)
+
+            cursor = await self._conn.execute(
+                """INSERT INTO conversations
+                (timestamp, session_id, prompt, response,
+                 temperature, destiny, pain, tension, debt, velocity, alpha,
+                 quality)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    now,
+                    self._session_id,
+                    prompt,
+                    response,
+                    amk_state.get("temperature", 0.0),
+                    amk_state.get("destiny", 0.0),
+                    amk_state.get("pain", 0.0),
+                    amk_state.get("tension", 0.0),
+                    amk_state.get("debt", 0.0),
+                    amk_state.get("velocity", 1),
+                    amk_state.get("alpha", 0.0),
+                    quality,
+                ),
+            )
+            ids.append(cursor.lastrowid)
+
+        # Update session once for all conversations
+        count = len(conversations)
+        avg_quality = sum(
+            self._compute_quality(c.get("prompt", ""), c.get("response", ""), c.get("state", {}))
+            for c in conversations
+        ) / count if count > 0 else 0.0
+
+        await self._conn.execute(
+            """UPDATE sessions SET
+                last_active = ?,
+                turn_count = turn_count + ?,
+                avg_quality = (avg_quality * turn_count + ? * ?) / (turn_count + ?)
+            WHERE session_id = ?""",
+            (now, count, avg_quality, count, count, self._session_id),
+        )
+        await self._conn.commit()
+
+        return ids
 
     # ═══════════════════════════════════════════════════════════════════════
     # SEARCH — FTS5 full-text search
@@ -466,6 +531,8 @@ class LimphaMemory:
 
         state: dict with keys temperature, destiny, pain, tension, debt, alpha
         Returns conversations sorted by similarity (closest first).
+
+        Uses chunked async processing for large result sets to avoid blocking.
         """
         query_vec = self._state_to_vector(state)
 
@@ -480,13 +547,20 @@ class LimphaMemory:
         if not rows:
             return []
 
+        # Process in chunks to yield control back to event loop for large datasets
         scored = []
-        for row in rows:
-            row_dict = dict(row)
-            row_vec = self._state_to_vector(row_dict)
-            distance = _cosine_distance(query_vec, row_vec)
-            row_dict["distance"] = distance
-            scored.append((distance, row_dict))
+        chunk_size = 100
+        for i in range(0, len(rows), chunk_size):
+            chunk = rows[i:i + chunk_size]
+            for row in chunk:
+                row_dict = dict(row)
+                row_vec = self._state_to_vector(row_dict)
+                distance = _cosine_distance(query_vec, row_vec)
+                row_dict["distance"] = distance
+                scored.append((distance, row_dict))
+            # Yield control to event loop between chunks
+            if i + chunk_size < len(rows):
+                await asyncio.sleep(0)
 
         scored.sort(key=lambda x: x[0])
         return [item[1] for item in scored[:top_k]]
