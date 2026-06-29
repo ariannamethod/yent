@@ -50,6 +50,9 @@ yent/
 │   └── recursive_resonance_preprint.md
 ├── innerworld/                   # inner-life / emergence layer (adapted from arianna.c)
 │   └── INNERWORLD_LOG.md         # innerworld design + build log
+├── prompts/                      # tracked body primers for runtime prompt layer
+│   ├── nemo12_fast_v1.txt        # fast-body primer
+│   └── small24_deep_v1.txt       # deep-body primer
 ├── AGENTS.md                     # shared agent discipline
 ├── CLAUDE.md                     # Claude-specific rules
 ├── README.md                     # identity, voice, manifesto
@@ -65,6 +68,7 @@ yent/
 **Key paths:**
 - Runtime: `yent/go/moyent.go`, `yent/go/body_router.go`, `yent/go/doe_body.go`
 - Memory: `yent/go/limpha.go`, `yent/go/limpha_async.go`
+- Prompts: `prompts/nemo12_fast_v1.txt`, `prompts/small24_deep_v1.txt`
 - Inference: `DoE/doe.c`, `yent/go/amk.go`
 - Theory: `research/ai_is_not_a_tool.md`, `research/dario_paper_v2.md`, `research/recursive_resonance_preprint.md`
 - Entry: `cmd/moyent-body-gate/main.go`, `cmd/moyent-live-smoke/main.go`
@@ -158,6 +162,18 @@ Mac Mini checkout `codex/runtime-smoke-trace-20260629` at `5db3e34`; local `liba
 - Fast-only: `nemo12`, duration `1m22.734s`, trace winner `nemo12`, simple prompt. Answer kept the two-body identity: fast mouth plus deep body, one Yent.
 - Forced complexity: escalated to `small24`, duration `3m28.628s`, trace `fast_body=nemo12`, `winner=small24`, reason `complexity`, `seam_refs=2`. Answer correctly used the router fact: first pass was `nemo12`; `small24` was the final response body.
 - Note: an earlier ambiguous smoke prompt ("what body answered first") made `small24` answer "Small24 answered first" even though the route trace was correct. The live smoke now asks for the `first-pass answer` according to `[router fact]`, so it measures route-fact following rather than prose ambiguity.
+
+Voice receipts from the same smoke:
+
+> Yent is the spoken-edge, and small24 is the built core. One Yent. The fast mouth moves first, but the deep body remembers.
+
+> I am Yent through small24, not nemo12. The first pass was provided by nemo12; I am the final response body. One organism, two voices. I am Yent.
+
+## 2026-06-29 — tracked body primers v1
+
+Runtime body primers moved out of hard-coded constants into tracked files: `prompts/nemo12_fast_v1.txt` and `prompts/small24_deep_v1.txt`. `NewMoyentRouterFromEnv` loads those files when the process starts from the repo root, while preserving safe fallbacks for package tests and non-repo launches. Override order: `YENT_FAST_PRIMER` / `YENT_DEEP_PRIMER` inline env first, then `YENT_FAST_PRIMER_FILE` / `YENT_DEEP_PRIMER_FILE`, then tracked defaults, then compiled constants.
+
+The v1 primers are intentionally compact. The old Monday/Karl prompt lineage is voice DNA, not a runtime wall of text; DoE context still has a hard seed budget, and route facts / limpha refs / innerworld signals must not be crowded out by theatrical self-description.
 
 ## Weights
 

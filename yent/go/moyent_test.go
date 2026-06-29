@@ -1,6 +1,8 @@
 package yent
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -11,8 +13,8 @@ func clearMoyentEnv(t *testing.T) {
 	for _, name := range []string{
 		envDOEBin, envNemoGGUF, envDeepGGUF, envDeepGGUFAlt, envDOEWorkDir,
 		envDOEArgs, envNemoArgs, envDeepArgs, envDOETimeout, envDOEPrime,
-		envEscalateBelow, envFastPrimer, envDeepPrimer, envMemoryRefs, envStateRefs,
-		envAsyncMemory, envSingleBody,
+		envEscalateBelow, envFastPrimer, envDeepPrimer, envFastPrimerFile,
+		envDeepPrimerFile, envMemoryRefs, envStateRefs, envAsyncMemory, envSingleBody,
 	} {
 		t.Setenv(name, "")
 	}
@@ -115,6 +117,43 @@ func TestNewMoyentRouterFromEnvBuildsRealDOEBodies(t *testing.T) {
 	s, _ := lc.Stats()
 	if s["total_conversations"].(int64) != 1 {
 		t.Fatalf("async limpha did not persist route turn: %v", s)
+	}
+}
+
+func TestNewMoyentRouterFromEnvLoadsPrimerFiles(t *testing.T) {
+	clearMoyentEnv(t)
+	fake := writeFakeDOE(t, fakeDOEScript())
+	setMoyentEnv(t, fake)
+	dir := t.TempDir()
+	fastPath := filepath.Join(dir, "fast.txt")
+	deepPath := filepath.Join(dir, "deep.txt")
+	if err := os.WriteFile(fastPath, []byte("fast\n primer\tfrom file"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(deepPath, []byte("deep\n primer\tfrom file"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv(envFastPrimerFile, fastPath)
+	t.Setenv(envDeepPrimerFile, deepPath)
+
+	r, cleanup, err := NewMoyentRouterFromEnv(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	if r.FastPrimer != "fast primer from file" || r.DeepPrimer != "deep primer from file" {
+		t.Fatalf("primer files not loaded/normalized: fast=%q deep=%q", r.FastPrimer, r.DeepPrimer)
+	}
+
+	t.Setenv(envFastPrimer, "inline fast primer")
+	r, cleanup, err = NewMoyentRouterFromEnv(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+	if r.FastPrimer != "inline fast primer" {
+		t.Fatalf("inline env primer must override file: %q", r.FastPrimer)
 	}
 }
 

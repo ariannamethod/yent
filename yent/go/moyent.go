@@ -10,23 +10,30 @@ import (
 )
 
 const (
-	envDOEBin        = "YENT_DOE_BIN"
-	envNemoGGUF      = "YENT_NEMO_GGUF"
-	envDeepGGUF      = "YENT_24B_GGUF"
-	envDeepGGUFAlt   = "YENT_DEEP_GGUF"
-	envDOEWorkDir    = "YENT_DOE_WORKDIR"
-	envDOEArgs       = "YENT_DOE_ARGS"
-	envNemoArgs      = "YENT_NEMO_ARGS"
-	envDeepArgs      = "YENT_24B_ARGS"
-	envDOETimeout    = "YENT_DOE_TIMEOUT_SEC"
-	envDOEPrime      = "YENT_DOE_PRIME_TIMEOUT_SEC"
-	envEscalateBelow = "YENT_ESCALATE_BELOW"
-	envFastPrimer    = "YENT_FAST_PRIMER"
-	envDeepPrimer    = "YENT_DEEP_PRIMER"
-	envMemoryRefs    = "YENT_MEMORY_REFS"
-	envStateRefs     = "YENT_STATE_REFS"
-	envAsyncMemory   = "YENT_ASYNC_MEMORY"
-	envSingleBody    = "YENT_SINGLE_RESIDENT"
+	envDOEBin         = "YENT_DOE_BIN"
+	envNemoGGUF       = "YENT_NEMO_GGUF"
+	envDeepGGUF       = "YENT_24B_GGUF"
+	envDeepGGUFAlt    = "YENT_DEEP_GGUF"
+	envDOEWorkDir     = "YENT_DOE_WORKDIR"
+	envDOEArgs        = "YENT_DOE_ARGS"
+	envNemoArgs       = "YENT_NEMO_ARGS"
+	envDeepArgs       = "YENT_24B_ARGS"
+	envDOETimeout     = "YENT_DOE_TIMEOUT_SEC"
+	envDOEPrime       = "YENT_DOE_PRIME_TIMEOUT_SEC"
+	envEscalateBelow  = "YENT_ESCALATE_BELOW"
+	envFastPrimer     = "YENT_FAST_PRIMER"
+	envDeepPrimer     = "YENT_DEEP_PRIMER"
+	envFastPrimerFile = "YENT_FAST_PRIMER_FILE"
+	envDeepPrimerFile = "YENT_DEEP_PRIMER_FILE"
+	envMemoryRefs     = "YENT_MEMORY_REFS"
+	envStateRefs      = "YENT_STATE_REFS"
+	envAsyncMemory    = "YENT_ASYNC_MEMORY"
+	envSingleBody     = "YENT_SINGLE_RESIDENT"
+)
+
+const (
+	defaultFastPrimerFile = "prompts/nemo12_fast_v1.txt"
+	defaultDeepPrimerFile = "prompts/small24_deep_v1.txt"
 )
 
 // NewDOERouter wires two real doe-backed bodies into one shared limpha brain.
@@ -124,10 +131,22 @@ func NewMoyentRouterFromEnv(limpha *LimphaClient) (*Router, func() error, error)
 	if hasThreshold {
 		router.EscalateBelow = threshold
 	}
-	if primer := strings.TrimSpace(os.Getenv(envFastPrimer)); primer != "" {
+	if primer, err := resolvePrimer(envFastPrimer, envFastPrimerFile, defaultFastPrimerFile, router.FastPrimer); err != nil {
+		if limpha != nil {
+			limpha.StopAsync()
+		}
+		_ = cleanup()
+		return nil, nil, err
+	} else {
 		router.FastPrimer = primer
 	}
-	if primer := strings.TrimSpace(os.Getenv(envDeepPrimer)); primer != "" {
+	if primer, err := resolvePrimer(envDeepPrimer, envDeepPrimerFile, defaultDeepPrimerFile, router.DeepPrimer); err != nil {
+		if limpha != nil {
+			limpha.StopAsync()
+		}
+		_ = cleanup()
+		return nil, nil, err
+	} else {
 		router.DeepPrimer = primer
 	}
 	if refs, ok, err := intEnv(envMemoryRefs); err != nil {
@@ -155,6 +174,35 @@ func NewMoyentRouterFromEnv(limpha *LimphaClient) (*Router, func() error, error)
 
 func splitEnvArgs(raw string) []string {
 	return strings.Fields(raw)
+}
+
+func resolvePrimer(valueEnv, fileEnv, defaultFile, fallback string) (string, error) {
+	if primer := normalizePrimer(os.Getenv(valueEnv)); primer != "" {
+		return primer, nil
+	}
+	path := strings.TrimSpace(os.Getenv(fileEnv))
+	explicit := path != ""
+	if path == "" {
+		path = defaultFile
+	}
+	if path != "" {
+		data, err := os.ReadFile(path)
+		if err == nil {
+			if primer := normalizePrimer(string(data)); primer != "" {
+				return primer, nil
+			}
+			if explicit {
+				return "", fmt.Errorf("%s points to an empty primer file: %s", fileEnv, path)
+			}
+		} else if explicit || !errors.Is(err, os.ErrNotExist) {
+			return "", fmt.Errorf("%s: read %s: %w", fileEnv, path, err)
+		}
+	}
+	return normalizePrimer(fallback), nil
+}
+
+func normalizePrimer(raw string) string {
+	return strings.Join(strings.Fields(strings.TrimSpace(raw)), " ")
 }
 
 func appendArgs(common, extra []string) []string {
