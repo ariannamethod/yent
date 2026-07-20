@@ -6,6 +6,17 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-20 - interface replay fixture
+
+- Added a deterministic browser replay helper for `/yent` and `/worldmodel`.
+- Replay is opt-in only through query parameters such as `?replay=1`; normal
+  `/chat/completions` streaming is unchanged.
+- The fixture emits the same token event shape used by real SSE generation,
+  including bounded candidate telemetry, so both interfaces exercise their
+  real `onToken` paths during audits.
+- Replay mode does not load from or write to the shared `sessionStorage`
+  interface receipt.
+
 ## Repository Map
 
 ```

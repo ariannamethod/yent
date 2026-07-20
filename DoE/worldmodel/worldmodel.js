@@ -32,11 +32,15 @@ const chatStream = window.YentChatStream;
 if (!chatStream) throw new Error('YentChatStream helper missing');
 const tokenTelemetry = window.YentTokenTelemetry;
 if (!tokenTelemetry) throw new Error('YentTokenTelemetry helper missing');
+const interfaceReplay = window.YentInterfaceReplay;
+if (!interfaceReplay) throw new Error('YentInterfaceReplay helper missing');
 const worldGeometry = window.YentWorldmodelGeometry;
 if (!worldGeometry) throw new Error('YentWorldmodelGeometry helper missing');
 const interfaceRun = window.YentInterfaceRun;
 if (!interfaceRun) throw new Error('YentInterfaceRun helper missing');
 const generationRun = interfaceRun.create({ button: sendButton });
+const replayRequest = interfaceReplay.request(window.location);
+const replayMode = replayRequest.enabled;
 
 const state = {
   debt: 0.0,
@@ -94,6 +98,7 @@ function loadInterfaceSession() {
 }
 
 function saveInterfaceSession(nextMessages, force = false) {
+  if (replayMode) return;
   try {
     const now = Date.now();
     if (!force && now - lastSessionSaveAt < 250) return;
@@ -565,6 +570,7 @@ function setManifestText(text) {
 }
 
 function restoreInterfaceSession() {
+  if (replayMode) return;
   const restored = loadInterfaceSession();
   if (!restored.length) return;
 
@@ -625,7 +631,13 @@ async function generate(text) {
   try {
     const maxTokens = clamp(parseInt(document.getElementById('max-tokens').value, 10) || 512, 1, 512);
     const temp = clamp(parseFloat(document.getElementById('temp').value) || 0.8, 0, 2);
-    await chatStream.stream({
+    const stream = replayMode
+      ? options => interfaceReplay.play(Object.assign({}, options, {
+        scenario: replayRequest.name,
+        delayMs: replayRequest.delayMs
+      }))
+      : options => chatStream.stream(options);
+    await stream({
       messages,
       temperature: temp,
       maxTokens,
@@ -661,6 +673,14 @@ async function generate(text) {
   }
 }
 
+function startReplayIfRequested() {
+  if (!replayMode) return;
+  promptInput.value = replayRequest.prompt;
+  setTimeout(() => {
+    if (!generationRun.isRunning()) generate(replayRequest.prompt);
+  }, 120);
+}
+
 generationRun.bindComposer(composer, promptInput, generate);
 
 window.addEventListener('keydown', event => {
@@ -676,3 +696,4 @@ window.addEventListener('resize', resize);
 restoreInterfaceSession();
 resize();
 requestAnimationFrame(animate);
+startReplayIfRequested();
