@@ -119,6 +119,18 @@ Yent worldmodel interface log.
   is present and also checks script order plus the no-`messages = restored`
   boundary.
 
+## 2026-07-20 - deterministic replay fixture
+
+- Added `worldmodel/interface_replay.js` as a query-param-only audit fixture for
+  both `/yent` and `/worldmodel`.
+- `?replay=1` or `?demo=1` plays a bounded deterministic token stream through
+  the same page `onToken` handlers used by live generation.
+- Replay events include selected probability/rank, candidate tail mass, and
+  `top_tokens`, so Janus face and walkable field physics can be checked without
+  relying on a live model run.
+- Replay mode deliberately skips local interface receipt load/save, keeping
+  browser continuity reserved for real user/model turns.
+
 ## 2026-07-20 - shared event stream parser
 
 - Moved chunked SSE event parsing into `worldmodel/event_stream.js`.

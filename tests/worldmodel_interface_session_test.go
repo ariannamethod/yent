@@ -18,6 +18,7 @@ func TestWorldmodelInterfaceSessionHelper(t *testing.T) {
 		filepath.Join(root, "DoE", "worldmodel", "event_stream.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "chat_stream.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "token_telemetry.test.cjs"),
+		filepath.Join(root, "DoE", "worldmodel", "interface_replay.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_run.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "worldmodel_geometry.test.cjs"),
 	} {
@@ -43,6 +44,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/event_stream.js",
 		"/worldmodel/chat_stream.js",
 		"/worldmodel/token_telemetry.js",
+		"/worldmodel/interface_replay.js",
 		"/worldmodel/interface_run.js",
 		"/worldmodel/yent.js")
 	assertScriptOrder(t, "worldmodel.html", worldHTML,
@@ -50,6 +52,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/event_stream.js",
 		"/worldmodel/chat_stream.js",
 		"/worldmodel/token_telemetry.js",
+		"/worldmodel/interface_replay.js",
 		"/worldmodel/interface_run.js",
 		"/worldmodel/worldmodel_geometry.js",
 		"/worldmodel/worldmodel.js")
@@ -70,6 +73,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(doeC, `"worldmodel/token_telemetry.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist token_telemetry.js")
 	}
+	if !strings.Contains(doeC, `"/worldmodel/interface_replay.js"`) ||
+		!strings.Contains(doeC, `"worldmodel/interface_replay.js not found"`) {
+		t.Fatalf("DoE server does not explicitly whitelist interface_replay.js")
+	}
 	if !strings.Contains(doeC, `"/worldmodel/interface_run.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_run.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist interface_run.js")
@@ -77,6 +84,9 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(doeC, `"/worldmodel/worldmodel_geometry.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/worldmodel_geometry.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist worldmodel_geometry.js")
+	}
+	if !strings.Contains(doeC, `strchr(path, '?')`) {
+		t.Fatalf("DoE server does not strip query strings before static route matching")
 	}
 
 	for _, tc := range []struct {
@@ -98,8 +108,17 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if !strings.Contains(tc.src, "window.YentTokenTelemetry") {
 			t.Fatalf("%s does not use the shared token telemetry helper", tc.name)
 		}
+		if !strings.Contains(tc.src, "window.YentInterfaceReplay") {
+			t.Fatalf("%s does not use the shared interface replay helper", tc.name)
+		}
 		if !strings.Contains(tc.src, "window.YentInterfaceRun") {
 			t.Fatalf("%s does not use the shared interface run helper", tc.name)
+		}
+		if !strings.Contains(tc.src, "interfaceReplay.play(") {
+			t.Fatalf("%s does not route replay through the shared replay helper", tc.name)
+		}
+		if !strings.Contains(tc.src, "if (replayMode) return") {
+			t.Fatalf("%s does not guard session continuity during replay", tc.name)
 		}
 		if !strings.Contains(tc.src, "chatStream.outcome(") {
 			t.Fatalf("%s does not use the shared chat stream outcome classifier", tc.name)
