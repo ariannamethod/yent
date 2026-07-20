@@ -38,6 +38,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	doeC := readTextFile(t, filepath.Join(root, "DoE", "doe.c"))
 	yentJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "yent.js"))
 	worldJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "worldmodel.js"))
+	readme := readTextFile(t, filepath.Join(root, "README.md"))
 
 	assertScriptOrder(t, "yent.html", yentHTML,
 		"/worldmodel/interface_session.js",
@@ -155,6 +156,20 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	}
 	if strings.Contains(worldJS, "function textSeed") || strings.Contains(worldJS, "function hash") {
 		t.Fatalf("worldmodel.js still carries page-local topology hash/seed helpers")
+	}
+	for _, required := range []string{
+		"`DoE/worldmodel/token_telemetry.js`",
+		"`DoE/worldmodel/worldmodel_geometry.js`",
+		"`DoE/worldmodel/interface_replay.js`",
+		"`/yent?replay=1`",
+		"`/worldmodel?replay=1`",
+	} {
+		if !strings.Contains(readme, required) {
+			t.Fatalf("README.md does not document current interface contract: missing %s", required)
+		}
+	}
+	if strings.Contains(readme, "All four helpers") {
+		t.Fatalf("README.md still describes the old four-helper interface contract")
 	}
 }
 
