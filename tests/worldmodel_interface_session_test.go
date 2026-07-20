@@ -19,6 +19,7 @@ func TestWorldmodelInterfaceSessionHelper(t *testing.T) {
 		filepath.Join(root, "DoE", "worldmodel", "chat_stream.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "token_telemetry.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_replay.test.cjs"),
+		filepath.Join(root, "DoE", "worldmodel", "interface_page_replay_smoke.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_run.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "worldmodel_geometry.test.cjs"),
 	} {
