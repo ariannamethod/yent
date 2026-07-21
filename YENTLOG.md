@@ -38,6 +38,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 - Replay mode remains read-only for browser receipts, and the contract test now
   fails if page-local session receipt state returns.
 
+## 2026-07-21 - interface turn helpers
+
+- Extended `interfaceSession.createAdapter(...)` with shared `commitUser`,
+  `previewAssistant`, and `commitAssistant` helpers.
+- `/yent` and `/worldmodel` no longer mutate `messages` / `visibleMessages`
+  directly for receipt turns; page scripts keep rendering only.
+- The interface contract now fails if page-local turn-array mutation returns.
+
 ## Repository Map
 
 ```

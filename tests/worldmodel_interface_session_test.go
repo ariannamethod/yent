@@ -104,6 +104,15 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if !strings.Contains(tc.src, "interfaceSession.createAdapter") {
 			t.Fatalf("%s does not use the shared replay-aware session adapter", tc.name)
 		}
+		for _, required := range []string{
+			"sessionReceipt.commitUser(",
+			"sessionReceipt.previewAssistant(",
+			"sessionReceipt.commitAssistant(",
+		} {
+			if !strings.Contains(tc.src, required) {
+				t.Fatalf("%s does not use shared session turn helper %s", tc.name, required)
+			}
+		}
 		if !strings.Contains(tc.src, "window.YentEventStream") {
 			t.Fatalf("%s does not use the shared event stream helper", tc.name)
 		}
@@ -136,6 +145,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			strings.Contains(tc.src, "function loadInterfaceSession") ||
 			strings.Contains(tc.src, "function normalizeSessionMessages") {
 			t.Fatalf("%s still carries page-local session receipt state", tc.name)
+		}
+		if strings.Contains(tc.src, "messages.push") ||
+			strings.Contains(tc.src, "visibleMessages.push") {
+			t.Fatalf("%s still mutates session turn arrays locally", tc.name)
 		}
 		if strings.Contains(tc.src, "function parseSseEvents") || strings.Contains(tc.src, "sseBuffer") {
 			t.Fatalf("%s still carries a page-local SSE parser", tc.name)
