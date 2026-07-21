@@ -101,6 +101,9 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if !strings.Contains(tc.src, "window.YentInterfaceSession") {
 			t.Fatalf("%s does not use the shared interface session helper", tc.name)
 		}
+		if !strings.Contains(tc.src, "interfaceSession.createAdapter") {
+			t.Fatalf("%s does not use the shared replay-aware session adapter", tc.name)
+		}
 		if !strings.Contains(tc.src, "window.YentEventStream") {
 			t.Fatalf("%s does not use the shared event stream helper", tc.name)
 		}
@@ -127,6 +130,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		}
 		if strings.Contains(tc.src, "messages = restored") {
 			t.Fatalf("%s repopulates prompt messages from restored UI receipt", tc.name)
+		}
+		if strings.Contains(tc.src, "lastSessionSaveAt") ||
+			strings.Contains(tc.src, "function saveInterfaceSession") ||
+			strings.Contains(tc.src, "function loadInterfaceSession") ||
+			strings.Contains(tc.src, "function normalizeSessionMessages") {
+			t.Fatalf("%s still carries page-local session receipt state", tc.name)
 		}
 		if strings.Contains(tc.src, "function parseSseEvents") || strings.Contains(tc.src, "sseBuffer") {
 			t.Fatalf("%s still carries a page-local SSE parser", tc.name)

@@ -41,6 +41,7 @@ if (!interfaceRun) throw new Error('YentInterfaceRun helper missing');
 const generationRun = interfaceRun.create({ button: sendButton });
 const replayRequest = interfaceReplay.request(window.location);
 const replayMode = replayRequest.enabled;
+const sessionReceipt = interfaceSession.createAdapter({ storage: sessionStorage, replayMode });
 
 const state = {
   debt: 0.0,
@@ -77,7 +78,6 @@ let messages = [];
 let visibleMessages = [];
 let tokenCount = 0;
 let startTime = 0;
-let lastSessionSaveAt = 0;
 const keys = Object.create(null);
 const geometry = worldGeometry.create({ seed: state.topologySeed });
 
@@ -89,30 +89,12 @@ function mix(a, b, t) {
   return a + (b - a) * t;
 }
 
-function normalizeSessionMessages(source) {
-  return interfaceSession.normalize(source);
-}
-
-function loadInterfaceSession() {
-  return interfaceSession.load(sessionStorage);
-}
-
-function saveInterfaceSession(nextMessages, force = false) {
-  if (replayMode) return;
-  try {
-    const now = Date.now();
-    if (!force && now - lastSessionSaveAt < 250) return;
-    if (interfaceSession.save(sessionStorage, nextMessages)) lastSessionSaveAt = now;
-  } catch (_) {
-  }
-}
-
 function commitAssistantResponse(text) {
   if (!text.trim()) return;
   messages.push({ role: 'assistant', content: text });
   visibleMessages.push({ role: 'assistant', content: text });
-  visibleMessages = normalizeSessionMessages(visibleMessages);
-  saveInterfaceSession(visibleMessages, true);
+  visibleMessages = sessionReceipt.normalize(visibleMessages);
+  sessionReceipt.save(visibleMessages, true);
 }
 
 const hash = worldGeometry.hash;
@@ -571,7 +553,7 @@ function setManifestText(text) {
 
 function restoreInterfaceSession() {
   if (replayMode) return;
-  const restored = loadInterfaceSession();
+  const restored = sessionReceipt.load();
   if (!restored.length) return;
 
   visibleMessages = restored;
@@ -624,8 +606,8 @@ async function generate(text) {
 
   messages.push({ role: 'user', content: text });
   visibleMessages.push({ role: 'user', content: text });
-  visibleMessages = normalizeSessionMessages(visibleMessages);
-  saveInterfaceSession(visibleMessages, true);
+  visibleMessages = sessionReceipt.normalize(visibleMessages);
+  sessionReceipt.save(visibleMessages, true);
   let fullResponse = '';
 
   try {
@@ -645,7 +627,7 @@ async function generate(text) {
       onToken: (token, data) => {
         fullResponse += token;
         setManifestText(fullResponse);
-        saveInterfaceSession(visibleMessages.concat({ role: 'assistant', content: fullResponse }));
+        sessionReceipt.save(visibleMessages.concat({ role: 'assistant', content: fullResponse }));
         absorbToken(token, data);
       }
     });

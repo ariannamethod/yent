@@ -28,6 +28,16 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
   SEND/STOP state while a real generation is active.
 - Added Node coverage for the stale-cleanup boundary.
 
+## 2026-07-21 - interface session adapter
+
+- Moved replay-aware receipt load/save/throttle behavior into
+  `DoE/worldmodel/interface_session.js`.
+- `/yent` and `/worldmodel` now use `interfaceSession.createAdapter(...)`
+  instead of carrying page-local `lastSessionSaveAt` and receipt wrapper
+  functions.
+- Replay mode remains read-only for browser receipts, and the contract test now
+  fails if page-local session receipt state returns.
+
 ## Repository Map
 
 ```

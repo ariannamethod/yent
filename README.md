@@ -389,8 +389,10 @@ UI continuity only, not limpha, prompt memory, sampler state, or model-side
 persistence. The HTML entry surfaces live at the repository root as `yent.html`
 and `worldmodel.html`; the DoE server resolves them there when launched from
 `DoE/doe_field`. Their shared browser receipt helper lives at
-`DoE/worldmodel/interface_session.js`, and their shared SSE token parser lives
-at `DoE/worldmodel/event_stream.js`. Their shared `/chat/completions` browser
+`DoE/worldmodel/interface_session.js`; it owns receipt normalization, replay
+read-only mode, and throttled session writes for both surfaces. Their shared
+SSE token parser lives at `DoE/worldmodel/event_stream.js`. Their shared
+`/chat/completions` browser
 transport lives at `DoE/worldmodel/chat_stream.js`, so both surfaces use the
 same fetch/body/reader/decoder loop and only keep page-specific token effects.
 That transport clamps browser request parameters, treats SSE `error` events as
