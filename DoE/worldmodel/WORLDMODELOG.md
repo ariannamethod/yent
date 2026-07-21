@@ -134,6 +134,15 @@ Yent worldmodel interface log.
   mocked browser surface and confirms that replay reaches COMPLETE without
   using network transport or persisting a receipt.
 
+## 2026-07-21 - run finish token boundary
+
+- Tightened `worldmodel/interface_run.js` so only the currently active run token
+  returned by `begin()` can finish the shared generation controller.
+- Stale, malformed, missing, or duplicate `finish()` calls now return `false`
+  without resetting `running`, `aborter`, or the SEND/STOP button state.
+- This protects JANUS and WORLD from future async cleanup drift where an old
+  callback could make a live generation look idle.
+
 ## 2026-07-20 - shared event stream parser
 
 - Moved chunked SSE event parsing into `worldmodel/event_stream.js`.

@@ -37,7 +37,7 @@
     }
 
     function finish(run) {
-      if (run && Number.isFinite(run.id) && run.id !== runId) return false;
+      if (!running || !run || !Number.isFinite(run.id) || run.id !== runId) return false;
       running = false;
       aborter = null;
       setButton(button, idleText);

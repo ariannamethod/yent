@@ -20,6 +20,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
   with mocked DOM/canvas, verifies replay completion on both surfaces, and
   asserts that replay does not call `fetch` or write the local receipt.
 
+## 2026-07-21 - interface run finish boundary
+
+- Tightened the shared `/yent` + `/worldmodel` generation controller so
+  `finish()` only accepts the active run token returned by `begin()`.
+- Missing, malformed, stale, or duplicate finish calls no longer reset the
+  SEND/STOP state while a real generation is active.
+- Added Node coverage for the stale-cleanup boundary.
+
 ## Repository Map
 
 ```
