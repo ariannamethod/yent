@@ -143,6 +143,15 @@ Yent worldmodel interface log.
 - This protects JANUS and WORLD from future async cleanup drift where an old
   callback could make a live generation look idle.
 
+## 2026-07-21 - shared session receipt adapter
+
+- Added `interfaceSession.createAdapter(...)` to centralize browser receipt
+  normalization, replay read-only behavior, and throttled writes.
+- Removed page-local receipt wrappers and `lastSessionSaveAt` from `yent.js`
+  and `worldmodel.js`.
+- The Go interface contract now checks that both surfaces use the adapter and
+  do not reintroduce local session receipt state.
+
 ## 2026-07-20 - shared event stream parser
 
 - Moved chunked SSE event parsing into `worldmodel/event_stream.js`.

@@ -64,13 +64,41 @@
     }
   }
 
+  function createAdapter(options) {
+    options = options || {};
+    const storage = storageOrDefault(options.storage);
+    const replayMode = !!(options.replayMode || options.replay);
+    const now = typeof options.now === 'function' ? options.now : () => Date.now();
+    const saveIntervalMs = Number.isFinite(options.saveIntervalMs)
+      ? Math.max(0, Math.floor(options.saveIntervalMs))
+      : 250;
+    let lastSaveAt = 0;
+
+    return {
+      normalize: source => normalize(source, options),
+      load() {
+        if (replayMode) return [];
+        return load(storage, options);
+      },
+      save(nextMessages, force = false) {
+        if (replayMode) return false;
+        const at = now();
+        if (!force && at - lastSaveAt < saveIntervalMs) return false;
+        if (!save(storage, nextMessages, options)) return false;
+        lastSaveAt = at;
+        return true;
+      }
+    };
+  }
+
   const api = {
     KEY: DEFAULT_KEY,
     LIMIT: DEFAULT_LIMIT,
     CONTENT_LIMIT: DEFAULT_CONTENT_LIMIT,
     normalize,
     load,
-    save
+    save,
+    createAdapter
   };
 
   root.YentInterfaceSession = api;
