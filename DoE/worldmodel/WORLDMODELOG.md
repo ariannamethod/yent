@@ -152,6 +152,15 @@ Yent worldmodel interface log.
 - The Go interface contract now checks that both surfaces use the adapter and
   do not reintroduce local session receipt state.
 
+## 2026-07-21 - shared turn receipt helpers
+
+- Added adapter-level user turn, partial assistant preview, and final assistant
+  commit helpers.
+- JANUS and WORLD now update model/visible turn arrays through the same helper
+  contract while keeping their own transcript and manifest rendering.
+- The contract test rejects page-local `messages.push` /
+  `visibleMessages.push` receipt mutations.
+
 ## 2026-07-20 - shared event stream parser
 
 - Moved chunked SSE event parsing into `worldmodel/event_stream.js`.

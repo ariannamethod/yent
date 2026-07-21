@@ -87,6 +87,31 @@
         if (!save(storage, nextMessages, options)) return false;
         lastSaveAt = at;
         return true;
+      },
+      commitUser(modelMessages, visibleMessages, text) {
+        const message = { role: 'user', content: typeof text === 'string' ? text : '' };
+        const nextModel = Array.isArray(modelMessages) ? modelMessages.concat(message) : [message];
+        const nextVisible = normalize((Array.isArray(visibleMessages) ? visibleMessages : []).concat(message), options);
+        this.save(nextVisible, true);
+        return { messages: nextModel, visibleMessages: nextVisible, message };
+      },
+      previewAssistant(visibleMessages, text) {
+        const message = { role: 'assistant', content: typeof text === 'string' ? text : '' };
+        return this.save((Array.isArray(visibleMessages) ? visibleMessages : []).concat(message));
+      },
+      commitAssistant(modelMessages, visibleMessages, text) {
+        if (typeof text !== 'string' || !text.trim()) {
+          return {
+            messages: Array.isArray(modelMessages) ? modelMessages : [],
+            visibleMessages: Array.isArray(visibleMessages) ? visibleMessages : [],
+            committed: false
+          };
+        }
+        const message = { role: 'assistant', content: text };
+        const nextModel = Array.isArray(modelMessages) ? modelMessages.concat(message) : [message];
+        const nextVisible = normalize((Array.isArray(visibleMessages) ? visibleMessages : []).concat(message), options);
+        this.save(nextVisible, true);
+        return { messages: nextModel, visibleMessages: nextVisible, message, committed: true };
       }
     };
   }

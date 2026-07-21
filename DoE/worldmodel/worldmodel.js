@@ -90,11 +90,9 @@ function mix(a, b, t) {
 }
 
 function commitAssistantResponse(text) {
-  if (!text.trim()) return;
-  messages.push({ role: 'assistant', content: text });
-  visibleMessages.push({ role: 'assistant', content: text });
-  visibleMessages = sessionReceipt.normalize(visibleMessages);
-  sessionReceipt.save(visibleMessages, true);
+  const committed = sessionReceipt.commitAssistant(messages, visibleMessages, text);
+  messages = committed.messages;
+  visibleMessages = committed.visibleMessages;
 }
 
 const hash = worldGeometry.hash;
@@ -604,10 +602,9 @@ async function generate(text) {
   fieldWords.unshift(...cleanWords(text).slice(0, 18));
   fieldWords = fieldWords.slice(0, 260);
 
-  messages.push({ role: 'user', content: text });
-  visibleMessages.push({ role: 'user', content: text });
-  visibleMessages = sessionReceipt.normalize(visibleMessages);
-  sessionReceipt.save(visibleMessages, true);
+  const userTurn = sessionReceipt.commitUser(messages, visibleMessages, text);
+  messages = userTurn.messages;
+  visibleMessages = userTurn.visibleMessages;
   let fullResponse = '';
 
   try {
@@ -627,7 +624,7 @@ async function generate(text) {
       onToken: (token, data) => {
         fullResponse += token;
         setManifestText(fullResponse);
-        sessionReceipt.save(visibleMessages.concat({ role: 'assistant', content: fullResponse }));
+        sessionReceipt.previewAssistant(visibleMessages, fullResponse);
         absorbToken(token, data);
       }
     });

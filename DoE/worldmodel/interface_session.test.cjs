@@ -104,3 +104,69 @@ function storage() {
   assert.equal(receipt.save([{ role: 'user', content: 'forced' }], true), true);
   assert.deepEqual(receipt.load(), [{ role: 'user', content: 'forced' }]);
 }
+
+{
+  const s = storage();
+  let now = 1000;
+  const receipt = session.createAdapter({
+    storage: s,
+    now: () => now,
+    saveIntervalMs: 100
+  });
+  let model = [];
+  let visible = [];
+
+  const user = receipt.commitUser(model, visible, 'what boundary?');
+  model = user.messages;
+  visible = user.visibleMessages;
+  assert.deepEqual(model, [{ role: 'user', content: 'what boundary?' }]);
+  assert.deepEqual(visible, [{ role: 'user', content: 'what boundary?' }]);
+  assert.deepEqual(receipt.load(), visible);
+
+  now += 20;
+  assert.equal(receipt.previewAssistant(visible, 'partial'), false);
+  assert.deepEqual(receipt.load(), visible);
+
+  now += 80;
+  assert.equal(receipt.previewAssistant(visible, 'partial answer'), true);
+  assert.deepEqual(receipt.load(), [
+    { role: 'user', content: 'what boundary?' },
+    { role: 'assistant', content: 'partial answer' }
+  ]);
+
+  const empty = receipt.commitAssistant(model, visible, '   ');
+  assert.equal(empty.committed, false);
+  assert.deepEqual(empty.messages, model);
+  assert.deepEqual(empty.visibleMessages, visible);
+
+  const assistant = receipt.commitAssistant(model, visible, 'final answer');
+  model = assistant.messages;
+  visible = assistant.visibleMessages;
+  assert.equal(assistant.committed, true);
+  assert.deepEqual(model, [
+    { role: 'user', content: 'what boundary?' },
+    { role: 'assistant', content: 'final answer' }
+  ]);
+  assert.deepEqual(visible, model);
+  assert.deepEqual(receipt.load(), visible);
+}
+
+{
+  let writes = 0;
+  const s = storage();
+  const originalSetItem = s.setItem;
+  s.setItem = function setItem(key, value) {
+    writes++;
+    return originalSetItem.call(this, key, value);
+  };
+  const receipt = session.createAdapter({ storage: s, replayMode: true });
+
+  const user = receipt.commitUser([], [], 'replay prompt');
+  assert.deepEqual(user.messages, [{ role: 'user', content: 'replay prompt' }]);
+  assert.deepEqual(user.visibleMessages, [{ role: 'user', content: 'replay prompt' }]);
+  assert.equal(receipt.previewAssistant(user.visibleMessages, 'replay partial'), false);
+  const assistant = receipt.commitAssistant(user.messages, user.visibleMessages, 'replay answer');
+  assert.equal(assistant.committed, true);
+  assert.equal(writes, 0);
+  assert.deepEqual(receipt.load(), []);
+}

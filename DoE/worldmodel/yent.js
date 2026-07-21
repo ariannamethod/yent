@@ -79,11 +79,9 @@ function mix(a, b, t) {
 }
 
 function commitAssistantResponse(text) {
-  if (!text.trim()) return;
-  messages.push({ role: 'assistant', content: text });
-  visibleMessages.push({ role: 'assistant', content: text });
-  visibleMessages = sessionReceipt.normalize(visibleMessages);
-  sessionReceipt.save(visibleMessages, true);
+  const committed = sessionReceipt.commitAssistant(messages, visibleMessages, text);
+  messages = committed.messages;
+  visibleMessages = committed.visibleMessages;
 }
 
 function tokenTextForTape(text) {
@@ -566,10 +564,9 @@ async function generate(text) {
   latentTape = seedWords.join('');
   pushBurst(2.4);
 
-  messages.push({ role: 'user', content: text });
-  visibleMessages.push({ role: 'user', content: text });
-  visibleMessages = sessionReceipt.normalize(visibleMessages);
-  sessionReceipt.save(visibleMessages, true);
+  const userTurn = sessionReceipt.commitUser(messages, visibleMessages, text);
+  messages = userTurn.messages;
+  visibleMessages = userTurn.visibleMessages;
   addTurn('user', text);
   const assistantBody = addTurn('assistant', '');
   let fullResponse = '';
@@ -591,7 +588,7 @@ async function generate(text) {
       onToken: (token, data) => {
         fullResponse += token;
         assistantBody.textContent = fullResponse;
-        sessionReceipt.save(visibleMessages.concat({ role: 'assistant', content: fullResponse }));
+        sessionReceipt.previewAssistant(visibleMessages, fullResponse);
         absorbToken(token, data);
         transcript.scrollTop = transcript.scrollHeight;
       }
