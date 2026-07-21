@@ -130,6 +130,9 @@ Yent worldmodel interface log.
   relying on a live model run.
 - Replay mode deliberately skips local interface receipt load/save, keeping
   browser continuity reserved for real user/model turns.
+- `interface_page_replay_smoke.test.cjs` executes the actual page scripts in a
+  mocked browser surface and confirms that replay reaches COMPLETE without
+  using network transport or persisting a receipt.
 
 ## 2026-07-20 - shared event stream parser
 

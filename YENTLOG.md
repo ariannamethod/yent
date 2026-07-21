@@ -16,6 +16,9 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
   real `onToken` paths during audits.
 - Replay mode does not load from or write to the shared `sessionStorage`
   interface receipt.
+- Added a no-dependency Node page smoke that executes the real interface scripts
+  with mocked DOM/canvas, verifies replay completion on both surfaces, and
+  asserts that replay does not call `fetch` or write the local receipt.
 
 ## Repository Map
 
