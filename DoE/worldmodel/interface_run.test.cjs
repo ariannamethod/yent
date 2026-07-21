@@ -39,6 +39,14 @@ function form() {
   assert.ok(current.signal);
   assert.throws(() => run.begin(), /already running/);
 
+  assert.strictEqual(run.finish(), false);
+  assert.strictEqual(run.isRunning(), true);
+  assert.strictEqual(send.textContent, 'STOP');
+
+  assert.strictEqual(run.finish({ id: 'not-a-run-id' }), false);
+  assert.strictEqual(run.isRunning(), true);
+  assert.strictEqual(send.textContent, 'STOP');
+
   assert.strictEqual(run.finish({ id: current.id + 1 }), false);
   assert.strictEqual(run.isRunning(), true);
   assert.strictEqual(send.textContent, 'STOP');
@@ -46,6 +54,9 @@ function form() {
   assert.strictEqual(run.finish(current), true);
   assert.strictEqual(run.isRunning(), false);
   assert.strictEqual(send.textContent, 'SEND');
+
+  assert.strictEqual(run.finish(current), false);
+  assert.strictEqual(run.isRunning(), false);
 }
 
 {
