@@ -223,3 +223,14 @@ Yent worldmodel interface log.
 - Node and Go contract tests cover deterministic prompt geometry, telemetry
   deformation, decay, script load order, and removal of page-local topology seed
   helpers.
+
+## 2026-07-21 - shared generation request input
+
+- Added `worldmodel/interface_input.js` for the remaining request-side glue
+  shared by JANUS and WORLD.
+- The helper reads and clamps `temp` / `max_tokens`, then selects either the
+  live chat stream or replay stream from one contract.
+- Page scripts still own visual effects and token absorption, but no longer
+  duplicate request parameter parsing or live/replay stream construction.
+- The DoE server whitelists `/worldmodel/interface_input.js`, and the contract
+  tests now fail if either page resumes local request parsing.

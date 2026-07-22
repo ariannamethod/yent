@@ -46,6 +46,16 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
   directly for receipt turns; page scripts keep rendering only.
 - The interface contract now fails if page-local turn-array mutation returns.
 
+## 2026-07-21 - interface request input helper
+
+- Added `DoE/worldmodel/interface_input.js` for shared browser request
+  parameters and live/replay stream selection.
+- `/yent` and `/worldmodel` now read `temp` / `max_tokens` through the same
+  helper and no longer duplicate replay-vs-live stream construction.
+- The DoE server whitelists `/worldmodel/interface_input.js`, and Node/Go tests
+  cover clamps, helper load order, route presence, and removal of page-local
+  request parsing.
+
 ## Repository Map
 
 ```
