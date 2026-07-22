@@ -34,6 +34,8 @@ const interfaceReplay = window.YentInterfaceReplay;
 if (!interfaceReplay) throw new Error('YentInterfaceReplay helper missing');
 const interfaceInput = window.YentInterfaceInput;
 if (!interfaceInput) throw new Error('YentInterfaceInput helper missing');
+const interfaceTurn = window.YentInterfaceTurn;
+if (!interfaceTurn) throw new Error('YentInterfaceTurn helper missing');
 const interfaceRun = window.YentInterfaceRun;
 if (!interfaceRun) throw new Error('YentInterfaceRun helper missing');
 const generationRun = interfaceRun.create({ button: sendButton });
@@ -78,12 +80,6 @@ function clamp(v, lo, hi) {
 
 function mix(a, b, t) {
   return a + (b - a) * t;
-}
-
-function commitAssistantResponse(text) {
-  const committed = sessionReceipt.commitAssistant(messages, visibleMessages, text);
-  messages = committed.messages;
-  visibleMessages = committed.visibleMessages;
 }
 
 function tokenTextForTape(text) {
@@ -571,40 +567,40 @@ async function generate(text) {
   visibleMessages = userTurn.visibleMessages;
   addTurn('user', text);
   const assistantBody = addTurn('assistant', '');
-  let fullResponse = '';
 
   try {
-    const requestParams = interfaceInput.readParams(document);
-    const stream = interfaceInput.streamFor({ replayMode, replayRequest, interfaceReplay, chatStream });
-    await stream({
+    const turn = await interfaceTurn.streamAssistant({
+      document,
+      interfaceInput,
+      chatStream,
+      interfaceReplay,
+      replayMode,
+      replayRequest,
+      sessionReceipt,
       messages,
-      temperature: requestParams.temperature,
-      maxTokens: requestParams.maxTokens,
+      visibleMessages,
       signal: currentRun.signal,
-      onToken: (token, data) => {
-        fullResponse += token;
-        assistantBody.textContent = fullResponse;
-        sessionReceipt.previewAssistant(visibleMessages, fullResponse);
+      onToken: (token, data, responseText) => {
+        assistantBody.textContent = responseText;
         absorbToken(token, data);
         transcript.scrollTop = transcript.scrollHeight;
       }
     });
 
-    const result = chatStream.outcome(null, fullResponse);
-    if (result.commitAssistant) commitAssistantResponse(fullResponse);
-    setStatus(result.kind === 'empty' ? 'EMPTY' : 'COMPLETE');
-    state.consensus = clamp(state.consensus + 0.16, 0, 1);
-    state.debt = clamp(state.debt * 0.72, 0, 1);
-  } catch (err) {
-    const result = chatStream.outcome(err, fullResponse);
+    messages = turn.messages;
+    visibleMessages = turn.visibleMessages;
+    const result = turn.outcome;
     if (result.stopped) {
       setStatus(result.hasText ? 'STOPPED' : 'IDLE');
-      if (result.commitAssistant) commitAssistantResponse(fullResponse);
-    } else {
+    } else if (result.fault) {
       setStatus('FAULT');
       assistantBody.textContent = result.hasText
-        ? `${fullResponse}\n\n[stream fault: ${result.message}]`
+        ? `${turn.text}\n\n[stream fault: ${result.message}]`
         : `parliament unreachable: ${result.message}`;
+    } else {
+      setStatus(result.kind === 'empty' ? 'EMPTY' : 'COMPLETE');
+      state.consensus = clamp(state.consensus + 0.16, 0, 1);
+      state.debt = clamp(state.debt * 0.72, 0, 1);
     }
   } finally {
     generationRun.finish(currentRun);

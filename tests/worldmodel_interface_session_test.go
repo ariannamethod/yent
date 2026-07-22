@@ -20,6 +20,7 @@ func TestWorldmodelInterfaceSessionHelper(t *testing.T) {
 		filepath.Join(root, "DoE", "worldmodel", "token_telemetry.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_replay.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_input.test.cjs"),
+		filepath.Join(root, "DoE", "worldmodel", "interface_turn.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_page_replay_smoke.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_run.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "worldmodel_geometry.test.cjs"),
@@ -49,6 +50,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/token_telemetry.js",
 		"/worldmodel/interface_replay.js",
 		"/worldmodel/interface_input.js",
+		"/worldmodel/interface_turn.js",
 		"/worldmodel/interface_run.js",
 		"/worldmodel/yent.js")
 	assertScriptOrder(t, "worldmodel.html", worldHTML,
@@ -58,6 +60,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/token_telemetry.js",
 		"/worldmodel/interface_replay.js",
 		"/worldmodel/interface_input.js",
+		"/worldmodel/interface_turn.js",
 		"/worldmodel/interface_run.js",
 		"/worldmodel/worldmodel_geometry.js",
 		"/worldmodel/worldmodel.js")
@@ -86,6 +89,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(doeC, `"worldmodel/interface_input.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist interface_input.js")
 	}
+	if !strings.Contains(doeC, `"/worldmodel/interface_turn.js"`) ||
+		!strings.Contains(doeC, `"worldmodel/interface_turn.js not found"`) {
+		t.Fatalf("DoE server does not explicitly whitelist interface_turn.js")
+	}
 	if !strings.Contains(doeC, `"/worldmodel/interface_run.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_run.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist interface_run.js")
@@ -113,8 +120,6 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		}
 		for _, required := range []string{
 			"sessionReceipt.commitUser(",
-			"sessionReceipt.previewAssistant(",
-			"sessionReceipt.commitAssistant(",
 		} {
 			if !strings.Contains(tc.src, required) {
 				t.Fatalf("%s does not use shared session turn helper %s", tc.name, required)
@@ -135,23 +140,20 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if !strings.Contains(tc.src, "window.YentInterfaceInput") {
 			t.Fatalf("%s does not use the shared interface input helper", tc.name)
 		}
+		if !strings.Contains(tc.src, "window.YentInterfaceTurn") {
+			t.Fatalf("%s does not use the shared interface turn helper", tc.name)
+		}
 		if !strings.Contains(tc.src, "window.YentInterfaceRun") {
 			t.Fatalf("%s does not use the shared interface run helper", tc.name)
 		}
-		if !strings.Contains(tc.src, "interfaceInput.readParams(document)") {
-			t.Fatalf("%s does not read generation request params through the shared helper", tc.name)
-		}
-		if !strings.Contains(tc.src, "interfaceInput.streamFor(") {
-			t.Fatalf("%s does not route live/replay streaming through the shared input helper", tc.name)
+		if !strings.Contains(tc.src, "interfaceTurn.streamAssistant(") {
+			t.Fatalf("%s does not stream assistant turns through the shared turn helper", tc.name)
 		}
 		if !strings.Contains(tc.src, "interfaceReplay.startIfRequested(") {
 			t.Fatalf("%s does not route replay autostart through the shared replay helper", tc.name)
 		}
 		if !strings.Contains(tc.src, "if (replayMode) return") {
 			t.Fatalf("%s does not guard session continuity during replay", tc.name)
-		}
-		if !strings.Contains(tc.src, "chatStream.outcome(") {
-			t.Fatalf("%s does not use the shared chat stream outcome classifier", tc.name)
 		}
 		if strings.Contains(tc.src, "messages = restored") {
 			t.Fatalf("%s repopulates prompt messages from restored UI receipt", tc.name)
@@ -165,6 +167,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if strings.Contains(tc.src, "messages.push") ||
 			strings.Contains(tc.src, "visibleMessages.push") {
 			t.Fatalf("%s still mutates session turn arrays locally", tc.name)
+		}
+		if strings.Contains(tc.src, "sessionReceipt.previewAssistant(") ||
+			strings.Contains(tc.src, "sessionReceipt.commitAssistant(") ||
+			strings.Contains(tc.src, "chatStream.outcome(") ||
+			strings.Contains(tc.src, "let fullResponse") {
+			t.Fatalf("%s still carries page-local assistant stream turn state", tc.name)
 		}
 		if strings.Contains(tc.src, "function parseSseEvents") || strings.Contains(tc.src, "sseBuffer") {
 			t.Fatalf("%s still carries a page-local SSE parser", tc.name)
@@ -213,6 +221,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"`DoE/worldmodel/worldmodel_geometry.js`",
 		"`DoE/worldmodel/interface_replay.js`",
 		"`DoE/worldmodel/interface_input.js`",
+		"`DoE/worldmodel/interface_turn.js`",
 		"`/yent?replay=1`",
 		"`/worldmodel?replay=1`",
 	} {

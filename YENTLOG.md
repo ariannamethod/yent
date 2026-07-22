@@ -67,6 +67,19 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 - Node and Go contract tests cover the helper path and reject page-local replay
   autostart code.
 
+## 2026-07-23 - interface stream turn helper
+
+- Added `DoE/worldmodel/interface_turn.js` for the shared assistant stream-turn
+  lifecycle used by both `/yent` and `/worldmodel`.
+- The helper accumulates streamed tokens, previews the assistant receipt,
+  classifies the final stream outcome, and commits only outcomes that the shared
+  stream contract marks as commit-safe.
+- JANUS and WORLD still own their own status text and visual token effects, but
+  no longer duplicate assistant receipt preview, stream outcome, or commit
+  policy.
+- Node and Go contract tests cover live, replay, stop, fault, route, and script
+  load-order boundaries.
+
 ## Repository Map
 
 ```

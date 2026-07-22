@@ -416,6 +416,11 @@ and the guard that refuses to start a fixture while a generation run is active.
 Generation request input is centralized in `DoE/worldmodel/interface_input.js`;
 it reads and clamps `temp` / `max_tokens` once and selects either live
 `/chat/completions` streaming or replay playback for both surfaces. These
+requests then pass through `DoE/worldmodel/interface_turn.js`, which owns the
+assistant stream-turn lifecycle: token accumulation, receipt preview, shared
+outcome classification, and assistant commit policy. JANUS and WORLD still keep
+their own status labels and visual token physics, but they no longer decide
+stream receipt semantics independently. These
 helpers are served through explicit `/worldmodel/*.js` routes, keeping the
 static surface bounded.
 
