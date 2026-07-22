@@ -144,6 +144,9 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if !strings.Contains(tc.src, "interfaceInput.streamFor(") {
 			t.Fatalf("%s does not route live/replay streaming through the shared input helper", tc.name)
 		}
+		if !strings.Contains(tc.src, "interfaceReplay.startIfRequested(") {
+			t.Fatalf("%s does not route replay autostart through the shared replay helper", tc.name)
+		}
 		if !strings.Contains(tc.src, "if (replayMode) return") {
 			t.Fatalf("%s does not guard session continuity during replay", tc.name)
 		}
@@ -192,6 +195,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			strings.Contains(tc.src, `parseFloat(document.getElementById("temp")`) ||
 			strings.Contains(tc.src, "const stream = replayMode") {
 			t.Fatalf("%s still carries page-local generation request parsing", tc.name)
+		}
+		if strings.Contains(tc.src, "function startReplayIfRequested") ||
+			strings.Contains(tc.src, "setTimeout(() =>") ||
+			strings.Contains(tc.src, "generate(replayRequest.prompt)") {
+			t.Fatalf("%s still carries page-local replay autostart", tc.name)
 		}
 	}
 	if !strings.Contains(worldJS, "window.YentWorldmodelGeometry") {

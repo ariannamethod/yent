@@ -56,6 +56,17 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
   cover clamps, helper load order, route presence, and removal of page-local
   request parsing.
 
+## 2026-07-23 - interface replay autostart helper
+
+- Moved replay prompt seeding and delayed autostart into
+  `DoE/worldmodel/interface_replay.js`.
+- `/yent` and `/worldmodel` now call `interfaceReplay.startIfRequested(...)`
+  instead of carrying duplicate local replay timers.
+- The helper preserves the active-run guard: replay will not start if a real
+  generation is already running.
+- Node and Go contract tests cover the helper path and reject page-local replay
+  autostart code.
+
 ## Repository Map
 
 ```

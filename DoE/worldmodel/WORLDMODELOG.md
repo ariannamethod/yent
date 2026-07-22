@@ -234,3 +234,12 @@ Yent worldmodel interface log.
   duplicate request parameter parsing or live/replay stream construction.
 - The DoE server whitelists `/worldmodel/interface_input.js`, and the contract
   tests now fail if either page resumes local request parsing.
+
+## 2026-07-23 - shared replay autostart
+
+- Moved query-param replay startup into `worldmodel/interface_replay.js`.
+- JANUS and WORLD still decide their visual token effects locally, but replay
+  prompt seeding, delayed start, and the "do not start while already running"
+  guard now live in one helper.
+- Contract tests now fail if either page recreates `startReplayIfRequested`,
+  local replay timers, or direct `generate(replayRequest.prompt)` startup.

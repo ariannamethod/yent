@@ -77,6 +77,68 @@ async function main() {
   );
   assert.deepEqual(seen, ['x']);
 }
+
+{
+  const input = { value: '' };
+  const timers = [];
+  const generated = [];
+  const run = { isRunning: () => false };
+  const started = replay.startIfRequested({
+    replayMode: true,
+    request: { prompt: 'manifest boundary' },
+    promptInput: input,
+    generationRun: run,
+    generate: text => generated.push(text),
+    startDelayMs: 9,
+    setTimeout: (fn, delay) => {
+      timers.push({ fn, delay });
+      return timers.length;
+    }
+  });
+  assert.equal(started, true);
+  assert.equal(input.value, 'manifest boundary');
+  assert.equal(timers.length, 1);
+  assert.equal(timers[0].delay, 9);
+  timers[0].fn();
+  assert.deepEqual(generated, ['manifest boundary']);
+}
+
+{
+  const input = { value: '' };
+  const timers = [];
+  const generated = [];
+  const run = { isRunning: () => true };
+  replay.startIfRequested({
+    replayMode: true,
+    request: { prompt: 'do not start yet' },
+    promptInput: input,
+    generationRun: run,
+    generate: text => generated.push(text),
+    setTimeout: fn => {
+      timers.push(fn);
+      return timers.length;
+    }
+  });
+  timers[0]();
+  assert.deepEqual(generated, []);
+}
+
+{
+  assert.equal(replay.startIfRequested({ replayMode: false }), false);
+  assert.throws(() => replay.startIfRequested({ replayMode: true }), /replay prompt input unavailable/);
+  assert.throws(
+    () => replay.startIfRequested({ replayMode: true, promptInput: { value: '' } }),
+    /generation run helper unavailable/
+  );
+  assert.throws(
+    () => replay.startIfRequested({
+      replayMode: true,
+      promptInput: { value: '' },
+      generationRun: { isRunning: () => false }
+    }),
+    /replay generate handler unavailable/
+  );
+}
 }
 
 main().catch(err => {
