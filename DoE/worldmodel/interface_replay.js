@@ -185,12 +185,45 @@
     return { done: true, events, tokens, pending: '' };
   }
 
+  function startIfRequested(options) {
+    options = options || {};
+    const req = options.request || options.replayRequest || {};
+    const active = typeof options.replayMode === 'boolean' ? options.replayMode : !!req.enabled;
+    if (!active) return false;
+
+    const input = options.promptInput || options.input;
+    const run = options.generationRun || options.run;
+    const generate = options.generate;
+    const timer = options.setTimeout || root.setTimeout;
+    if (!input || typeof input.value !== 'string') {
+      throw new Error('replay prompt input unavailable');
+    }
+    if (!run || typeof run.isRunning !== 'function') {
+      throw new Error('generation run helper unavailable');
+    }
+    if (typeof generate !== 'function') {
+      throw new Error('replay generate handler unavailable');
+    }
+    if (typeof timer !== 'function') {
+      throw new Error('setTimeout unavailable');
+    }
+
+    const prompt = typeof req.prompt === 'string' ? req.prompt : '';
+    const startDelayMs = clampInteger(Number(options.startDelayMs), 120, 0, 5000);
+    input.value = prompt;
+    timer(() => {
+      if (!run.isRunning()) generate(prompt);
+    }, startDelayMs);
+    return true;
+  }
+
   const api = {
     DEFAULT_SCENARIO,
     DEFAULT_DELAY_MS,
     request,
     scenario,
-    play
+    play,
+    startIfRequested
   };
   root.YentInterfaceReplay = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

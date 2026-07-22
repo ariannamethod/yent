@@ -411,6 +411,8 @@ smoke, both `/yent?replay=1` and `/worldmodel?replay=1` can run a deterministic
 token-event fixture from `DoE/worldmodel/interface_replay.js`. Replay uses the
 same page token handlers as the live stream but deliberately skips the local
 `sessionStorage` receipt, so it does not become model memory or tab continuity.
+The same helper owns replay autostart, including prompt seeding, delayed start,
+and the guard that refuses to start a fixture while a generation run is active.
 Generation request input is centralized in `DoE/worldmodel/interface_input.js`;
 it reads and clamps `temp` / `max_tokens` once and selects either live
 `/chat/completions` streaming or replay playback for both surfaces. These

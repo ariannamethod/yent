@@ -648,14 +648,6 @@ async function generate(text) {
   }
 }
 
-function startReplayIfRequested() {
-  if (!replayMode) return;
-  promptInput.value = replayRequest.prompt;
-  setTimeout(() => {
-    if (!generationRun.isRunning()) generate(replayRequest.prompt);
-  }, 120);
-}
-
 generationRun.bindComposer(composer, promptInput, generate);
 
 window.addEventListener('keydown', event => {
@@ -671,4 +663,4 @@ window.addEventListener('resize', resize);
 restoreInterfaceSession();
 resize();
 requestAnimationFrame(animate);
-startReplayIfRequested();
+interfaceReplay.startIfRequested({ replayMode, request: replayRequest, promptInput, generationRun, generate });
