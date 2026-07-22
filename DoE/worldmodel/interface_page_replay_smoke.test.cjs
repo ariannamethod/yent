@@ -181,7 +181,8 @@ async function runPage(page) {
     'interface_replay.js',
     'interface_input.js',
     'interface_turn.js',
-    'interface_run.js'
+    'interface_run.js',
+    'interface_boot.js'
   ]) {
     runScript(context, rel);
   }

@@ -33,6 +33,8 @@ const worldGeometry = window.YentWorldmodelGeometry;
 if (!worldGeometry) throw new Error('YentWorldmodelGeometry helper missing');
 const interfaceRun = window.YentInterfaceRun;
 if (!interfaceRun) throw new Error('YentInterfaceRun helper missing');
+const interfaceBoot = window.YentInterfaceBoot;
+if (!interfaceBoot) throw new Error('YentInterfaceBoot helper missing');
 const generationRun = interfaceRun.create({ button: sendButton });
 const replayRequest = interfaceReplay.request(window.location);
 const replayMode = replayRequest.enabled;
@@ -640,7 +642,14 @@ window.addEventListener('keyup', event => {
 });
 
 window.addEventListener('resize', resize);
-restoreInterfaceSession();
-resize();
-requestAnimationFrame(animate);
-interfaceReplay.startIfRequested({ replayMode, request: replayRequest, promptInput, generationRun, generate });
+interfaceBoot.start({
+  restore: restoreInterfaceSession,
+  resize,
+  startAnimation: () => requestAnimationFrame(animate),
+  interfaceReplay,
+  replayMode,
+  replayRequest,
+  promptInput,
+  generationRun,
+  generate
+});

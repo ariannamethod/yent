@@ -93,6 +93,17 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 - Node and Go contract tests cover route presence, script order, formatting, and
   removal of page-local shared HUD formatting.
 
+## 2026-07-23 - interface boot helper
+
+- Added `DoE/worldmodel/interface_boot.js` for the shared browser startup order:
+  restore the local interface receipt, resize the surface, start animation, then
+  optionally autostart replay.
+- `/yent` keeps its direct first-frame Janus animation callback, and
+  `/worldmodel` keeps its `requestAnimationFrame` first frame, but both now run
+  through the same boot boundary.
+- The DoE server whitelists `/worldmodel/interface_boot.js`, and tests reject
+  page-local replay autostart calls returning to either surface.
+
 ## Repository Map
 
 ```

@@ -99,6 +99,15 @@ Yent worldmodel interface log.
 - Candidate probability display remains tied to `token_telemetry.metricProb`,
   keeping probability/rank/tail semantics aligned across both interfaces.
 
+## 2026-07-23 - shared interface boot order
+
+- Added `interface_boot.js` so both surfaces start in the same order: restore
+  tab-local receipt, resize canvas, begin animation, and only then allow replay
+  autostart.
+- The helper keeps the first-frame strategy page-specific, so JANUS and WORLD
+  can preserve their different animation loops without duplicating startup
+  semantics.
+
 ## 2026-07-19 - readable manifestation surface
 
 - Added a readable `MANIFEST` answer surface to `/worldmodel`.
