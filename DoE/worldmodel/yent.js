@@ -10,17 +10,6 @@ const promptInput = document.getElementById('prompt');
 const sendButton = document.getElementById('send');
 const runState = document.getElementById('run-state');
 
-const hud = {
-  tok: document.getElementById('hud-tok'),
-  exp: document.getElementById('hud-exp'),
-  debt: document.getElementById('hud-debt'),
-  cons: document.getElementById('hud-cons'),
-  field: document.getElementById('hud-field'),
-  prob: document.getElementById('hud-prob'),
-  rank: document.getElementById('hud-rank'),
-  tail: document.getElementById('hud-tail')
-};
-
 const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_./-=+*#@%&';
 const seedWords = 'Yent DoE Janus parliament notorch prophecy debt consensus memory limpha identity boundary'.split(' ');
 const interfaceSession = window.YentInterfaceSession;
@@ -30,6 +19,8 @@ const chatStream = window.YentChatStream;
 if (!chatStream) throw new Error('YentChatStream helper missing');
 const tokenTelemetry = window.YentTokenTelemetry;
 if (!tokenTelemetry) throw new Error('YentTokenTelemetry helper missing');
+const interfaceHud = window.YentInterfaceHud;
+if (!interfaceHud) throw new Error('YentInterfaceHud helper missing');
 const interfaceReplay = window.YentInterfaceReplay;
 if (!interfaceReplay) throw new Error('YentInterfaceReplay helper missing');
 const interfaceInput = window.YentInterfaceInput;
@@ -42,6 +33,7 @@ const generationRun = interfaceRun.create({ button: sendButton });
 const replayRequest = interfaceReplay.request(window.location);
 const replayMode = replayRequest.enabled;
 const sessionReceipt = interfaceSession.createAdapter({ storage: sessionStorage, replayMode });
+const hud = interfaceHud.bind(document);
 const state = {
   debt: 0.0,
   consensus: 0.62,
@@ -450,14 +442,7 @@ function drawTrace() {
 }
 
 function updateHud() {
-  hud.tok.textContent = state.tokps.toFixed(1);
-  hud.exp.textContent = state.experts ? String(state.experts) : '-';
-  hud.debt.textContent = state.debt.toFixed(2);
-  hud.cons.textContent = state.consensus.toFixed(2);
-  hud.field.textContent = state.field.toFixed(2);
-  hud.prob.textContent = state.hasCandidateTelemetry ? tokenTelemetry.metricProb(state.selectedProb) : '-';
-  hud.rank.textContent = state.hasCandidateTelemetry && state.selectedRank > 0 ? String(state.selectedRank) : '-';
-  hud.tail.textContent = state.hasCandidateTelemetry ? state.candidateTail.toFixed(2) : '-';
+  interfaceHud.render(hud, state, { tokenTelemetry });
 }
 
 function drawFieldHaze(scene) {

@@ -7,17 +7,6 @@ const statusNote = document.getElementById('status-note');
 const manifestShell = document.getElementById('manifest-shell');
 const manifestState = document.getElementById('manifest-state');
 const manifestText = document.getElementById('manifest-text');
-const hud = {
-  tok: document.getElementById('hud-tok'),
-  step: document.getElementById('hud-step'),
-  ent: document.getElementById('hud-ent'),
-  debt: document.getElementById('hud-debt'),
-  cons: document.getElementById('hud-cons'),
-  field: document.getElementById('hud-field'),
-  prob: document.getElementById('hud-prob'),
-  rank: document.getElementById('hud-rank'),
-  tail: document.getElementById('hud-tail')
-};
 
 const baseWords = (
   'yent janus doe parliament notorch field resonance debt drift identity boundary ' +
@@ -32,6 +21,8 @@ const chatStream = window.YentChatStream;
 if (!chatStream) throw new Error('YentChatStream helper missing');
 const tokenTelemetry = window.YentTokenTelemetry;
 if (!tokenTelemetry) throw new Error('YentTokenTelemetry helper missing');
+const interfaceHud = window.YentInterfaceHud;
+if (!interfaceHud) throw new Error('YentInterfaceHud helper missing');
 const interfaceReplay = window.YentInterfaceReplay;
 if (!interfaceReplay) throw new Error('YentInterfaceReplay helper missing');
 const interfaceInput = window.YentInterfaceInput;
@@ -46,6 +37,7 @@ const generationRun = interfaceRun.create({ button: sendButton });
 const replayRequest = interfaceReplay.request(window.location);
 const replayMode = replayRequest.enabled;
 const sessionReceipt = interfaceSession.createAdapter({ storage: sessionStorage, replayMode });
+const hud = interfaceHud.bind(document);
 
 const state = {
   debt: 0.0,
@@ -477,15 +469,7 @@ function drawManifestedAnswer() {
 }
 
 function updateHud() {
-  hud.tok.textContent = state.tokps.toFixed(1);
-  hud.step.textContent = String(state.step);
-  hud.ent.textContent = state.entropy.toFixed(2);
-  hud.debt.textContent = state.debt.toFixed(2);
-  hud.cons.textContent = state.consensus.toFixed(2);
-  hud.field.textContent = state.field.toFixed(2);
-  hud.prob.textContent = state.hasCandidateTelemetry ? tokenTelemetry.metricProb(state.selectedProb) : '-';
-  hud.rank.textContent = state.hasCandidateTelemetry && state.selectedRank > 0 ? String(state.selectedRank) : '-';
-  hud.tail.textContent = state.hasCandidateTelemetry ? state.candidateTail.toFixed(2) : '-';
+  interfaceHud.render(hud, state, { tokenTelemetry });
 }
 
 function tickCamera(dt) {

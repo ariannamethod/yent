@@ -91,6 +91,14 @@ Yent worldmodel interface log.
 - Older or partial streams display `-`, avoiding fake certainty from missing
   fields.
 
+## 2026-07-23 - shared HUD metric renderer
+
+- Added `interface_hud.js` for shared HUD cell binding and metric formatting.
+- JANUS and WORLD still decide which metrics matter to their surfaces, but the
+  common live stream cells now use one rendering contract.
+- Candidate probability display remains tied to `token_telemetry.metricProb`,
+  keeping probability/rank/tail semantics aligned across both interfaces.
+
 ## 2026-07-19 - readable manifestation surface
 
 - Added a readable `MANIFEST` answer surface to `/worldmodel`.
