@@ -409,7 +409,10 @@ smoke, both `/yent?replay=1` and `/worldmodel?replay=1` can run a deterministic
 token-event fixture from `DoE/worldmodel/interface_replay.js`. Replay uses the
 same page token handlers as the live stream but deliberately skips the local
 `sessionStorage` receipt, so it does not become model memory or tab continuity.
-These helpers are served through explicit `/worldmodel/*.js` routes, keeping the
+Generation request input is centralized in `DoE/worldmodel/interface_input.js`;
+it reads and clamps `temp` / `max_tokens` once and selects either live
+`/chat/completions` streaming or replay playback for both surfaces. These
+helpers are served through explicit `/worldmodel/*.js` routes, keeping the
 static surface bounded.
 
 That run gives you the engine without the protected voice. You will not hear

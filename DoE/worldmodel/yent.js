@@ -32,6 +32,8 @@ const tokenTelemetry = window.YentTokenTelemetry;
 if (!tokenTelemetry) throw new Error('YentTokenTelemetry helper missing');
 const interfaceReplay = window.YentInterfaceReplay;
 if (!interfaceReplay) throw new Error('YentInterfaceReplay helper missing');
+const interfaceInput = window.YentInterfaceInput;
+if (!interfaceInput) throw new Error('YentInterfaceInput helper missing');
 const interfaceRun = window.YentInterfaceRun;
 if (!interfaceRun) throw new Error('YentInterfaceRun helper missing');
 const generationRun = interfaceRun.create({ button: sendButton });
@@ -572,18 +574,12 @@ async function generate(text) {
   let fullResponse = '';
 
   try {
-    const maxTokens = clamp(parseInt(document.getElementById('max-tokens').value, 10) || 512, 1, 512);
-    const temp = clamp(parseFloat(document.getElementById('temp').value) || 0.8, 0, 2);
-    const stream = replayMode
-      ? options => interfaceReplay.play(Object.assign({}, options, {
-        scenario: replayRequest.name,
-        delayMs: replayRequest.delayMs
-      }))
-      : options => chatStream.stream(options);
+    const requestParams = interfaceInput.readParams(document);
+    const stream = interfaceInput.streamFor({ replayMode, replayRequest, interfaceReplay, chatStream });
     await stream({
       messages,
-      temperature: temp,
-      maxTokens,
+      temperature: requestParams.temperature,
+      maxTokens: requestParams.maxTokens,
       signal: currentRun.signal,
       onToken: (token, data) => {
         fullResponse += token;

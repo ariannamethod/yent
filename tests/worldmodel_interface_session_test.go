@@ -19,6 +19,7 @@ func TestWorldmodelInterfaceSessionHelper(t *testing.T) {
 		filepath.Join(root, "DoE", "worldmodel", "chat_stream.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "token_telemetry.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_replay.test.cjs"),
+		filepath.Join(root, "DoE", "worldmodel", "interface_input.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_page_replay_smoke.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_run.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "worldmodel_geometry.test.cjs"),
@@ -47,6 +48,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/chat_stream.js",
 		"/worldmodel/token_telemetry.js",
 		"/worldmodel/interface_replay.js",
+		"/worldmodel/interface_input.js",
 		"/worldmodel/interface_run.js",
 		"/worldmodel/yent.js")
 	assertScriptOrder(t, "worldmodel.html", worldHTML,
@@ -55,6 +57,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/chat_stream.js",
 		"/worldmodel/token_telemetry.js",
 		"/worldmodel/interface_replay.js",
+		"/worldmodel/interface_input.js",
 		"/worldmodel/interface_run.js",
 		"/worldmodel/worldmodel_geometry.js",
 		"/worldmodel/worldmodel.js")
@@ -78,6 +81,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(doeC, `"/worldmodel/interface_replay.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_replay.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist interface_replay.js")
+	}
+	if !strings.Contains(doeC, `"/worldmodel/interface_input.js"`) ||
+		!strings.Contains(doeC, `"worldmodel/interface_input.js not found"`) {
+		t.Fatalf("DoE server does not explicitly whitelist interface_input.js")
 	}
 	if !strings.Contains(doeC, `"/worldmodel/interface_run.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_run.js not found"`) {
@@ -125,11 +132,17 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if !strings.Contains(tc.src, "window.YentInterfaceReplay") {
 			t.Fatalf("%s does not use the shared interface replay helper", tc.name)
 		}
+		if !strings.Contains(tc.src, "window.YentInterfaceInput") {
+			t.Fatalf("%s does not use the shared interface input helper", tc.name)
+		}
 		if !strings.Contains(tc.src, "window.YentInterfaceRun") {
 			t.Fatalf("%s does not use the shared interface run helper", tc.name)
 		}
-		if !strings.Contains(tc.src, "interfaceReplay.play(") {
-			t.Fatalf("%s does not route replay through the shared replay helper", tc.name)
+		if !strings.Contains(tc.src, "interfaceInput.readParams(document)") {
+			t.Fatalf("%s does not read generation request params through the shared helper", tc.name)
+		}
+		if !strings.Contains(tc.src, "interfaceInput.streamFor(") {
+			t.Fatalf("%s does not route live/replay streaming through the shared input helper", tc.name)
 		}
 		if !strings.Contains(tc.src, "if (replayMode) return") {
 			t.Fatalf("%s does not guard session continuity during replay", tc.name)
@@ -173,6 +186,13 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			strings.Contains(tc.src, "selected_rank") {
 			t.Fatalf("%s still parses token telemetry locally", tc.name)
 		}
+		if strings.Contains(tc.src, "parseInt(document.getElementById('max-tokens')") ||
+			strings.Contains(tc.src, `parseInt(document.getElementById("max-tokens")`) ||
+			strings.Contains(tc.src, "parseFloat(document.getElementById('temp')") ||
+			strings.Contains(tc.src, `parseFloat(document.getElementById("temp")`) ||
+			strings.Contains(tc.src, "const stream = replayMode") {
+			t.Fatalf("%s still carries page-local generation request parsing", tc.name)
+		}
 	}
 	if !strings.Contains(worldJS, "window.YentWorldmodelGeometry") {
 		t.Fatalf("worldmodel.js does not use the worldmodel geometry helper")
@@ -184,6 +204,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"`DoE/worldmodel/token_telemetry.js`",
 		"`DoE/worldmodel/worldmodel_geometry.js`",
 		"`DoE/worldmodel/interface_replay.js`",
+		"`DoE/worldmodel/interface_input.js`",
 		"`/yent?replay=1`",
 		"`/worldmodel?replay=1`",
 	} {
