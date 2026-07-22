@@ -18,6 +18,7 @@ func TestWorldmodelInterfaceSessionHelper(t *testing.T) {
 		filepath.Join(root, "DoE", "worldmodel", "event_stream.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "chat_stream.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "token_telemetry.test.cjs"),
+		filepath.Join(root, "DoE", "worldmodel", "interface_hud.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_replay.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_input.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_turn.test.cjs"),
@@ -48,6 +49,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/event_stream.js",
 		"/worldmodel/chat_stream.js",
 		"/worldmodel/token_telemetry.js",
+		"/worldmodel/interface_hud.js",
 		"/worldmodel/interface_replay.js",
 		"/worldmodel/interface_input.js",
 		"/worldmodel/interface_turn.js",
@@ -58,6 +60,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/event_stream.js",
 		"/worldmodel/chat_stream.js",
 		"/worldmodel/token_telemetry.js",
+		"/worldmodel/interface_hud.js",
 		"/worldmodel/interface_replay.js",
 		"/worldmodel/interface_input.js",
 		"/worldmodel/interface_turn.js",
@@ -80,6 +83,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(doeC, `"/worldmodel/token_telemetry.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/token_telemetry.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist token_telemetry.js")
+	}
+	if !strings.Contains(doeC, `"/worldmodel/interface_hud.js"`) ||
+		!strings.Contains(doeC, `"worldmodel/interface_hud.js not found"`) {
+		t.Fatalf("DoE server does not explicitly whitelist interface_hud.js")
 	}
 	if !strings.Contains(doeC, `"/worldmodel/interface_replay.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_replay.js not found"`) {
@@ -133,6 +140,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		}
 		if !strings.Contains(tc.src, "window.YentTokenTelemetry") {
 			t.Fatalf("%s does not use the shared token telemetry helper", tc.name)
+		}
+		if !strings.Contains(tc.src, "window.YentInterfaceHud") {
+			t.Fatalf("%s does not use the shared interface HUD helper", tc.name)
+		}
+		if !strings.Contains(tc.src, "interfaceHud.render(") {
+			t.Fatalf("%s does not render HUD metrics through the shared helper", tc.name)
 		}
 		if !strings.Contains(tc.src, "window.YentInterfaceReplay") {
 			t.Fatalf("%s does not use the shared interface replay helper", tc.name)
@@ -197,6 +210,13 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			strings.Contains(tc.src, "selected_rank") {
 			t.Fatalf("%s still parses token telemetry locally", tc.name)
 		}
+		if strings.Contains(tc.src, ".textContent = state.tokps") ||
+			strings.Contains(tc.src, ".textContent = state.debt") ||
+			strings.Contains(tc.src, ".textContent = state.consensus") ||
+			strings.Contains(tc.src, ".textContent = state.field") ||
+			strings.Contains(tc.src, ".textContent = state.hasCandidateTelemetry") {
+			t.Fatalf("%s still formats shared HUD metrics locally", tc.name)
+		}
 		if strings.Contains(tc.src, "parseInt(document.getElementById('max-tokens')") ||
 			strings.Contains(tc.src, `parseInt(document.getElementById("max-tokens")`) ||
 			strings.Contains(tc.src, "parseFloat(document.getElementById('temp')") ||
@@ -218,6 +238,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	}
 	for _, required := range []string{
 		"`DoE/worldmodel/token_telemetry.js`",
+		"`DoE/worldmodel/interface_hud.js`",
 		"`DoE/worldmodel/worldmodel_geometry.js`",
 		"`DoE/worldmodel/interface_replay.js`",
 		"`DoE/worldmodel/interface_input.js`",

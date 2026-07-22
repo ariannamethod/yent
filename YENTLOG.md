@@ -80,6 +80,19 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 - Node and Go contract tests cover live, replay, stop, fault, route, and script
   load-order boundaries.
 
+## 2026-07-23 - interface HUD helper
+
+- Added `DoE/worldmodel/interface_hud.js` for shared HUD cell binding and metric
+  formatting.
+- `/yent` and `/worldmodel` now render the common `TOK/S`, `DEBT`, `CONS`,
+  `FIELD`, `P`, `RANK`, and `TAIL` cells through one helper while keeping their
+  page-specific `EXPERTS` or `STEP/ENT` fields.
+- The helper delegates candidate probability formatting to
+  `DoE/worldmodel/token_telemetry.js`, so missing candidate telemetry still
+  renders as `-` instead of invented certainty.
+- Node and Go contract tests cover route presence, script order, formatting, and
+  removal of page-local shared HUD formatting.
+
 ## Repository Map
 
 ```

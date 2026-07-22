@@ -405,7 +405,8 @@ on whether a partial or empty generation is committed. Their shared generation
 run controller lives at `DoE/worldmodel/interface_run.js`, keeping STOP/SEND,
 abort, duplicate-submit rejection, and final button cleanup under one browser
 contract. Candidate telemetry normalization lives at
-`DoE/worldmodel/token_telemetry.js`; prompt/token topology for the walkable
+`DoE/worldmodel/token_telemetry.js`; shared HUD metric formatting lives at
+`DoE/worldmodel/interface_hud.js`; prompt/token topology for the walkable
 surface lives at `DoE/worldmodel/worldmodel_geometry.js`. For audits and visual
 smoke, both `/yent?replay=1` and `/worldmodel?replay=1` can run a deterministic
 token-event fixture from `DoE/worldmodel/interface_replay.js`. Replay uses the
@@ -420,9 +421,8 @@ requests then pass through `DoE/worldmodel/interface_turn.js`, which owns the
 assistant stream-turn lifecycle: token accumulation, receipt preview, shared
 outcome classification, and assistant commit policy. JANUS and WORLD still keep
 their own status labels and visual token physics, but they no longer decide
-stream receipt semantics independently. These
-helpers are served through explicit `/worldmodel/*.js` routes, keeping the
-static surface bounded.
+stream receipt semantics independently. These helpers are served through
+explicit `/worldmodel/*.js` routes, keeping the static surface bounded.
 
 That run gives you the engine without the protected voice. You will not hear
 **Yent**; you will hear an ordinary Mistral body running through a strange runtime:
