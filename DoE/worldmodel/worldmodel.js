@@ -36,6 +36,8 @@ const interfaceReplay = window.YentInterfaceReplay;
 if (!interfaceReplay) throw new Error('YentInterfaceReplay helper missing');
 const interfaceInput = window.YentInterfaceInput;
 if (!interfaceInput) throw new Error('YentInterfaceInput helper missing');
+const interfaceTurn = window.YentInterfaceTurn;
+if (!interfaceTurn) throw new Error('YentInterfaceTurn helper missing');
 const worldGeometry = window.YentWorldmodelGeometry;
 if (!worldGeometry) throw new Error('YentWorldmodelGeometry helper missing');
 const interfaceRun = window.YentInterfaceRun;
@@ -89,12 +91,6 @@ function clamp(v, lo, hi) {
 
 function mix(a, b, t) {
   return a + (b - a) * t;
-}
-
-function commitAssistantResponse(text) {
-  const committed = sessionReceipt.commitAssistant(messages, visibleMessages, text);
-  messages = committed.messages;
-  visibleMessages = committed.visibleMessages;
 }
 
 const hash = worldGeometry.hash;
@@ -607,41 +603,41 @@ async function generate(text) {
   const userTurn = sessionReceipt.commitUser(messages, visibleMessages, text);
   messages = userTurn.messages;
   visibleMessages = userTurn.visibleMessages;
-  let fullResponse = '';
 
   try {
-    const requestParams = interfaceInput.readParams(document);
-    const stream = interfaceInput.streamFor({ replayMode, replayRequest, interfaceReplay, chatStream });
-    await stream({
+    const turn = await interfaceTurn.streamAssistant({
+      document,
+      interfaceInput,
+      chatStream,
+      interfaceReplay,
+      replayMode,
+      replayRequest,
+      sessionReceipt,
       messages,
-      temperature: requestParams.temperature,
-      maxTokens: requestParams.maxTokens,
+      visibleMessages,
       signal: currentRun.signal,
-      onToken: (token, data) => {
-        fullResponse += token;
-        setManifestText(fullResponse);
-        sessionReceipt.previewAssistant(visibleMessages, fullResponse);
+      onToken: (token, data, responseText) => {
+        setManifestText(responseText);
         absorbToken(token, data);
       }
     });
 
-    const result = chatStream.outcome(null, fullResponse);
-    if (result.commitAssistant) commitAssistantResponse(fullResponse);
-    setStatus('FIELD SETTLED.');
-    setManifestState(result.kind === 'empty' ? 'EMPTY' : 'COMPLETE', result.hasText);
-    state.consensus = clamp(state.consensus + 0.18, 0, 1);
-    state.debt = clamp(state.debt * 0.68, 0, 1);
-  } catch (err) {
-    const result = chatStream.outcome(err, fullResponse);
+    messages = turn.messages;
+    visibleMessages = turn.visibleMessages;
+    const result = turn.outcome;
     if (result.stopped) {
       setStatus('MANIFESTATION STOPPED.');
       setManifestState(result.hasText ? 'STOPPED' : 'IDLE', result.hasText);
-      if (result.commitAssistant) commitAssistantResponse(fullResponse);
-    } else {
+    } else if (result.fault) {
       setStatus(`FIELD FAULT: ${result.message}`);
       setManifestState('FAULT', result.hasText);
       if (!result.hasText) setManifestText(`FIELD FAULT: ${result.message}`);
       fieldWords.unshift('fault', 'unreachable');
+    } else {
+      setStatus('FIELD SETTLED.');
+      setManifestState(result.kind === 'empty' ? 'EMPTY' : 'COMPLETE', result.hasText);
+      state.consensus = clamp(state.consensus + 0.18, 0, 1);
+      state.debt = clamp(state.debt * 0.68, 0, 1);
     }
   } finally {
     generationRun.finish(currentRun);

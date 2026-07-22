@@ -179,6 +179,7 @@ async function runPage(page) {
     'token_telemetry.js',
     'interface_replay.js',
     'interface_input.js',
+    'interface_turn.js',
     'interface_run.js'
   ]) {
     runScript(context, rel);

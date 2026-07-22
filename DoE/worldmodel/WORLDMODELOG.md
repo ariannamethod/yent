@@ -78,6 +78,16 @@ Yent worldmodel interface log.
 - Added `P`, `RANK`, and `TAIL` HUD fields to `/worldmodel` and `/yent`.
 - These show selected-token probability, selected rank, and candidate tail mass
   only when the SSE stream provides real bounded candidate telemetry.
+
+## 2026-07-23 - shared assistant stream turn
+
+- Added `interface_turn.js` as the shared live/replay assistant turn boundary.
+- The helper owns stream accumulation, receipt preview, outcome classification,
+  and assistant commit policy for both JANUS and WORLD.
+- Page scripts now keep only page-specific consequence: the Janus transcript and
+  face projection, or the worldmodel manifest and field deformation.
+- This keeps future interface physics free to diverge without allowing the two
+  surfaces to disagree on whether a generated assistant turn actually happened.
 - Older or partial streams display `-`, avoiding fake certainty from missing
   fields.
 
