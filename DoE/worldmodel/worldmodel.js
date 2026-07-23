@@ -19,6 +19,7 @@ if (!interfaceDeps) throw new Error('YentInterfaceDeps helper missing');
 const deps = interfaceDeps.load({ worldGeometry: true });
 const interfaceSession = deps.interfaceSession;
 const chatStream = deps.chatStream;
+const interfaceText = deps.interfaceText;
 const tokenTelemetry = deps.tokenTelemetry;
 const interfaceHud = deps.interfaceHud;
 const interfaceReplay = deps.interfaceReplay;
@@ -93,12 +94,7 @@ function resize() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
-function cleanWords(text) {
-  return (text || '')
-    .replace(/[^\p{L}\p{N}_'\- ]/gu, ' ')
-    .split(/\s+/)
-    .filter(Boolean);
-}
+const cleanWords = interfaceText.cleanWords;
 
 function rebuildManifest() {
   manifestWords = cleanWords(chosenText).slice(-90);
