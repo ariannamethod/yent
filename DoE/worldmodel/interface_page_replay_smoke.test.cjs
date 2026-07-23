@@ -176,6 +176,7 @@ async function runPage(page) {
     'interface_session.js',
     'event_stream.js',
     'chat_stream.js',
+    'interface_text.js',
     'token_telemetry.js',
     'interface_hud.js',
     'interface_replay.js',

@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-23 - interface text helper
+
+- Added `DoE/worldmodel/interface_text.js` for shared browser text
+  normalization across `/yent`, `/worldmodel`, and candidate telemetry.
+- JANUS now uses the helper for token-tape sanitization; WORLD uses it for
+  prompt, manifest, and restored-session word extraction.
+- The DoE server whitelists `/worldmodel/interface_text.js`, and tests reject
+  page-local text normalizers returning to either surface.
+
 ## 2026-07-23 - interface outcome helper
 
 - Added `DoE/worldmodel/interface_outcome.js` for shared browser outcome

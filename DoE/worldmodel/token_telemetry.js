@@ -4,6 +4,8 @@
   const DEFAULT_TOP_LIMIT = 32;
   const DEFAULT_WORD_LIMIT = 18;
   const DEFAULT_WORDS_PER_TOKEN = 2;
+  const textHelper = root.YentInterfaceText ||
+    (typeof require === 'function' ? require('./interface_text.js') : null);
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -31,10 +33,10 @@
   }
 
   function cleanWords(text) {
-    return (typeof text === 'string' ? text : '')
-      .replace(/[^\p{L}\p{N}_'\- ]/gu, ' ')
-      .split(/\s+/)
-      .filter(Boolean);
+    if (!textHelper || typeof textHelper.cleanWords !== 'function') {
+      throw new Error('YentInterfaceText helper missing');
+    }
+    return textHelper.cleanWords(text);
   }
 
   function normalizeTopTokens(source, options) {

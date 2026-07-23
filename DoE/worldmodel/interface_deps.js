@@ -5,6 +5,7 @@
     ['interfaceSession', 'YentInterfaceSession'],
     ['eventStream', 'YentEventStream'],
     ['chatStream', 'YentChatStream'],
+    ['interfaceText', 'YentInterfaceText'],
     ['tokenTelemetry', 'YentTokenTelemetry'],
     ['interfaceHud', 'YentInterfaceHud'],
     ['interfaceReplay', 'YentInterfaceReplay'],

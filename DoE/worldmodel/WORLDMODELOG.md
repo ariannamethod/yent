@@ -138,6 +138,13 @@ Yent worldmodel interface log.
 - JANUS and WORLD still own their labels and visual effects, but no longer read
   `turn.outcome` directly after submit.
 
+## 2026-07-23 - shared text normalization
+
+- Added `interface_text.js` for Unicode word extraction, token tape sanitizing,
+  and bounded tape append behavior.
+- WORLD no longer carries its own `cleanWords`; JANUS no longer carries its own
+  token tape sanitizer.
+
 ## 2026-07-19 - readable manifestation surface
 
 - Added a readable `MANIFEST` answer surface to `/worldmodel`.

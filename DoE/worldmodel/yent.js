@@ -17,6 +17,7 @@ if (!interfaceDeps) throw new Error('YentInterfaceDeps helper missing');
 const deps = interfaceDeps.load();
 const interfaceSession = deps.interfaceSession;
 const chatStream = deps.chatStream;
+const interfaceText = deps.interfaceText;
 const tokenTelemetry = deps.tokenTelemetry;
 const interfaceHud = deps.interfaceHud;
 const interfaceReplay = deps.interfaceReplay;
@@ -64,15 +65,11 @@ let smoothX = 0;
 let smoothY = 0;
 let time = 0;
 
-function tokenTextForTape(text) {
-  return (text || '').replace(/\s+/g, '_').replace(/[^\p{L}\p{N}_./=+\-*#@%&_]/gu, '');
-}
-
 function candidateTapeText(data) {
   return tokenTelemetry.candidateText(data, {
     limit: 10,
     wordsPerToken: 1,
-    sanitizer: tokenTextForTape
+    sanitizer: interfaceText.tokenTapeText
   });
 }
 
@@ -357,7 +354,7 @@ function restoreInterfaceSession() {
   transcript.textContent = '';
   for (const msg of visibleMessages) addTurn(msg.role, msg.content);
 
-  const tapeText = tokenTextForTape(visibleMessages.map(msg => msg.content).join(' '));
+  const tapeText = interfaceText.tokenTapeText(visibleMessages.map(msg => msg.content).join(' '));
   if (tapeText) tokenTape = (seedWords.join('') + ' ' + tapeText).slice(-900);
 }
 
@@ -375,8 +372,7 @@ function pushBurst(power) {
 function absorbToken(token, data) {
   if (!token) return;
   const telemetry = tokenTelemetry.normalize(data);
-  const printable = tokenTextForTape(token);
-  tokenTape = (tokenTape + printable + ' ').slice(-900);
+  tokenTape = interfaceText.appendTape(tokenTape, token, 900);
   const latent = candidateTapeText(telemetry);
   if (latent) latentTape = (latentTape + latent + ' ').slice(-900);
   tokenCount += 1;

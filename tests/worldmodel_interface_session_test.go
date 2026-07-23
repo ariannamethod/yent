@@ -17,6 +17,7 @@ func TestWorldmodelInterfaceSessionHelper(t *testing.T) {
 		filepath.Join(root, "DoE", "worldmodel", "interface_session.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "event_stream.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "chat_stream.test.cjs"),
+		filepath.Join(root, "DoE", "worldmodel", "interface_text.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "token_telemetry.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_hud.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_replay.test.cjs"),
@@ -47,6 +48,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	doeC := readTextFile(t, filepath.Join(root, "DoE", "doe.c"))
 	yentJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "yent.js"))
 	worldJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "worldmodel.js"))
+	textJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_text.js"))
 	submitJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_submit.js"))
 	outcomeJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_outcome.js"))
 	depsJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_deps.js"))
@@ -56,6 +58,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/interface_session.js",
 		"/worldmodel/event_stream.js",
 		"/worldmodel/chat_stream.js",
+		"/worldmodel/interface_text.js",
 		"/worldmodel/token_telemetry.js",
 		"/worldmodel/interface_hud.js",
 		"/worldmodel/interface_replay.js",
@@ -72,6 +75,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/interface_session.js",
 		"/worldmodel/event_stream.js",
 		"/worldmodel/chat_stream.js",
+		"/worldmodel/interface_text.js",
 		"/worldmodel/token_telemetry.js",
 		"/worldmodel/interface_hud.js",
 		"/worldmodel/interface_replay.js",
@@ -97,6 +101,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(doeC, `"/worldmodel/chat_stream.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/chat_stream.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist chat_stream.js")
+	}
+	if !strings.Contains(doeC, `"/worldmodel/interface_text.js"`) ||
+		!strings.Contains(doeC, `"worldmodel/interface_text.js not found"`) {
+		t.Fatalf("DoE server does not explicitly whitelist interface_text.js")
 	}
 	if !strings.Contains(doeC, `"/worldmodel/token_telemetry.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/token_telemetry.js not found"`) {
@@ -162,6 +170,9 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		}
 		if !strings.Contains(tc.src, "interfaceDeps.load(") {
 			t.Fatalf("%s does not load interface dependencies through the shared helper", tc.name)
+		}
+		if !strings.Contains(tc.src, "deps.interfaceText") {
+			t.Fatalf("%s does not use the shared interface text helper", tc.name)
 		}
 		if !strings.Contains(tc.src, "interfaceSession.createAdapter") {
 			t.Fatalf("%s does not use the shared replay-aware session adapter", tc.name)
@@ -253,10 +264,16 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if strings.Contains(tc.src, "function clamp(") || strings.Contains(tc.src, "function mix(") {
 			t.Fatalf("%s still carries page-local interface math helpers", tc.name)
 		}
+		if strings.Contains(tc.src, "function cleanWords(") ||
+			strings.Contains(tc.src, "function tokenTextForTape(") ||
+			strings.Contains(tc.src, "replace(/[^\\p{L}\\p{N}_") {
+			t.Fatalf("%s still carries page-local interface text normalization", tc.name)
+		}
 		for _, forbidden := range []string{
 			"window.YentInterfaceSession",
 			"window.YentEventStream",
 			"window.YentChatStream",
+			"window.YentInterfaceText",
 			"window.YentTokenTelemetry",
 			"window.YentInterfaceHud",
 			"window.YentInterfaceReplay",
@@ -283,6 +300,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"YentInterfaceSession",
 		"YentEventStream",
 		"YentChatStream",
+		"YentInterfaceText",
 		"YentTokenTelemetry",
 		"YentInterfaceHud",
 		"YentInterfaceReplay",
@@ -301,6 +319,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	}
 	for _, required := range []string{
 		"`DoE/worldmodel/token_telemetry.js`",
+		"`DoE/worldmodel/interface_text.js`",
 		"`DoE/worldmodel/interface_hud.js`",
 		"`DoE/worldmodel/worldmodel_geometry.js`",
 		"`DoE/worldmodel/interface_replay.js`",
@@ -320,6 +339,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	}
 	if strings.Contains(readme, "All four helpers") {
 		t.Fatalf("README.md still describes the old four-helper interface contract")
+	}
+	if !strings.Contains(textJS, "cleanWords") ||
+		!strings.Contains(textJS, "tokenTapeText") ||
+		!strings.Contains(textJS, "appendTape") {
+		t.Fatalf("interface_text.js does not own shared text normalization")
 	}
 	if !strings.Contains(submitJS, "generationRun.begin(") ||
 		!strings.Contains(submitJS, "session.commitUser(") ||
