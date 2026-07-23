@@ -182,6 +182,7 @@ async function runPage(page) {
     'interface_input.js',
     'interface_turn.js',
     'interface_submit.js',
+    'interface_outcome.js',
     'interface_run.js',
     'interface_boot.js',
     'interface_math.js',

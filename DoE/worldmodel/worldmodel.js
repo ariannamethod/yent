@@ -24,6 +24,7 @@ const interfaceHud = deps.interfaceHud;
 const interfaceReplay = deps.interfaceReplay;
 const interfaceInput = deps.interfaceInput;
 const interfaceSubmit = deps.interfaceSubmit;
+const interfaceOutcome = deps.interfaceOutcome;
 const worldGeometry = deps.worldGeometry;
 const interfaceRun = deps.interfaceRun;
 const interfaceBoot = deps.interfaceBoot;
@@ -595,24 +596,26 @@ async function generate(text) {
     }
   });
 
-  const turn = submit.turn;
   messages = submit.messages;
   visibleMessages = submit.visibleMessages;
-  const result = turn.outcome;
-  if (result.stopped) {
-    setStatus('MANIFESTATION STOPPED.');
-    setManifestState(result.hasText ? 'STOPPED' : 'IDLE', result.hasText);
-  } else if (result.fault) {
-    setStatus(`FIELD FAULT: ${result.message}`);
-    setManifestState('FAULT', result.hasText);
-    if (!result.hasText) setManifestText(`FIELD FAULT: ${result.message}`);
-    fieldWords.unshift('fault', 'unreachable');
-  } else {
-    setStatus('FIELD SETTLED.');
-    setManifestState(result.kind === 'empty' ? 'EMPTY' : 'COMPLETE', result.hasText);
-    state.consensus = clamp(state.consensus + 0.18, 0, 1);
-    state.debt = clamp(state.debt * 0.68, 0, 1);
-  }
+  interfaceOutcome.handle(submit, {
+    stopped: (_turn, result) => {
+      setStatus('MANIFESTATION STOPPED.');
+      setManifestState(result.hasText ? 'STOPPED' : 'IDLE', result.hasText);
+    },
+    fault: (_turn, result) => {
+      setStatus(`FIELD FAULT: ${result.message}`);
+      setManifestState('FAULT', result.hasText);
+      if (!result.hasText) setManifestText(`FIELD FAULT: ${result.message}`);
+      fieldWords.unshift('fault', 'unreachable');
+    },
+    complete: (_turn, result) => {
+      setStatus('FIELD SETTLED.');
+      setManifestState(result.kind === 'empty' ? 'EMPTY' : 'COMPLETE', result.hasText);
+      state.consensus = clamp(state.consensus + 0.18, 0, 1);
+      state.debt = clamp(state.debt * 0.68, 0, 1);
+    }
+  });
 }
 
 generationRun.bindComposer(composer, promptInput, generate);
