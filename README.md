@@ -426,7 +426,9 @@ stream receipt semantics independently. Browser startup order is centralized in
 animation, then optionally start replay. Shared interface interpolation and
 bounded numeric projection live at `DoE/worldmodel/interface_math.js`, keeping
 JANUS and WORLD visual physics on the same clamp/mix contract without sharing
-their page-specific rendering. These helpers are served through
+their page-specific rendering. Page dependency loading is centralized in
+`DoE/worldmodel/interface_deps.js`, so both surfaces fail through one explicit
+helper boundary when a shared browser module is missing. These helpers are served through
 explicit `/worldmodel/*.js` routes, keeping the static surface bounded.
 
 That run gives you the engine without the protected voice. You will not hear
