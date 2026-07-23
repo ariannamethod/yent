@@ -437,7 +437,9 @@ complete turns through one gate while JANUS and WORLD keep their own labels and
 visual consequences.
 Browser startup order is centralized in
 `DoE/worldmodel/interface_boot.js`: restore receipt, resize the surface, start
-animation, then optionally start replay. Shared interface interpolation and
+animation, then optionally start replay. The same helper owns the browser resize
+listener, so pages provide resize effects without binding lifecycle events
+locally. Shared interface interpolation and
 bounded numeric projection live at `DoE/worldmodel/interface_math.js`, keeping
 JANUS and WORLD visual physics on the same clamp/mix contract without sharing
 their page-specific rendering. Canvas viewport/DPR backing-store sizing lives at

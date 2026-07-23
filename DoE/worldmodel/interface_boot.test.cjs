@@ -9,6 +9,16 @@ function main() {
     const generationRun = { isRunning: () => false };
     const generate = () => {};
     const timer = () => {};
+    const windowRef = {
+      addEventListener(type, handler) {
+        calls.push(`listen:${type}`);
+        assert.equal(type, 'resize');
+        assert.equal(handler, resize);
+      }
+    };
+    function resize() {
+      calls.push('resize');
+    }
     const replay = {
       startIfRequested(options) {
         calls.push('replay');
@@ -25,7 +35,8 @@ function main() {
 
     const started = boot.start({
       restore: () => calls.push('restore'),
-      resize: () => calls.push('resize'),
+      resize,
+      window: windowRef,
       startAnimation: () => calls.push('animation'),
       interfaceReplay: replay,
       replayMode: true,
@@ -37,7 +48,7 @@ function main() {
       setTimeout: timer
     });
     assert.equal(started, true);
-    assert.deepEqual(calls, ['restore', 'resize', 'animation', 'replay']);
+    assert.deepEqual(calls, ['restore', 'resize', 'listen:resize', 'animation', 'replay']);
   }
 
   {

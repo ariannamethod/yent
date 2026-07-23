@@ -14,10 +14,18 @@
     return replay;
   }
 
+  function bindResize(target, resize) {
+    if (target && typeof target.addEventListener === 'function') {
+      target.addEventListener('resize', resize);
+    }
+  }
+
   function start(options) {
     options = options || {};
     requireFunction(options.restore, 'interface restore')();
-    requireFunction(options.resize, 'interface resize')();
+    const resize = requireFunction(options.resize, 'interface resize');
+    resize();
+    bindResize(options.window || root, resize);
     requireFunction(options.startAnimation, 'interface animation start')();
 
     return requireReplay(options).startIfRequested({

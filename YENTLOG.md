@@ -6,6 +6,16 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-23 - interface boot resize binding
+
+- Moved `/yent` and `/worldmodel` browser resize listener binding into
+  `DoE/worldmodel/interface_boot.js`.
+- Pages still provide their own resize effects, but startup now owns restore,
+  initial resize, resize listener registration, animation start, and optional
+  replay from one helper.
+- Go contracts reject page-local `window.addEventListener('resize', ...)`
+  returning to either surface.
+
 ## 2026-07-23 - interface canvas helper
 
 - Added `DoE/worldmodel/interface_canvas.js` for shared browser viewport and

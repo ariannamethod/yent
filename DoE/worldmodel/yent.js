@@ -595,10 +595,10 @@ window.addEventListener('mousedown', event => {
   bursts.push({ x: event.clientX, y: event.clientY, radius: 0, power: 1.3, life: 1.0 });
 });
 
-window.addEventListener('resize', resize);
 interfaceBoot.start({
   restore: restoreInterfaceSession,
   resize,
+  window,
   startAnimation: animate,
   interfaceReplay,
   replayMode,
