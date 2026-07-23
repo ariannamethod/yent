@@ -421,7 +421,10 @@ requests then pass through `DoE/worldmodel/interface_turn.js`, which owns the
 assistant stream-turn lifecycle: token accumulation, receipt preview, shared
 outcome classification, and assistant commit policy. JANUS and WORLD still keep
 their own status labels and visual token physics, but they no longer decide
-stream receipt semantics independently. Browser startup order is centralized in
+stream receipt semantics independently. The submit bridge lives at
+`DoE/worldmodel/interface_submit.js`; it owns the shared begin -> user commit ->
+assistant stream -> finish sequence while the pages keep their visual callbacks.
+Browser startup order is centralized in
 `DoE/worldmodel/interface_boot.js`: restore receipt, resize the surface, start
 animation, then optionally start replay. Shared interface interpolation and
 bounded numeric projection live at `DoE/worldmodel/interface_math.js`, keeping

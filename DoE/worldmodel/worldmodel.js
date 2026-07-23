@@ -23,7 +23,7 @@ const tokenTelemetry = deps.tokenTelemetry;
 const interfaceHud = deps.interfaceHud;
 const interfaceReplay = deps.interfaceReplay;
 const interfaceInput = deps.interfaceInput;
-const interfaceTurn = deps.interfaceTurn;
+const interfaceSubmit = deps.interfaceSubmit;
 const worldGeometry = deps.worldGeometry;
 const interfaceRun = deps.interfaceRun;
 const interfaceBoot = deps.interfaceBoot;
@@ -549,70 +549,69 @@ function restoreInterfaceSession() {
 }
 
 async function generate(text) {
-  const currentRun = generationRun.begin();
-  setStatus('FIELD DISTORTED.');
-  setManifestState('GENERATING', true);
-  setManifestText('');
-  chosenText = '';
-  manifestWords = [];
-  tokenCount = 0;
-  startTime = performance.now();
-  state.debt = 0.46;
-  state.consensus = 0.16;
-  state.field = 0.92;
-  state.entropy = Math.max(state.entropy, 3.4);
-  state.selectedProb = 0;
-  state.selectedRank = 0;
-  state.candidateTail = 0;
-  state.hasCandidateTelemetry = false;
-  candidateCloud = [];
-  worldGeometry.resetFromPrompt(geometry, text);
-  syncTopologyFromGeometry();
-  state.cameraY = mix(state.cameraY, (state.topologySeed - 0.5) * 170, 0.22);
-  fieldWords.unshift(...cleanWords(text).slice(0, 18));
-  fieldWords = fieldWords.slice(0, 260);
-
-  const userTurn = sessionReceipt.commitUser(messages, visibleMessages, text);
-  messages = userTurn.messages;
-  visibleMessages = userTurn.visibleMessages;
-
-  try {
-    const turn = await interfaceTurn.streamAssistant({
-      document,
-      interfaceInput,
-      chatStream,
-      interfaceReplay,
-      replayMode,
-      replayRequest,
-      sessionReceipt,
-      messages,
-      visibleMessages,
-      signal: currentRun.signal,
-      onToken: (token, data, responseText) => {
-        setManifestText(responseText);
-        absorbToken(token, data);
-      }
-    });
-
-    messages = turn.messages;
-    visibleMessages = turn.visibleMessages;
-    const result = turn.outcome;
-    if (result.stopped) {
-      setStatus('MANIFESTATION STOPPED.');
-      setManifestState(result.hasText ? 'STOPPED' : 'IDLE', result.hasText);
-    } else if (result.fault) {
-      setStatus(`FIELD FAULT: ${result.message}`);
-      setManifestState('FAULT', result.hasText);
-      if (!result.hasText) setManifestText(`FIELD FAULT: ${result.message}`);
-      fieldWords.unshift('fault', 'unreachable');
-    } else {
-      setStatus('FIELD SETTLED.');
-      setManifestState(result.kind === 'empty' ? 'EMPTY' : 'COMPLETE', result.hasText);
-      state.consensus = clamp(state.consensus + 0.18, 0, 1);
-      state.debt = clamp(state.debt * 0.68, 0, 1);
+  const submit = await interfaceSubmit.run({
+    generationRun,
+    document,
+    interfaceInput,
+    interfaceTurn: deps.interfaceTurn,
+    chatStream,
+    interfaceReplay,
+    replayMode,
+    replayRequest,
+    sessionReceipt,
+    messages,
+    visibleMessages,
+    text,
+    beforeUser: () => {
+      setStatus('FIELD DISTORTED.');
+      setManifestState('GENERATING', true);
+      setManifestText('');
+      chosenText = '';
+      manifestWords = [];
+      tokenCount = 0;
+      startTime = performance.now();
+      state.debt = 0.46;
+      state.consensus = 0.16;
+      state.field = 0.92;
+      state.entropy = Math.max(state.entropy, 3.4);
+      state.selectedProb = 0;
+      state.selectedRank = 0;
+      state.candidateTail = 0;
+      state.hasCandidateTelemetry = false;
+      candidateCloud = [];
+      worldGeometry.resetFromPrompt(geometry, text);
+      syncTopologyFromGeometry();
+      state.cameraY = mix(state.cameraY, (state.topologySeed - 0.5) * 170, 0.22);
+      fieldWords.unshift(...cleanWords(text).slice(0, 18));
+      fieldWords = fieldWords.slice(0, 260);
+    },
+    onUser: userTurn => {
+      messages = userTurn.messages;
+      visibleMessages = userTurn.visibleMessages;
+    },
+    onToken: (token, data, responseText) => {
+      setManifestText(responseText);
+      absorbToken(token, data);
     }
-  } finally {
-    generationRun.finish(currentRun);
+  });
+
+  const turn = submit.turn;
+  messages = submit.messages;
+  visibleMessages = submit.visibleMessages;
+  const result = turn.outcome;
+  if (result.stopped) {
+    setStatus('MANIFESTATION STOPPED.');
+    setManifestState(result.hasText ? 'STOPPED' : 'IDLE', result.hasText);
+  } else if (result.fault) {
+    setStatus(`FIELD FAULT: ${result.message}`);
+    setManifestState('FAULT', result.hasText);
+    if (!result.hasText) setManifestText(`FIELD FAULT: ${result.message}`);
+    fieldWords.unshift('fault', 'unreachable');
+  } else {
+    setStatus('FIELD SETTLED.');
+    setManifestState(result.kind === 'empty' ? 'EMPTY' : 'COMPLETE', result.hasText);
+    state.consensus = clamp(state.consensus + 0.18, 0, 1);
+    state.debt = clamp(state.debt * 0.68, 0, 1);
   }
 }
 

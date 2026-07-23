@@ -22,6 +22,7 @@ func TestWorldmodelInterfaceSessionHelper(t *testing.T) {
 		filepath.Join(root, "DoE", "worldmodel", "interface_replay.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_input.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_turn.test.cjs"),
+		filepath.Join(root, "DoE", "worldmodel", "interface_submit.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_page_replay_smoke.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_run.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_boot.test.cjs"),
@@ -45,6 +46,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	doeC := readTextFile(t, filepath.Join(root, "DoE", "doe.c"))
 	yentJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "yent.js"))
 	worldJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "worldmodel.js"))
+	submitJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_submit.js"))
 	depsJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_deps.js"))
 	readme := readTextFile(t, filepath.Join(root, "README.md"))
 
@@ -57,6 +59,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/interface_replay.js",
 		"/worldmodel/interface_input.js",
 		"/worldmodel/interface_turn.js",
+		"/worldmodel/interface_submit.js",
 		"/worldmodel/interface_run.js",
 		"/worldmodel/interface_boot.js",
 		"/worldmodel/interface_math.js",
@@ -71,6 +74,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/interface_replay.js",
 		"/worldmodel/interface_input.js",
 		"/worldmodel/interface_turn.js",
+		"/worldmodel/interface_submit.js",
 		"/worldmodel/interface_run.js",
 		"/worldmodel/interface_boot.js",
 		"/worldmodel/interface_math.js",
@@ -109,6 +113,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(doeC, `"/worldmodel/interface_turn.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_turn.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist interface_turn.js")
+	}
+	if !strings.Contains(doeC, `"/worldmodel/interface_submit.js"`) ||
+		!strings.Contains(doeC, `"worldmodel/interface_submit.js not found"`) {
+		t.Fatalf("DoE server does not explicitly whitelist interface_submit.js")
 	}
 	if !strings.Contains(doeC, `"/worldmodel/interface_run.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_run.js not found"`) {
@@ -150,21 +158,14 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if !strings.Contains(tc.src, "interfaceSession.createAdapter") {
 			t.Fatalf("%s does not use the shared replay-aware session adapter", tc.name)
 		}
-		for _, required := range []string{
-			"sessionReceipt.commitUser(",
-		} {
-			if !strings.Contains(tc.src, required) {
-				t.Fatalf("%s does not use shared session turn helper %s", tc.name, required)
-			}
+		if !strings.Contains(tc.src, "interfaceSubmit.run(") {
+			t.Fatalf("%s does not submit turns through the shared interface submit helper", tc.name)
 		}
 		if !strings.Contains(tc.src, "interfaceHud.render(") {
 			t.Fatalf("%s does not render HUD metrics through the shared helper", tc.name)
 		}
 		if !strings.Contains(tc.src, "interfaceBoot.start(") {
 			t.Fatalf("%s does not start through the shared boot helper", tc.name)
-		}
-		if !strings.Contains(tc.src, "interfaceTurn.streamAssistant(") {
-			t.Fatalf("%s does not stream assistant turns through the shared turn helper", tc.name)
 		}
 		if !strings.Contains(tc.src, "if (replayMode) return") {
 			t.Fatalf("%s does not guard session continuity during replay", tc.name)
@@ -184,7 +185,9 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		}
 		if strings.Contains(tc.src, "sessionReceipt.previewAssistant(") ||
 			strings.Contains(tc.src, "sessionReceipt.commitAssistant(") ||
+			strings.Contains(tc.src, "sessionReceipt.commitUser(") ||
 			strings.Contains(tc.src, "chatStream.outcome(") ||
+			strings.Contains(tc.src, "interfaceTurn.streamAssistant(") ||
 			strings.Contains(tc.src, "let fullResponse") {
 			t.Fatalf("%s still carries page-local assistant stream turn state", tc.name)
 		}
@@ -268,6 +271,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"YentInterfaceReplay",
 		"YentInterfaceInput",
 		"YentInterfaceTurn",
+		"YentInterfaceSubmit",
 		"YentInterfaceRun",
 		"YentInterfaceBoot",
 		"YentInterfaceMath",
@@ -284,6 +288,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"`DoE/worldmodel/interface_replay.js`",
 		"`DoE/worldmodel/interface_input.js`",
 		"`DoE/worldmodel/interface_turn.js`",
+		"`DoE/worldmodel/interface_submit.js`",
 		"`DoE/worldmodel/interface_boot.js`",
 		"`DoE/worldmodel/interface_math.js`",
 		"`DoE/worldmodel/interface_deps.js`",
@@ -296,6 +301,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	}
 	if strings.Contains(readme, "All four helpers") {
 		t.Fatalf("README.md still describes the old four-helper interface contract")
+	}
+	if !strings.Contains(submitJS, "generationRun.begin(") ||
+		!strings.Contains(submitJS, "session.commitUser(") ||
+		!strings.Contains(submitJS, "turnHelper.streamAssistant(") ||
+		!strings.Contains(submitJS, "generationRun.finish(currentRun)") {
+		t.Fatalf("interface_submit.js does not own the shared submit lifecycle")
 	}
 }
 

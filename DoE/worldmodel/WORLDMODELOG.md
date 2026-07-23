@@ -122,6 +122,15 @@ Yent worldmodel interface log.
 - WORLD still requests its geometry helper intentionally; JANUS does not inherit
   it by accident.
 
+## 2026-07-23 - shared submit turn bridge
+
+- Added `interface_submit.js` as the common bridge from composer submit into
+  user receipt commit and assistant streaming.
+- `yent.js` and `worldmodel.js` now call `interfaceSubmit.run(...)`; local code
+  remains responsible for visual setup, status labels, and token absorption.
+- This keeps the next visual physics work from reopening turn lifecycle
+  semantics.
+
 ## 2026-07-19 - readable manifestation surface
 
 - Added a readable `MANIFEST` answer surface to `/worldmodel`.
