@@ -3,6 +3,7 @@
 
   const COMMON = [
     ['interfaceSession', 'YentInterfaceSession'],
+    ['interfaceRestore', 'YentInterfaceRestore'],
     ['eventStream', 'YentEventStream'],
     ['chatStream', 'YentChatStream'],
     ['interfaceText', 'YentInterfaceText'],

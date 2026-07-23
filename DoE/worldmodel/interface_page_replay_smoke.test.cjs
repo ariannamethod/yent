@@ -174,6 +174,7 @@ async function runPage(page) {
   const context = makeContext(page);
   for (const rel of [
     'interface_session.js',
+    'interface_restore.js',
     'event_stream.js',
     'chat_stream.js',
     'interface_text.js',

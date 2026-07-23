@@ -15,6 +15,7 @@ func TestWorldmodelInterfaceSessionHelper(t *testing.T) {
 	root := repoRootForTest(t)
 	for _, script := range []string{
 		filepath.Join(root, "DoE", "worldmodel", "interface_session.test.cjs"),
+		filepath.Join(root, "DoE", "worldmodel", "interface_restore.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "event_stream.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "chat_stream.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_text.test.cjs"),
@@ -48,6 +49,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	doeC := readTextFile(t, filepath.Join(root, "DoE", "doe.c"))
 	yentJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "yent.js"))
 	worldJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "worldmodel.js"))
+	restoreJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_restore.js"))
 	textJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_text.js"))
 	submitJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_submit.js"))
 	outcomeJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_outcome.js"))
@@ -56,6 +58,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 
 	assertScriptOrder(t, "yent.html", yentHTML,
 		"/worldmodel/interface_session.js",
+		"/worldmodel/interface_restore.js",
 		"/worldmodel/event_stream.js",
 		"/worldmodel/chat_stream.js",
 		"/worldmodel/interface_text.js",
@@ -73,6 +76,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/yent.js")
 	assertScriptOrder(t, "worldmodel.html", worldHTML,
 		"/worldmodel/interface_session.js",
+		"/worldmodel/interface_restore.js",
 		"/worldmodel/event_stream.js",
 		"/worldmodel/chat_stream.js",
 		"/worldmodel/interface_text.js",
@@ -93,6 +97,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(doeC, `"/worldmodel/interface_session.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_session.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist interface_session.js")
+	}
+	if !strings.Contains(doeC, `"/worldmodel/interface_restore.js"`) ||
+		!strings.Contains(doeC, `"worldmodel/interface_restore.js not found"`) {
+		t.Fatalf("DoE server does not explicitly whitelist interface_restore.js")
 	}
 	if !strings.Contains(doeC, `"/worldmodel/event_stream.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/event_stream.js not found"`) {
@@ -177,6 +185,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if !strings.Contains(tc.src, "interfaceSession.createAdapter") {
 			t.Fatalf("%s does not use the shared replay-aware session adapter", tc.name)
 		}
+		if !strings.Contains(tc.src, "deps.interfaceRestore") ||
+			!strings.Contains(tc.src, "interfaceRestore.load(") {
+			t.Fatalf("%s does not restore UI receipt state through the shared helper", tc.name)
+		}
 		if !strings.Contains(tc.src, "interfaceSubmit.run(") {
 			t.Fatalf("%s does not submit turns through the shared interface submit helper", tc.name)
 		}
@@ -188,9 +200,6 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		}
 		if !strings.Contains(tc.src, "interfaceBoot.start(") {
 			t.Fatalf("%s does not start through the shared boot helper", tc.name)
-		}
-		if !strings.Contains(tc.src, "if (replayMode) return") {
-			t.Fatalf("%s does not guard session continuity during replay", tc.name)
 		}
 		if strings.Contains(tc.src, "messages = restored") {
 			t.Fatalf("%s repopulates prompt messages from restored UI receipt", tc.name)
@@ -204,6 +213,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if strings.Contains(tc.src, "messages.push") ||
 			strings.Contains(tc.src, "visibleMessages.push") {
 			t.Fatalf("%s still mutates session turn arrays locally", tc.name)
+		}
+		if strings.Contains(tc.src, "sessionReceipt.load()") ||
+			strings.Contains(tc.src, "visibleMessages.map(msg => msg.content).join(' ')") ||
+			strings.Contains(tc.src, `.slice().reverse().find(msg => msg.role === 'assistant')`) {
+			t.Fatalf("%s still carries page-local restored receipt derivation", tc.name)
 		}
 		if strings.Contains(tc.src, "sessionReceipt.previewAssistant(") ||
 			strings.Contains(tc.src, "sessionReceipt.commitAssistant(") ||
@@ -271,6 +285,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		}
 		for _, forbidden := range []string{
 			"window.YentInterfaceSession",
+			"window.YentInterfaceRestore",
 			"window.YentEventStream",
 			"window.YentChatStream",
 			"window.YentInterfaceText",
@@ -298,6 +313,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	}
 	for _, required := range []string{
 		"YentInterfaceSession",
+		"YentInterfaceRestore",
 		"YentEventStream",
 		"YentChatStream",
 		"YentInterfaceText",
@@ -318,6 +334,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		}
 	}
 	for _, required := range []string{
+		"`DoE/worldmodel/interface_restore.js`",
 		"`DoE/worldmodel/token_telemetry.js`",
 		"`DoE/worldmodel/interface_text.js`",
 		"`DoE/worldmodel/interface_hud.js`",
@@ -344,6 +361,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(textJS, "tokenTapeText") ||
 		!strings.Contains(textJS, "appendTape") {
 		t.Fatalf("interface_text.js does not own shared text normalization")
+	}
+	if !strings.Contains(restoreJS, "if (options.replayMode) return null") ||
+		!strings.Contains(restoreJS, "session.load()") ||
+		!strings.Contains(restoreJS, "combinedText") ||
+		!strings.Contains(restoreJS, "lastAssistant") {
+		t.Fatalf("interface_restore.js does not own shared replay-aware receipt restore")
 	}
 	if !strings.Contains(submitJS, "generationRun.begin(") ||
 		!strings.Contains(submitJS, "session.commitUser(") ||

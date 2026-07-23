@@ -393,7 +393,11 @@ and `worldmodel.html`; the DoE server resolves them there when launched from
 `DoE/doe_field`. Their shared browser receipt helper lives at
 `DoE/worldmodel/interface_session.js`; it owns receipt normalization, replay
 read-only mode, throttled session writes, and user/assistant turn commit helpers
-for both surfaces. Their shared SSE token parser lives at
+for both surfaces. Their shared restore helper lives at
+`DoE/worldmodel/interface_restore.js`; it keeps replay restore read-only and
+derives the visible restored messages, combined text, and last assistant turn
+while JANUS and WORLD keep only their visual restore effects. Their shared SSE
+token parser lives at
 `DoE/worldmodel/event_stream.js`. Their shared `/chat/completions` browser
 transport lives at `DoE/worldmodel/chat_stream.js`, so both surfaces use the
 same fetch/body/reader/decoder loop and only keep page-specific token effects.

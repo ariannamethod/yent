@@ -18,6 +18,7 @@ const interfaceDeps = window.YentInterfaceDeps;
 if (!interfaceDeps) throw new Error('YentInterfaceDeps helper missing');
 const deps = interfaceDeps.load({ worldGeometry: true });
 const interfaceSession = deps.interfaceSession;
+const interfaceRestore = deps.interfaceRestore;
 const chatStream = deps.chatStream;
 const interfaceText = deps.interfaceText;
 const tokenTelemetry = deps.tokenTelemetry;
@@ -517,12 +518,11 @@ function setManifestText(text) {
 }
 
 function restoreInterfaceSession() {
-  if (replayMode) return;
-  const restored = sessionReceipt.load();
-  if (!restored.length) return;
+  const restored = interfaceRestore.load({ sessionReceipt, replayMode });
+  if (!restored) return;
 
-  visibleMessages = restored;
-  const combined = visibleMessages.map(msg => msg.content).join(' ');
+  visibleMessages = restored.visibleMessages;
+  const combined = restored.combinedText;
   const words = cleanWords(combined).slice(-120);
   if (words.length) {
     fieldWords.unshift(...words);
@@ -532,7 +532,7 @@ function restoreInterfaceSession() {
     state.entropy = Math.log(Math.max(1, new Set(words.map(w => w.toLowerCase())).size));
   }
 
-  const lastAssistant = visibleMessages.slice().reverse().find(msg => msg.role === 'assistant');
+  const lastAssistant = restored.lastAssistant;
   if (lastAssistant) {
     chosenText = lastAssistant.content;
     rebuildManifest();

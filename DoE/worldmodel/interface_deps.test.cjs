@@ -3,6 +3,7 @@ const deps = require('./interface_deps.js');
 
 const commonGlobals = [
   'YentInterfaceSession',
+  'YentInterfaceRestore',
   'YentEventStream',
   'YentChatStream',
   'YentInterfaceText',
@@ -30,6 +31,7 @@ function main() {
     const root = makeRoot();
     const loaded = deps.load({ root, worldGeometry: true });
     assert.equal(loaded.interfaceSession, root.YentInterfaceSession);
+    assert.equal(loaded.interfaceRestore, root.YentInterfaceRestore);
     assert.equal(loaded.eventStream, root.YentEventStream);
     assert.equal(loaded.chatStream, root.YentChatStream);
     assert.equal(loaded.interfaceText, root.YentInterfaceText);
