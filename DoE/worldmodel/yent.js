@@ -23,6 +23,7 @@ const tokenTelemetry = deps.tokenTelemetry;
 const interfaceHud = deps.interfaceHud;
 const interfaceReplay = deps.interfaceReplay;
 const interfaceInput = deps.interfaceInput;
+const interfaceEvents = deps.interfaceEvents;
 const interfaceSubmit = deps.interfaceSubmit;
 const interfaceOutcome = deps.interfaceOutcome;
 const interfaceRun = deps.interfaceRun;
@@ -575,18 +576,19 @@ async function generate(text) {
   });
 }
 
-window.addEventListener('mousemove', event => {
-  mouseX = event.clientX;
-  mouseY = event.clientY;
-});
-
-window.addEventListener('mouseout', () => {
-  mouseX = -9999;
-  mouseY = -9999;
-});
-
-window.addEventListener('mousedown', event => {
-  bursts.push({ x: event.clientX, y: event.clientY, radius: 0, power: 1.3, life: 1.0 });
+interfaceEvents.bindPointer({
+  window,
+  onMove: point => {
+    mouseX = point.x;
+    mouseY = point.y;
+  },
+  onLeave: () => {
+    mouseX = -9999;
+    mouseY = -9999;
+  },
+  onDown: point => {
+    bursts.push({ x: point.x, y: point.y, radius: 0, power: 1.3, life: 1.0 });
+  }
 });
 
 interfaceBoot.start({

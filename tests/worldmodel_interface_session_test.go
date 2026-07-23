@@ -23,6 +23,7 @@ func TestWorldmodelInterfaceSessionHelper(t *testing.T) {
 		filepath.Join(root, "DoE", "worldmodel", "interface_hud.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_replay.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_input.test.cjs"),
+		filepath.Join(root, "DoE", "worldmodel", "interface_events.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_turn.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_submit.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_outcome.test.cjs"),
@@ -53,6 +54,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	restoreJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_restore.js"))
 	textJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_text.js"))
 	tokenTelemetryJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "token_telemetry.js"))
+	eventsJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_events.js"))
 	submitJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_submit.js"))
 	outcomeJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_outcome.js"))
 	bootJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_boot.js"))
@@ -70,6 +72,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/interface_hud.js",
 		"/worldmodel/interface_replay.js",
 		"/worldmodel/interface_input.js",
+		"/worldmodel/interface_events.js",
 		"/worldmodel/interface_turn.js",
 		"/worldmodel/interface_submit.js",
 		"/worldmodel/interface_outcome.js",
@@ -89,6 +92,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/interface_hud.js",
 		"/worldmodel/interface_replay.js",
 		"/worldmodel/interface_input.js",
+		"/worldmodel/interface_events.js",
 		"/worldmodel/interface_turn.js",
 		"/worldmodel/interface_submit.js",
 		"/worldmodel/interface_outcome.js",
@@ -135,6 +139,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(doeC, `"/worldmodel/interface_input.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_input.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist interface_input.js")
+	}
+	if !strings.Contains(doeC, `"/worldmodel/interface_events.js"`) ||
+		!strings.Contains(doeC, `"worldmodel/interface_events.js not found"`) {
+		t.Fatalf("DoE server does not explicitly whitelist interface_events.js")
 	}
 	if !strings.Contains(doeC, `"/worldmodel/interface_turn.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_turn.js not found"`) {
@@ -215,6 +223,9 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if !strings.Contains(tc.src, "deps.interfaceCanvas") ||
 			!strings.Contains(tc.src, "interfaceCanvas.resize(") {
 			t.Fatalf("%s does not size canvases through the shared helper", tc.name)
+		}
+		if !strings.Contains(tc.src, "deps.interfaceEvents") {
+			t.Fatalf("%s does not load browser input events through the shared helper", tc.name)
 		}
 		if strings.Contains(tc.src, "messages = restored") {
 			t.Fatalf("%s repopulates prompt messages from restored UI receipt", tc.name)
@@ -313,6 +324,22 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			strings.Contains(tc.src, `window.addEventListener("resize"`) {
 			t.Fatalf("%s still binds resize locally instead of interface_boot", tc.name)
 		}
+		for _, localEvent := range []string{
+			"window.addEventListener('keydown'",
+			`window.addEventListener("keydown"`,
+			"window.addEventListener('keyup'",
+			`window.addEventListener("keyup"`,
+			"window.addEventListener('mousemove'",
+			`window.addEventListener("mousemove"`,
+			"window.addEventListener('mouseout'",
+			`window.addEventListener("mouseout"`,
+			"window.addEventListener('mousedown'",
+			`window.addEventListener("mousedown"`,
+		} {
+			if strings.Contains(tc.src, localEvent) {
+				t.Fatalf("%s still binds browser input locally instead of interface_events", tc.name)
+			}
+		}
 		if strings.Contains(tc.src, "function cleanWords(") ||
 			strings.Contains(tc.src, "function tokenTextForTape(") ||
 			strings.Contains(tc.src, "replace(/[^\\p{L}\\p{N}_") {
@@ -328,6 +355,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			"window.YentInterfaceHud",
 			"window.YentInterfaceReplay",
 			"window.YentInterfaceInput",
+			"window.YentInterfaceEvents",
 			"window.YentInterfaceTurn",
 			"window.YentInterfaceOutcome",
 			"window.YentInterfaceRun",
@@ -357,6 +385,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"YentInterfaceHud",
 		"YentInterfaceReplay",
 		"YentInterfaceInput",
+		"YentInterfaceEvents",
 		"YentInterfaceTurn",
 		"YentInterfaceSubmit",
 		"YentInterfaceOutcome",
@@ -378,6 +407,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"`DoE/worldmodel/worldmodel_geometry.js`",
 		"`DoE/worldmodel/interface_replay.js`",
 		"`DoE/worldmodel/interface_input.js`",
+		"`DoE/worldmodel/interface_events.js`",
 		"`DoE/worldmodel/interface_turn.js`",
 		"`DoE/worldmodel/interface_submit.js`",
 		"`DoE/worldmodel/interface_outcome.js`",
@@ -416,6 +446,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(canvasJS, "canvas.width = Math.max") ||
 		!strings.Contains(canvasJS, "canvas.style.width") {
 		t.Fatalf("interface_canvas.js does not own shared canvas backing-store sizing")
+	}
+	if !strings.Contains(eventsJS, "function bindKeyState") ||
+		!strings.Contains(eventsJS, "function bindPointer") ||
+		!strings.Contains(eventsJS, "addEventListener") {
+		t.Fatalf("interface_events.js does not own shared browser input event binding")
 	}
 	if !strings.Contains(submitJS, "generationRun.begin(") ||
 		!strings.Contains(submitJS, "session.commitUser(") ||
