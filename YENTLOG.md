@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-24 - candidate telemetry state helper
+
+- Added shared `resetCandidateState` and `applyCandidateState` helpers in
+  `DoE/worldmodel/token_telemetry.js`.
+- `/yent` and `/worldmodel` no longer manually copy selected probability,
+  selected rank, candidate tail mass, or the candidate-telemetry presence flag.
+- Page scripts still own their visual consequences: JANUS pulse/velocity and
+  WORLD candidate cloud projection remain local.
+
 ## 2026-07-23 - interface boot resize binding
 
 - Moved `/yent` and `/worldmodel` browser resize listener binding into

@@ -388,15 +388,14 @@ function absorbToken(token, data) {
   if (telemetry.hasFieldHealth) state.field = telemetry.fieldHealth;
   else state.field = clamp(1.0 - state.debt * 0.38 + state.consensus * 0.08, 0, 1);
 
-  const tailMass = telemetry.candidateTailMass;
-  const selectedProb = telemetry.hasSelectedProb ? telemetry.selectedProb : state.selectedProb;
-  const selectedRank = telemetry.hasSelectedRank ? telemetry.selectedRank : state.selectedRank;
-  state.candidateTail = tailMass;
-  state.selectedProb = selectedProb;
-  state.selectedRank = selectedRank;
-  state.hasCandidateTelemetry = state.hasCandidateTelemetry || telemetry.hasCandidateTelemetry || latent.length > 0;
-  state.sidePulse = clamp(state.sidePulse + tailMass * 0.2 + (telemetry.hasSelectedProb ? (1 - selectedProb) * 0.05 : 0), 0, 1);
-  state.velocity = 0.75 + state.debt * 2.7 + (1 - state.consensus) * 1.2 + tailMass * 0.8;
+  const candidates = tokenTelemetry.applyCandidateState(state, telemetry, { hasCandidates: latent.length > 0 });
+  state.sidePulse = clamp(
+    state.sidePulse + candidates.candidateTail * 0.2 +
+      (candidates.hasSelectedProb ? (1 - candidates.selectedProb) * 0.05 : 0),
+    0,
+    1
+  );
+  state.velocity = 0.75 + state.debt * 2.7 + (1 - state.consensus) * 1.2 + candidates.candidateTail * 0.8;
   if (/[.!?]/.test(token)) pushBurst(0.55);
 }
 
@@ -538,10 +537,7 @@ async function generate(text) {
       state.consensus = 0.12;
       state.field = 0.86;
       state.velocity = 2.4;
-      state.selectedProb = 0;
-      state.selectedRank = 0;
-      state.candidateTail = 0;
-      state.hasCandidateTelemetry = false;
+      tokenTelemetry.resetCandidateState(state);
       state.sidePulse = 0.5;
       latentTape = seedWords.join('');
       pushBurst(2.4);
