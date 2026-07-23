@@ -421,7 +421,9 @@ requests then pass through `DoE/worldmodel/interface_turn.js`, which owns the
 assistant stream-turn lifecycle: token accumulation, receipt preview, shared
 outcome classification, and assistant commit policy. JANUS and WORLD still keep
 their own status labels and visual token physics, but they no longer decide
-stream receipt semantics independently. These helpers are served through
+stream receipt semantics independently. Browser startup order is centralized in
+`DoE/worldmodel/interface_boot.js`: restore receipt, resize the surface, start
+animation, then optionally start replay. These helpers are served through
 explicit `/worldmodel/*.js` routes, keeping the static surface bounded.
 
 That run gives you the engine without the protected voice. You will not hear
