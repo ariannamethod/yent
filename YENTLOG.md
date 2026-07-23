@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-23 - interface canvas helper
+
+- Added `DoE/worldmodel/interface_canvas.js` for shared browser viewport and
+  DPR canvas backing-store sizing.
+- `/yent` and `/worldmodel` now resize their canvases through one helper while
+  keeping their page-specific render loops and visual physics local.
+- Node/Go contracts reject page-local `devicePixelRatio` / backing-store sizing
+  returning to either surface.
+
 ## 2026-07-23 - interface restore helper
 
 - Added `DoE/worldmodel/interface_restore.js` for replay-aware browser receipt

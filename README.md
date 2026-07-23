@@ -440,7 +440,9 @@ Browser startup order is centralized in
 animation, then optionally start replay. Shared interface interpolation and
 bounded numeric projection live at `DoE/worldmodel/interface_math.js`, keeping
 JANUS and WORLD visual physics on the same clamp/mix contract without sharing
-their page-specific rendering. Page dependency loading is centralized in
+their page-specific rendering. Canvas viewport/DPR backing-store sizing lives at
+`DoE/worldmodel/interface_canvas.js`, so both surfaces resize through one
+browser contract while keeping their page-specific render loops. Page dependency loading is centralized in
 `DoE/worldmodel/interface_deps.js`, so both surfaces fail through one explicit
 helper boundary when a shared browser module is missing. These helpers are served through
 explicit `/worldmodel/*.js` routes, keeping the static surface bounded.

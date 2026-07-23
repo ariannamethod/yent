@@ -190,6 +190,13 @@ Yent worldmodel interface log.
 - The helper returns visible messages, combined text, and last assistant turn;
   JANUS and WORLD keep only projection-specific restore effects.
 
+## 2026-07-23 - shared canvas backing boundary
+
+- Added `interface_canvas.js` so JANUS and WORLD share viewport/DPR canvas
+  backing-store sizing.
+- The helper owns CSS size, backing pixels, and `setTransform`; both surfaces
+  keep their own render loops, particles, walls, and camera physics.
+
 ## 2026-07-20 - deterministic replay fixture
 
 - Added `worldmodel/interface_replay.js` as a query-param-only audit fixture for

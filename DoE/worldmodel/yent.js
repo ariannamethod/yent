@@ -27,6 +27,7 @@ const interfaceSubmit = deps.interfaceSubmit;
 const interfaceOutcome = deps.interfaceOutcome;
 const interfaceRun = deps.interfaceRun;
 const interfaceBoot = deps.interfaceBoot;
+const interfaceCanvas = deps.interfaceCanvas;
 const clamp = deps.interfaceMath.clamp;
 const mix = deps.interfaceMath.mix;
 const generationRun = interfaceRun.create({ button: sendButton });
@@ -72,14 +73,6 @@ function candidateTapeText(data) {
     wordsPerToken: 1,
     sanitizer: interfaceText.tokenTapeText
   });
-}
-
-function setCanvasSize(canvas, context, cssW, cssH) {
-  canvas.style.width = cssW + 'px';
-  canvas.style.height = cssH + 'px';
-  canvas.width = Math.max(1, Math.floor(cssW * dpr));
-  canvas.height = Math.max(1, Math.floor(cssH * dpr));
-  context.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
 function sceneMetrics() {
@@ -312,11 +305,16 @@ function buildParticles() {
 }
 
 function resize() {
-  dpr = Math.min(window.devicePixelRatio || 1, 2);
-  width = window.innerWidth;
-  height = window.innerHeight;
-  setCanvasSize(field, ctx, width, height);
-  setCanvasSize(trace, tctx, window.innerWidth, 22);
+  const size = interfaceCanvas.resize({
+    window,
+    surfaces: [
+      { canvas: field, context: ctx },
+      { canvas: trace, context: tctx, height: 22 }
+    ]
+  });
+  dpr = size.dpr;
+  width = size.width;
+  height = size.height;
   const scene = sceneMetrics();
   smoothX = scene.x;
   smoothY = scene.y;
