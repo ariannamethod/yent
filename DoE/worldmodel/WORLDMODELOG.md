@@ -108,6 +108,13 @@ Yent worldmodel interface log.
   can preserve their different animation loops without duplicating startup
   semantics.
 
+## 2026-07-23 - shared interface math
+
+- Added `interface_math.js` so both surfaces use the same `clamp` and `mix`
+  primitives for bounded visual state and interpolation.
+- JANUS and WORLD still own their own geometry, but the low-level numeric
+  contract no longer drifts between page scripts.
+
 ## 2026-07-19 - readable manifestation surface
 
 - Added a readable `MANIFEST` answer surface to `/worldmodel`.

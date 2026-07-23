@@ -25,6 +25,7 @@ func TestWorldmodelInterfaceSessionHelper(t *testing.T) {
 		filepath.Join(root, "DoE", "worldmodel", "interface_page_replay_smoke.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_run.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_boot.test.cjs"),
+		filepath.Join(root, "DoE", "worldmodel", "interface_math.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "worldmodel_geometry.test.cjs"),
 	} {
 		cmd := exec.Command("node", script)
@@ -56,6 +57,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/interface_turn.js",
 		"/worldmodel/interface_run.js",
 		"/worldmodel/interface_boot.js",
+		"/worldmodel/interface_math.js",
 		"/worldmodel/yent.js")
 	assertScriptOrder(t, "worldmodel.html", worldHTML,
 		"/worldmodel/interface_session.js",
@@ -68,6 +70,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/interface_turn.js",
 		"/worldmodel/interface_run.js",
 		"/worldmodel/interface_boot.js",
+		"/worldmodel/interface_math.js",
 		"/worldmodel/worldmodel_geometry.js",
 		"/worldmodel/worldmodel.js")
 
@@ -110,6 +113,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(doeC, `"/worldmodel/interface_boot.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_boot.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist interface_boot.js")
+	}
+	if !strings.Contains(doeC, `"/worldmodel/interface_math.js"`) ||
+		!strings.Contains(doeC, `"worldmodel/interface_math.js not found"`) {
+		t.Fatalf("DoE server does not explicitly whitelist interface_math.js")
 	}
 	if !strings.Contains(doeC, `"/worldmodel/worldmodel_geometry.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/worldmodel_geometry.js not found"`) {
@@ -171,6 +178,9 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		}
 		if !strings.Contains(tc.src, "interfaceBoot.start(") {
 			t.Fatalf("%s does not start through the shared boot helper", tc.name)
+		}
+		if !strings.Contains(tc.src, "window.YentInterfaceMath") {
+			t.Fatalf("%s does not use the shared interface math helper", tc.name)
 		}
 		if !strings.Contains(tc.src, "interfaceTurn.streamAssistant(") {
 			t.Fatalf("%s does not stream assistant turns through the shared turn helper", tc.name)
@@ -240,6 +250,9 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			strings.Contains(tc.src, "generate(replayRequest.prompt)") {
 			t.Fatalf("%s still carries page-local replay autostart", tc.name)
 		}
+		if strings.Contains(tc.src, "function clamp(") || strings.Contains(tc.src, "function mix(") {
+			t.Fatalf("%s still carries page-local interface math helpers", tc.name)
+		}
 	}
 	if !strings.Contains(worldJS, "window.YentWorldmodelGeometry") {
 		t.Fatalf("worldmodel.js does not use the worldmodel geometry helper")
@@ -255,6 +268,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"`DoE/worldmodel/interface_input.js`",
 		"`DoE/worldmodel/interface_turn.js`",
 		"`DoE/worldmodel/interface_boot.js`",
+		"`DoE/worldmodel/interface_math.js`",
 		"`/yent?replay=1`",
 		"`/worldmodel?replay=1`",
 	} {

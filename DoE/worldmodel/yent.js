@@ -31,6 +31,10 @@ const interfaceRun = window.YentInterfaceRun;
 if (!interfaceRun) throw new Error('YentInterfaceRun helper missing');
 const interfaceBoot = window.YentInterfaceBoot;
 if (!interfaceBoot) throw new Error('YentInterfaceBoot helper missing');
+const interfaceMath = window.YentInterfaceMath;
+if (!interfaceMath) throw new Error('YentInterfaceMath helper missing');
+const clamp = interfaceMath.clamp;
+const mix = interfaceMath.mix;
 const generationRun = interfaceRun.create({ button: sendButton });
 const replayRequest = interfaceReplay.request(window.location);
 const replayMode = replayRequest.enabled;
@@ -67,14 +71,6 @@ let mouseY = -9999;
 let smoothX = 0;
 let smoothY = 0;
 let time = 0;
-
-function clamp(v, lo, hi) {
-  return Math.max(lo, Math.min(hi, v));
-}
-
-function mix(a, b, t) {
-  return a + (b - a) * t;
-}
 
 function tokenTextForTape(text) {
   return (text || '').replace(/\s+/g, '_').replace(/[^\p{L}\p{N}_./=+\-*#@%&_]/gu, '');
