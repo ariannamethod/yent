@@ -10,6 +10,7 @@
     ['interfaceReplay', 'YentInterfaceReplay'],
     ['interfaceInput', 'YentInterfaceInput'],
     ['interfaceTurn', 'YentInterfaceTurn'],
+    ['interfaceSubmit', 'YentInterfaceSubmit'],
     ['interfaceRun', 'YentInterfaceRun'],
     ['interfaceBoot', 'YentInterfaceBoot'],
     ['interfaceMath', 'YentInterfaceMath']

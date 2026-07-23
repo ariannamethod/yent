@@ -124,6 +124,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
   reject direct `window.YentInterface*` dependency probes returning to either
   page script.
 
+## 2026-07-23 - interface submit helper
+
+- Added `DoE/worldmodel/interface_submit.js` for the shared browser submit-turn
+  sequence across `/yent` and `/worldmodel`.
+- The helper owns `begin -> commitUser -> streamAssistant -> finish`; page
+  scripts keep their visual/status callbacks and token effects only.
+- Node and Go contracts now reject page-local `sessionReceipt.commitUser` or
+  `interfaceTurn.streamAssistant` calls returning to either surface.
+
 ## Repository Map
 
 ```

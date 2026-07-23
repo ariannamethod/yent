@@ -21,7 +21,7 @@ const tokenTelemetry = deps.tokenTelemetry;
 const interfaceHud = deps.interfaceHud;
 const interfaceReplay = deps.interfaceReplay;
 const interfaceInput = deps.interfaceInput;
-const interfaceTurn = deps.interfaceTurn;
+const interfaceSubmit = deps.interfaceSubmit;
 const interfaceRun = deps.interfaceRun;
 const interfaceBoot = deps.interfaceBoot;
 const clamp = deps.interfaceMath.clamp;
@@ -520,64 +520,65 @@ function animate() {
 }
 
 async function generate(text) {
-  const currentRun = generationRun.begin();
-  setStatus('GENERATING');
-  tokenCount = 0;
-  startTime = performance.now();
-  state.debt = 0.42;
-  state.consensus = 0.12;
-  state.field = 0.86;
-  state.velocity = 2.4;
-  state.selectedProb = 0;
-  state.selectedRank = 0;
-  state.candidateTail = 0;
-  state.hasCandidateTelemetry = false;
-  state.sidePulse = 0.5;
-  latentTape = seedWords.join('');
-  pushBurst(2.4);
+  let assistantBody = null;
 
-  const userTurn = sessionReceipt.commitUser(messages, visibleMessages, text);
-  messages = userTurn.messages;
-  visibleMessages = userTurn.visibleMessages;
-  addTurn('user', text);
-  const assistantBody = addTurn('assistant', '');
-
-  try {
-    const turn = await interfaceTurn.streamAssistant({
-      document,
-      interfaceInput,
-      chatStream,
-      interfaceReplay,
-      replayMode,
-      replayRequest,
-      sessionReceipt,
-      messages,
-      visibleMessages,
-      signal: currentRun.signal,
-      onToken: (token, data, responseText) => {
-        assistantBody.textContent = responseText;
-        absorbToken(token, data);
-        transcript.scrollTop = transcript.scrollHeight;
-      }
-    });
-
-    messages = turn.messages;
-    visibleMessages = turn.visibleMessages;
-    const result = turn.outcome;
-    if (result.stopped) {
-      setStatus(result.hasText ? 'STOPPED' : 'IDLE');
-    } else if (result.fault) {
-      setStatus('FAULT');
-      assistantBody.textContent = result.hasText
-        ? `${turn.text}\n\n[stream fault: ${result.message}]`
-        : `parliament unreachable: ${result.message}`;
-    } else {
-      setStatus(result.kind === 'empty' ? 'EMPTY' : 'COMPLETE');
-      state.consensus = clamp(state.consensus + 0.16, 0, 1);
-      state.debt = clamp(state.debt * 0.72, 0, 1);
+  const submit = await interfaceSubmit.run({
+    generationRun,
+    document,
+    interfaceInput,
+    interfaceTurn: deps.interfaceTurn,
+    chatStream,
+    interfaceReplay,
+    replayMode,
+    replayRequest,
+    sessionReceipt,
+    messages,
+    visibleMessages,
+    text,
+    beforeUser: () => {
+      setStatus('GENERATING');
+      tokenCount = 0;
+      startTime = performance.now();
+      state.debt = 0.42;
+      state.consensus = 0.12;
+      state.field = 0.86;
+      state.velocity = 2.4;
+      state.selectedProb = 0;
+      state.selectedRank = 0;
+      state.candidateTail = 0;
+      state.hasCandidateTelemetry = false;
+      state.sidePulse = 0.5;
+      latentTape = seedWords.join('');
+      pushBurst(2.4);
+    },
+    onUser: userTurn => {
+      messages = userTurn.messages;
+      visibleMessages = userTurn.visibleMessages;
+      addTurn('user', text);
+      assistantBody = addTurn('assistant', '');
+    },
+    onToken: (token, data, responseText) => {
+      assistantBody.textContent = responseText;
+      absorbToken(token, data);
+      transcript.scrollTop = transcript.scrollHeight;
     }
-  } finally {
-    generationRun.finish(currentRun);
+  });
+
+  const turn = submit.turn;
+  messages = submit.messages;
+  visibleMessages = submit.visibleMessages;
+  const result = turn.outcome;
+  if (result.stopped) {
+    setStatus(result.hasText ? 'STOPPED' : 'IDLE');
+  } else if (result.fault) {
+    setStatus('FAULT');
+    assistantBody.textContent = result.hasText
+      ? `${turn.text}\n\n[stream fault: ${result.message}]`
+      : `parliament unreachable: ${result.message}`;
+  } else {
+    setStatus(result.kind === 'empty' ? 'EMPTY' : 'COMPLETE');
+    state.consensus = clamp(state.consensus + 0.16, 0, 1);
+    state.debt = clamp(state.debt * 0.72, 0, 1);
   }
 }
 
