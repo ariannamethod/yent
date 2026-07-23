@@ -5741,7 +5741,7 @@ static void serve_loop(GGUFIndex *ps, const char *exe_dir) {
     /* Resolve HTML file paths relative to executable */
     char ui_path[512], vis_path[512], yent_path[512], worldmodel_path[512];
     char yent_adj_path[512], worldmodel_adj_path[512];
-    char interface_session_js_path[512], event_stream_js_path[512], chat_stream_js_path[512], token_telemetry_js_path[512], interface_hud_js_path[512], interface_replay_js_path[512], interface_input_js_path[512], interface_turn_js_path[512], interface_submit_js_path[512], interface_run_js_path[512], interface_boot_js_path[512], interface_math_js_path[512], interface_deps_js_path[512];
+    char interface_session_js_path[512], event_stream_js_path[512], chat_stream_js_path[512], token_telemetry_js_path[512], interface_hud_js_path[512], interface_replay_js_path[512], interface_input_js_path[512], interface_turn_js_path[512], interface_submit_js_path[512], interface_outcome_js_path[512], interface_run_js_path[512], interface_boot_js_path[512], interface_math_js_path[512], interface_deps_js_path[512];
     char yent_js_path[512], worldmodel_geometry_js_path[512], worldmodel_js_path[512];
     int ui_len = snprintf(ui_path, sizeof(ui_path), "%sdoe_ui.html", exe_dir);
     int vis_len = snprintf(vis_path, sizeof(vis_path), "%sdoe.html", exe_dir);
@@ -5758,6 +5758,7 @@ static void serve_loop(GGUFIndex *ps, const char *exe_dir) {
     int interface_input_js_len = snprintf(interface_input_js_path, sizeof(interface_input_js_path), "%sworldmodel/interface_input.js", exe_dir);
     int interface_turn_js_len = snprintf(interface_turn_js_path, sizeof(interface_turn_js_path), "%sworldmodel/interface_turn.js", exe_dir);
     int interface_submit_js_len = snprintf(interface_submit_js_path, sizeof(interface_submit_js_path), "%sworldmodel/interface_submit.js", exe_dir);
+    int interface_outcome_js_len = snprintf(interface_outcome_js_path, sizeof(interface_outcome_js_path), "%sworldmodel/interface_outcome.js", exe_dir);
     int interface_run_js_len = snprintf(interface_run_js_path, sizeof(interface_run_js_path), "%sworldmodel/interface_run.js", exe_dir);
     int interface_boot_js_len = snprintf(interface_boot_js_path, sizeof(interface_boot_js_path), "%sworldmodel/interface_boot.js", exe_dir);
     int interface_math_js_len = snprintf(interface_math_js_path, sizeof(interface_math_js_path), "%sworldmodel/interface_math.js", exe_dir);
@@ -5780,6 +5781,7 @@ static void serve_loop(GGUFIndex *ps, const char *exe_dir) {
         interface_input_js_len < 0 || interface_input_js_len >= (int)sizeof(interface_input_js_path) ||
         interface_turn_js_len < 0 || interface_turn_js_len >= (int)sizeof(interface_turn_js_path) ||
         interface_submit_js_len < 0 || interface_submit_js_len >= (int)sizeof(interface_submit_js_path) ||
+        interface_outcome_js_len < 0 || interface_outcome_js_len >= (int)sizeof(interface_outcome_js_path) ||
         interface_run_js_len < 0 || interface_run_js_len >= (int)sizeof(interface_run_js_path) ||
         interface_boot_js_len < 0 || interface_boot_js_len >= (int)sizeof(interface_boot_js_path) ||
         interface_math_js_len < 0 || interface_math_js_len >= (int)sizeof(interface_math_js_path) ||
@@ -5902,6 +5904,11 @@ static void serve_loop(GGUFIndex *ps, const char *exe_dir) {
             } else if (strcmp(path, "/worldmodel/interface_submit.js") == 0) {
                 if (!http_serve_static_file(client, interface_submit_js_path, "application/javascript; charset=utf-8")) {
                     const char *msg = "worldmodel/interface_submit.js not found";
+                    http_send_text(client, 404, msg);
+                }
+            } else if (strcmp(path, "/worldmodel/interface_outcome.js") == 0) {
+                if (!http_serve_static_file(client, interface_outcome_js_path, "application/javascript; charset=utf-8")) {
+                    const char *msg = "worldmodel/interface_outcome.js not found";
                     http_send_text(client, 404, msg);
                 }
             } else if (strcmp(path, "/worldmodel/interface_run.js") == 0) {

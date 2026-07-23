@@ -131,6 +131,13 @@ Yent worldmodel interface log.
 - This keeps the next visual physics work from reopening turn lifecycle
   semantics.
 
+## 2026-07-23 - shared outcome dispatch
+
+- Added `interface_outcome.js` so both surfaces classify settled submit results
+  through the same stopped/fault/complete boundary.
+- JANUS and WORLD still own their labels and visual effects, but no longer read
+  `turn.outcome` directly after submit.
+
 ## 2026-07-19 - readable manifestation surface
 
 - Added a readable `MANIFEST` answer surface to `/worldmodel`.

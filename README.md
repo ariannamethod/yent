@@ -424,6 +424,10 @@ their own status labels and visual token physics, but they no longer decide
 stream receipt semantics independently. The submit bridge lives at
 `DoE/worldmodel/interface_submit.js`; it owns the shared begin -> user commit ->
 assistant stream -> finish sequence while the pages keep their visual callbacks.
+The final browser outcome dispatch lives at
+`DoE/worldmodel/interface_outcome.js`; it maps stopped, fault, empty, and
+complete turns through one gate while JANUS and WORLD keep their own labels and
+visual consequences.
 Browser startup order is centralized in
 `DoE/worldmodel/interface_boot.js`: restore receipt, resize the surface, start
 animation, then optionally start replay. Shared interface interpolation and

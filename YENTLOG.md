@@ -6,6 +6,17 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-23 - interface outcome helper
+
+- Added `DoE/worldmodel/interface_outcome.js` for shared browser outcome
+  dispatch after a submit turn settles.
+- `/yent` and `/worldmodel` now route stopped, fault, empty, and complete
+  outcomes through `interfaceOutcome.handle(...)`; page code keeps only local
+  status labels and visual consequences.
+- The DoE server whitelists `/worldmodel/interface_outcome.js`, and Node/Go
+  contracts now reject page-local `turn.outcome` branching returning to either
+  surface.
+
 ## 2026-07-20 - interface replay fixture
 
 - Added a deterministic browser replay helper for `/yent` and `/worldmodel`.

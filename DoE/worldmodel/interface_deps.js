@@ -11,6 +11,7 @@
     ['interfaceInput', 'YentInterfaceInput'],
     ['interfaceTurn', 'YentInterfaceTurn'],
     ['interfaceSubmit', 'YentInterfaceSubmit'],
+    ['interfaceOutcome', 'YentInterfaceOutcome'],
     ['interfaceRun', 'YentInterfaceRun'],
     ['interfaceBoot', 'YentInterfaceBoot'],
     ['interfaceMath', 'YentInterfaceMath']

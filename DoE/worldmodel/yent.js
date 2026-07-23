@@ -22,6 +22,7 @@ const interfaceHud = deps.interfaceHud;
 const interfaceReplay = deps.interfaceReplay;
 const interfaceInput = deps.interfaceInput;
 const interfaceSubmit = deps.interfaceSubmit;
+const interfaceOutcome = deps.interfaceOutcome;
 const interfaceRun = deps.interfaceRun;
 const interfaceBoot = deps.interfaceBoot;
 const clamp = deps.interfaceMath.clamp;
@@ -564,22 +565,24 @@ async function generate(text) {
     }
   });
 
-  const turn = submit.turn;
   messages = submit.messages;
   visibleMessages = submit.visibleMessages;
-  const result = turn.outcome;
-  if (result.stopped) {
-    setStatus(result.hasText ? 'STOPPED' : 'IDLE');
-  } else if (result.fault) {
-    setStatus('FAULT');
-    assistantBody.textContent = result.hasText
-      ? `${turn.text}\n\n[stream fault: ${result.message}]`
-      : `parliament unreachable: ${result.message}`;
-  } else {
-    setStatus(result.kind === 'empty' ? 'EMPTY' : 'COMPLETE');
-    state.consensus = clamp(state.consensus + 0.16, 0, 1);
-    state.debt = clamp(state.debt * 0.72, 0, 1);
-  }
+  interfaceOutcome.handle(submit, {
+    stopped: (_turn, result) => {
+      setStatus(result.hasText ? 'STOPPED' : 'IDLE');
+    },
+    fault: (turn, result) => {
+      setStatus('FAULT');
+      assistantBody.textContent = result.hasText
+        ? `${turn.text}\n\n[stream fault: ${result.message}]`
+        : `parliament unreachable: ${result.message}`;
+    },
+    complete: (_turn, result) => {
+      setStatus(result.kind === 'empty' ? 'EMPTY' : 'COMPLETE');
+      state.consensus = clamp(state.consensus + 0.16, 0, 1);
+      state.debt = clamp(state.debt * 0.72, 0, 1);
+    }
+  });
 }
 
 generationRun.bindComposer(composer, promptInput, generate);
