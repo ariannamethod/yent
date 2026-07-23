@@ -2,6 +2,15 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-24 - shared candidate state bookkeeping
+
+- Added `resetCandidateState` and `applyCandidateState` to
+  `token_telemetry.js`.
+- JANUS and WORLD now share the selected probability/rank/tail bookkeeping
+  contract while preserving separate visual consequences.
+- This keeps candidate telemetry truth in one browser helper before future
+  real runtime metrics make the two surfaces diverge visually on purpose.
+
 ## 2026-07-16
 
 - Started as a clean Apple-style probability field beside `yent.html`.

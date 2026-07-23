@@ -165,6 +165,43 @@
     return v.toFixed(v < 0.01 ? 4 : 3);
   }
 
+  function resetCandidateState(state) {
+    if (!state) return state;
+    state.selectedProb = 0;
+    state.selectedRank = 0;
+    state.candidateTail = 0;
+    state.hasCandidateTelemetry = false;
+    return state;
+  }
+
+  function applyCandidateState(state, data, options) {
+    if (!state) throw new Error('candidate state missing');
+    options = options || {};
+    const telemetry = telemetryOrNormalize(data, options);
+    const selectedProb = telemetry.hasSelectedProb ? telemetry.selectedProb :
+      (isFiniteNumber(state.selectedProb) ? state.selectedProb : 0);
+    const selectedRank = telemetry.hasSelectedRank ? telemetry.selectedRank :
+      (isFiniteNumber(state.selectedRank) ? state.selectedRank : 0);
+    const tailMass = telemetry.candidateTailMass;
+
+    state.candidateTail = tailMass;
+    state.selectedProb = selectedProb;
+    state.selectedRank = selectedRank;
+    state.hasCandidateTelemetry = !!state.hasCandidateTelemetry ||
+      telemetry.hasCandidateTelemetry ||
+      options.hasCandidates === true ||
+      (isFiniteNumber(options.candidateCount) && options.candidateCount > 0);
+
+    return {
+      candidateTail: tailMass,
+      selectedProb,
+      selectedRank,
+      hasSelectedProb: telemetry.hasSelectedProb,
+      hasSelectedRank: telemetry.hasSelectedRank,
+      hasCandidateTelemetry: state.hasCandidateTelemetry
+    };
+  }
+
   const api = {
     DEFAULT_TOP_LIMIT,
     DEFAULT_WORD_LIMIT,
@@ -174,7 +211,9 @@
     normalizeTopTokens,
     candidateWords,
     candidateText,
-    metricProb
+    metricProb,
+    resetCandidateState,
+    applyCandidateState
   };
 
   root.YentTokenTelemetry = api;

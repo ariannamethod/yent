@@ -78,3 +78,71 @@ const telemetry = require('./token_telemetry.js');
   assert.equal(telemetry.metricProb(0.4), '0.400');
   assert.equal(telemetry.metricProb(4), '1.000');
 }
+
+{
+  const state = {
+    selectedProb: 0.8,
+    selectedRank: 4,
+    candidateTail: 0.3,
+    hasCandidateTelemetry: true
+  };
+  assert.equal(telemetry.resetCandidateState(state), state);
+  assert.deepEqual(state, {
+    selectedProb: 0,
+    selectedRank: 0,
+    candidateTail: 0,
+    hasCandidateTelemetry: false
+  });
+}
+
+{
+  const state = {
+    selectedProb: 0.2,
+    selectedRank: 5,
+    candidateTail: 0,
+    hasCandidateTelemetry: false
+  };
+  const result = telemetry.applyCandidateState(state, {
+    selected_prob: 0.42,
+    selected_rank: 3,
+    candidate_tail_mass: 0.16
+  });
+  assert.deepEqual(result, {
+    selectedProb: 0.42,
+    selectedRank: 3,
+    candidateTail: 0.16,
+    hasSelectedProb: true,
+    hasSelectedRank: true,
+    hasCandidateTelemetry: true
+  });
+  assert.deepEqual(state, {
+    selectedProb: 0.42,
+    selectedRank: 3,
+    candidateTail: 0.16,
+    hasCandidateTelemetry: true
+  });
+}
+
+{
+  const state = {
+    selectedProb: 0.73,
+    selectedRank: 8,
+    candidateTail: 0.45,
+    hasCandidateTelemetry: false
+  };
+  const result = telemetry.applyCandidateState(state, { token: 'legacy' }, { candidateCount: 2 });
+  assert.deepEqual(result, {
+    selectedProb: 0.73,
+    selectedRank: 8,
+    candidateTail: 0,
+    hasSelectedProb: false,
+    hasSelectedRank: false,
+    hasCandidateTelemetry: true
+  });
+  assert.deepEqual(state, {
+    selectedProb: 0.73,
+    selectedRank: 8,
+    candidateTail: 0,
+    hasCandidateTelemetry: true
+  });
+}

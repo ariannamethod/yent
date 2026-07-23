@@ -160,14 +160,8 @@ function absorbToken(token, data) {
   state.quake = clamp(state.quake + 0.2, 0, 1);
   worldGeometry.absorbToken(geometry, token, telemetry);
   syncTopologyFromGeometry();
-  const tailMass = telemetry.candidateTailMass;
-  const selectedProb = telemetry.hasSelectedProb ? telemetry.selectedProb : state.selectedProb;
-  const selectedRank = telemetry.hasSelectedRank ? telemetry.selectedRank : state.selectedRank;
-  state.candidateTail = tailMass;
-  state.selectedProb = selectedProb;
-  state.selectedRank = selectedRank;
-  state.hasCandidateTelemetry = state.hasCandidateTelemetry || telemetry.hasCandidateTelemetry || alternatives.length > 0;
-  rememberCandidates(alternatives, tailMass);
+  const candidates = tokenTelemetry.applyCandidateState(state, telemetry, { candidateCount: alternatives.length });
+  rememberCandidates(alternatives, candidates.candidateTail);
   state.debt = telemetry.hasDebt ? telemetry.debt : clamp(state.debt * 0.985 + 0.006, 0, 1);
   state.consensus = telemetry.hasConsensus ? telemetry.consensus : clamp(state.consensus * 0.992 + 0.004, 0, 1);
   state.field = telemetry.hasFieldHealth ? telemetry.fieldHealth : clamp(state.field * 0.996 + 0.004, 0, 1);
@@ -568,10 +562,7 @@ async function generate(text) {
       state.consensus = 0.16;
       state.field = 0.92;
       state.entropy = Math.max(state.entropy, 3.4);
-      state.selectedProb = 0;
-      state.selectedRank = 0;
-      state.candidateTail = 0;
-      state.hasCandidateTelemetry = false;
+      tokenTelemetry.resetCandidateState(state);
       candidateCloud = [];
       worldGeometry.resetFromPrompt(geometry, text);
       syncTopologyFromGeometry();

@@ -52,6 +52,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	worldJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "worldmodel.js"))
 	restoreJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_restore.js"))
 	textJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_text.js"))
+	tokenTelemetryJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "token_telemetry.js"))
 	submitJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_submit.js"))
 	outcomeJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_outcome.js"))
 	bootJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_boot.js"))
@@ -269,6 +270,15 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			strings.Contains(tc.src, "selected_rank") {
 			t.Fatalf("%s still parses token telemetry locally", tc.name)
 		}
+		if !strings.Contains(tc.src, "tokenTelemetry.applyCandidateState(") ||
+			!strings.Contains(tc.src, "tokenTelemetry.resetCandidateState(state)") {
+			t.Fatalf("%s does not keep candidate telemetry bookkeeping in token_telemetry.js", tc.name)
+		}
+		if strings.Contains(tc.src, "telemetry.candidateTailMass") ||
+			strings.Contains(tc.src, "telemetry.hasSelectedProb ?") ||
+			strings.Contains(tc.src, "telemetry.hasSelectedRank ?") {
+			t.Fatalf("%s still maintains candidate telemetry state locally", tc.name)
+		}
 		if strings.Contains(tc.src, ".textContent = state.tokps") ||
 			strings.Contains(tc.src, ".textContent = state.debt") ||
 			strings.Contains(tc.src, ".textContent = state.consensus") ||
@@ -388,6 +398,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(textJS, "tokenTapeText") ||
 		!strings.Contains(textJS, "appendTape") {
 		t.Fatalf("interface_text.js does not own shared text normalization")
+	}
+	if !strings.Contains(tokenTelemetryJS, "function resetCandidateState") ||
+		!strings.Contains(tokenTelemetryJS, "function applyCandidateState") ||
+		!strings.Contains(tokenTelemetryJS, "options.candidateCount") {
+		t.Fatalf("token_telemetry.js does not own shared candidate state bookkeeping")
 	}
 	if !strings.Contains(restoreJS, "if (options.replayMode) return null") ||
 		!strings.Contains(restoreJS, "session.load()") ||
