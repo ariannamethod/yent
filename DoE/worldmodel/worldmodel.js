@@ -622,10 +622,10 @@ window.addEventListener('keyup', event => {
   keys[event.key.toLowerCase()] = false;
 });
 
-window.addEventListener('resize', resize);
 interfaceBoot.start({
   restore: restoreInterfaceSession,
   resize,
+  window,
   startAnimation: () => requestAnimationFrame(animate),
   interfaceReplay,
   replayMode,

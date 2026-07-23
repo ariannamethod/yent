@@ -54,6 +54,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	textJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_text.js"))
 	submitJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_submit.js"))
 	outcomeJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_outcome.js"))
+	bootJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_boot.js"))
 	canvasJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_canvas.js"))
 	depsJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_deps.js"))
 	readme := readTextFile(t, filepath.Join(root, "README.md"))
@@ -209,6 +210,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if !strings.Contains(tc.src, "interfaceBoot.start(") {
 			t.Fatalf("%s does not start through the shared boot helper", tc.name)
 		}
+		assertInterfaceBootStartPassesWindow(t, tc.name, tc.src)
 		if !strings.Contains(tc.src, "deps.interfaceCanvas") ||
 			!strings.Contains(tc.src, "interfaceCanvas.resize(") {
 			t.Fatalf("%s does not size canvases through the shared helper", tc.name)
@@ -295,6 +297,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			strings.Contains(tc.src, "canvas.width = Math.max(1, Math.floor(width * dpr))") ||
 			strings.Contains(tc.src, "context.setTransform(dpr, 0, 0, dpr, 0, 0)") {
 			t.Fatalf("%s still carries page-local canvas sizing helpers", tc.name)
+		}
+		if strings.Contains(tc.src, "window.addEventListener('resize'") ||
+			strings.Contains(tc.src, `window.addEventListener("resize"`) {
+			t.Fatalf("%s still binds resize locally instead of interface_boot", tc.name)
 		}
 		if strings.Contains(tc.src, "function cleanWords(") ||
 			strings.Contains(tc.src, "function tokenTextForTape(") ||
@@ -405,6 +411,25 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(outcomeJS, "outcome.fault") ||
 		!strings.Contains(outcomeJS, "handlers.complete") {
 		t.Fatalf("interface_outcome.js does not own shared outcome dispatch")
+	}
+	if !strings.Contains(bootJS, "addEventListener('resize'") ||
+		!strings.Contains(bootJS, "bindResize(options.window || root") {
+		t.Fatalf("interface_boot.js does not own shared resize listener binding")
+	}
+}
+
+func assertInterfaceBootStartPassesWindow(t *testing.T, name, src string) {
+	t.Helper()
+	start := strings.Index(src, "interfaceBoot.start({")
+	if start < 0 {
+		t.Fatalf("%s does not start through the shared boot helper", name)
+	}
+	block := src[start:]
+	if end := strings.Index(block, "\n  });"); end >= 0 {
+		block = block[:end]
+	}
+	if !strings.Contains(block, "\n  window,") && !strings.Contains(block, "\n    window,") {
+		t.Fatalf("%s does not pass the browser window into the shared boot helper", name)
 	}
 }
 

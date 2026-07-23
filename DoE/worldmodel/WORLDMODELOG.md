@@ -197,6 +197,12 @@ Yent worldmodel interface log.
 - The helper owns CSS size, backing pixels, and `setTransform`; both surfaces
   keep their own render loops, particles, walls, and camera physics.
 
+## 2026-07-23 - shared resize listener boundary
+
+- Moved browser `resize` listener registration into `interface_boot.js`.
+- JANUS and WORLD still provide their own resize effects, but startup now owns
+  the lifecycle binding instead of leaving duplicate page-level listeners.
+
 ## 2026-07-20 - deterministic replay fixture
 
 - Added `worldmodel/interface_replay.js` as a query-param-only audit fixture for
