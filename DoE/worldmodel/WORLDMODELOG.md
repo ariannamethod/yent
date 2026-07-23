@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-24 - shared composer boot binding
+
+- Moved composer submit binding into `interface_boot.js`.
+- JANUS and WORLD still provide their own generation callback, but startup now
+  owns the form listener lifecycle beside restore, resize, animation, and replay
+  autostart.
+
 ## 2026-07-24 - shared candidate state bookkeeping
 
 - Added `resetCandidateState` and `applyCandidateState` to

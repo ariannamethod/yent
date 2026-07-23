@@ -211,7 +211,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if !strings.Contains(tc.src, "interfaceBoot.start(") {
 			t.Fatalf("%s does not start through the shared boot helper", tc.name)
 		}
-		assertInterfaceBootStartPassesWindow(t, tc.name, tc.src)
+		assertInterfaceBootStartOptions(t, tc.name, tc.src)
 		if !strings.Contains(tc.src, "deps.interfaceCanvas") ||
 			!strings.Contains(tc.src, "interfaceCanvas.resize(") {
 			t.Fatalf("%s does not size canvases through the shared helper", tc.name)
@@ -261,7 +261,8 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if strings.Contains(tc.src, "let running = false") ||
 			strings.Contains(tc.src, "let aborter = null") ||
 			strings.Contains(tc.src, "new AbortController()") ||
-			strings.Contains(tc.src, "sendButton.textContent =") {
+			strings.Contains(tc.src, "sendButton.textContent =") ||
+			strings.Contains(tc.src, "generationRun.bindComposer(") {
 			t.Fatalf("%s still carries page-local generation run state", tc.name)
 		}
 		if strings.Contains(tc.src, "data.top_tokens") ||
@@ -431,9 +432,14 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(bootJS, "bindResize(options.window || root") {
 		t.Fatalf("interface_boot.js does not own shared resize listener binding")
 	}
+	if !strings.Contains(bootJS, "function bindComposer") ||
+		!strings.Contains(bootJS, "generationRun.bindComposer(") ||
+		!strings.Contains(bootJS, "bindComposer(options)") {
+		t.Fatalf("interface_boot.js does not own shared composer listener binding")
+	}
 }
 
-func assertInterfaceBootStartPassesWindow(t *testing.T, name, src string) {
+func assertInterfaceBootStartOptions(t *testing.T, name, src string) {
 	t.Helper()
 	start := strings.Index(src, "interfaceBoot.start({")
 	if start < 0 {
@@ -445,6 +451,9 @@ func assertInterfaceBootStartPassesWindow(t *testing.T, name, src string) {
 	}
 	if !strings.Contains(block, "\n  window,") && !strings.Contains(block, "\n    window,") {
 		t.Fatalf("%s does not pass the browser window into the shared boot helper", name)
+	}
+	if !strings.Contains(block, "\n  composer,") && !strings.Contains(block, "\n    composer,") {
+		t.Fatalf("%s does not pass the composer form into the shared boot helper", name)
 	}
 }
 

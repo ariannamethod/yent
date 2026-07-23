@@ -575,8 +575,6 @@ async function generate(text) {
   });
 }
 
-generationRun.bindComposer(composer, promptInput, generate);
-
 window.addEventListener('mousemove', event => {
   mouseX = event.clientX;
   mouseY = event.clientY;
@@ -595,6 +593,7 @@ interfaceBoot.start({
   restore: restoreInterfaceSession,
   resize,
   window,
+  composer,
   startAnimation: animate,
   interfaceReplay,
   replayMode,

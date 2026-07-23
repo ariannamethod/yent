@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-24 - interface boot composer binding
+
+- Moved `/yent` and `/worldmodel` composer submit binding into
+  `DoE/worldmodel/interface_boot.js`.
+- Pages now pass `composer`, `promptInput`, `generationRun`, and `generate` into
+  the shared boot helper instead of calling `generationRun.bindComposer(...)`
+  locally.
+- Go contracts reject page-local composer binding returning to either surface.
+
 ## 2026-07-24 - candidate telemetry state helper
 
 - Added shared `resetCandidateState` and `applyCandidateState` helpers in
