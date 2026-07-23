@@ -183,7 +183,8 @@ async function runPage(page) {
     'interface_turn.js',
     'interface_run.js',
     'interface_boot.js',
-    'interface_math.js'
+    'interface_math.js',
+    'interface_deps.js'
   ]) {
     runScript(context, rel);
   }

@@ -115,6 +115,13 @@ Yent worldmodel interface log.
 - JANUS and WORLD still own their own geometry, but the low-level numeric
   contract no longer drifts between page scripts.
 
+## 2026-07-23 - shared interface dependencies
+
+- Added `interface_deps.js` so both surfaces load their shared browser modules
+  through one explicit dependency boundary.
+- WORLD still requests its geometry helper intentionally; JANUS does not inherit
+  it by accident.
+
 ## 2026-07-19 - readable manifestation surface
 
 - Added a readable `MANIFEST` answer surface to `/worldmodel`.

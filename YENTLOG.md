@@ -114,6 +114,16 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
   contracts now reject page-local `function clamp` / `function mix` returning
   to either page script.
 
+## 2026-07-23 - interface dependency helper
+
+- Added `DoE/worldmodel/interface_deps.js` for shared browser dependency
+  loading across `/yent` and `/worldmodel`.
+- Page scripts now ask one helper for session, stream, telemetry, HUD, replay,
+  input, turn, run, boot, math, and optional worldmodel geometry modules.
+- The DoE server whitelists `/worldmodel/interface_deps.js`, and contracts now
+  reject direct `window.YentInterface*` dependency probes returning to either
+  page script.
+
 ## Repository Map
 
 ```
