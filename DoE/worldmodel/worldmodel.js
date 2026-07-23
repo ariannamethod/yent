@@ -35,6 +35,10 @@ const interfaceRun = window.YentInterfaceRun;
 if (!interfaceRun) throw new Error('YentInterfaceRun helper missing');
 const interfaceBoot = window.YentInterfaceBoot;
 if (!interfaceBoot) throw new Error('YentInterfaceBoot helper missing');
+const interfaceMath = window.YentInterfaceMath;
+if (!interfaceMath) throw new Error('YentInterfaceMath helper missing');
+const clamp = interfaceMath.clamp;
+const mix = interfaceMath.mix;
 const generationRun = interfaceRun.create({ button: sendButton });
 const replayRequest = interfaceReplay.request(window.location);
 const replayMode = replayRequest.enabled;
@@ -78,14 +82,6 @@ let tokenCount = 0;
 let startTime = 0;
 const keys = Object.create(null);
 const geometry = worldGeometry.create({ seed: state.topologySeed });
-
-function clamp(v, lo, hi) {
-  return Math.max(lo, Math.min(hi, v));
-}
-
-function mix(a, b, t) {
-  return a + (b - a) * t;
-}
 
 const hash = worldGeometry.hash;
 const textSeed = worldGeometry.textSeed;

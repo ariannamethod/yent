@@ -423,7 +423,10 @@ outcome classification, and assistant commit policy. JANUS and WORLD still keep
 their own status labels and visual token physics, but they no longer decide
 stream receipt semantics independently. Browser startup order is centralized in
 `DoE/worldmodel/interface_boot.js`: restore receipt, resize the surface, start
-animation, then optionally start replay. These helpers are served through
+animation, then optionally start replay. Shared interface interpolation and
+bounded numeric projection live at `DoE/worldmodel/interface_math.js`, keeping
+JANUS and WORLD visual physics on the same clamp/mix contract without sharing
+their page-specific rendering. These helpers are served through
 explicit `/worldmodel/*.js` routes, keeping the static surface bounded.
 
 That run gives you the engine without the protected voice. You will not hear

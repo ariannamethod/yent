@@ -104,6 +104,16 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 - The DoE server whitelists `/worldmodel/interface_boot.js`, and tests reject
   page-local replay autostart calls returning to either surface.
 
+## 2026-07-23 - interface math helper
+
+- Added `DoE/worldmodel/interface_math.js` for shared browser `clamp` and
+  `mix` primitives used by both `/yent` and `/worldmodel`.
+- The surfaces keep their own visual physics, but no longer carry duplicate
+  page-local numeric interpolation helpers.
+- The DoE server whitelists `/worldmodel/interface_math.js`, and Node/Go
+  contracts now reject page-local `function clamp` / `function mix` returning
+  to either page script.
+
 ## Repository Map
 
 ```
