@@ -20,12 +20,26 @@
     }
   }
 
+  function bindComposer(options) {
+    if (!options || !options.composer) return;
+    const generationRun = options.generationRun;
+    if (!generationRun || typeof generationRun.bindComposer !== 'function') {
+      throw new Error('YentInterfaceRun composer binding unavailable');
+    }
+    generationRun.bindComposer(
+      options.composer,
+      options.promptInput,
+      requireFunction(options.generate, 'interface generate')
+    );
+  }
+
   function start(options) {
     options = options || {};
     requireFunction(options.restore, 'interface restore')();
     const resize = requireFunction(options.resize, 'interface resize');
     resize();
     bindResize(options.window || root, resize);
+    bindComposer(options);
     requireFunction(options.startAnimation, 'interface animation start')();
 
     return requireReplay(options).startIfRequested({

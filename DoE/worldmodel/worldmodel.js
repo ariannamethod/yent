@@ -602,8 +602,6 @@ async function generate(text) {
   });
 }
 
-generationRun.bindComposer(composer, promptInput, generate);
-
 window.addEventListener('keydown', event => {
   if (document.activeElement === promptInput) return;
   keys[event.key.toLowerCase()] = true;
@@ -617,6 +615,7 @@ interfaceBoot.start({
   restore: restoreInterfaceSession,
   resize,
   window,
+  composer,
   startAnimation: () => requestAnimationFrame(animate),
   interfaceReplay,
   replayMode,

@@ -5,9 +5,18 @@ function main() {
   {
     const calls = [];
     const replayRequest = { enabled: true, prompt: 'fixture' };
+    const composer = { id: 'composer' };
     const promptInput = { value: '' };
-    const generationRun = { isRunning: () => false };
     const generate = () => {};
+    const generationRun = {
+      isRunning: () => false,
+      bindComposer(form, input, handler) {
+        calls.push('composer');
+        assert.equal(form, composer);
+        assert.equal(input, promptInput);
+        assert.equal(handler, generate);
+      }
+    };
     const timer = () => {};
     const windowRef = {
       addEventListener(type, handler) {
@@ -37,6 +46,7 @@ function main() {
       restore: () => calls.push('restore'),
       resize,
       window: windowRef,
+      composer,
       startAnimation: () => calls.push('animation'),
       interfaceReplay: replay,
       replayMode: true,
@@ -48,7 +58,7 @@ function main() {
       setTimeout: timer
     });
     assert.equal(started, true);
-    assert.deepEqual(calls, ['restore', 'resize', 'listen:resize', 'animation', 'replay']);
+    assert.deepEqual(calls, ['restore', 'resize', 'listen:resize', 'composer', 'animation', 'replay']);
   }
 
   {
@@ -56,6 +66,10 @@ function main() {
     assert.throws(
       () => boot.start({ restore() {}, resize() {}, startAnimation() {} }),
       /YentInterfaceReplay helper missing/
+    );
+    assert.throws(
+      () => boot.start({ restore() {}, resize() {}, composer: {}, startAnimation() {} }),
+      /YentInterfaceRun composer binding unavailable/
     );
   }
 }
