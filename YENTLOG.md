@@ -6,6 +6,16 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-23 - interface restore helper
+
+- Added `DoE/worldmodel/interface_restore.js` for replay-aware browser receipt
+  restoration.
+- `/yent` and `/worldmodel` now ask one helper for restored visible messages,
+  combined text, and last assistant turn, while keeping visual restore effects
+  local.
+- Node/Go contracts reject page-local `sessionReceipt.load()` restore logic
+  returning to either surface.
+
 ## 2026-07-23 - interface text helper
 
 - Added `DoE/worldmodel/interface_text.js` for shared browser text

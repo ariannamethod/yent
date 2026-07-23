@@ -5741,7 +5741,7 @@ static void serve_loop(GGUFIndex *ps, const char *exe_dir) {
     /* Resolve HTML file paths relative to executable */
     char ui_path[512], vis_path[512], yent_path[512], worldmodel_path[512];
     char yent_adj_path[512], worldmodel_adj_path[512];
-    char interface_session_js_path[512], event_stream_js_path[512], chat_stream_js_path[512], interface_text_js_path[512], token_telemetry_js_path[512], interface_hud_js_path[512], interface_replay_js_path[512], interface_input_js_path[512], interface_turn_js_path[512], interface_submit_js_path[512], interface_outcome_js_path[512], interface_run_js_path[512], interface_boot_js_path[512], interface_math_js_path[512], interface_deps_js_path[512];
+    char interface_session_js_path[512], interface_restore_js_path[512], event_stream_js_path[512], chat_stream_js_path[512], interface_text_js_path[512], token_telemetry_js_path[512], interface_hud_js_path[512], interface_replay_js_path[512], interface_input_js_path[512], interface_turn_js_path[512], interface_submit_js_path[512], interface_outcome_js_path[512], interface_run_js_path[512], interface_boot_js_path[512], interface_math_js_path[512], interface_deps_js_path[512];
     char yent_js_path[512], worldmodel_geometry_js_path[512], worldmodel_js_path[512];
     int ui_len = snprintf(ui_path, sizeof(ui_path), "%sdoe_ui.html", exe_dir);
     int vis_len = snprintf(vis_path, sizeof(vis_path), "%sdoe.html", exe_dir);
@@ -5750,6 +5750,7 @@ static void serve_loop(GGUFIndex *ps, const char *exe_dir) {
     int yent_adj_len = snprintf(yent_adj_path, sizeof(yent_adj_path), "%syent.html", exe_dir);
     int worldmodel_adj_len = snprintf(worldmodel_adj_path, sizeof(worldmodel_adj_path), "%sworldmodel.html", exe_dir);
     int interface_session_js_len = snprintf(interface_session_js_path, sizeof(interface_session_js_path), "%sworldmodel/interface_session.js", exe_dir);
+    int interface_restore_js_len = snprintf(interface_restore_js_path, sizeof(interface_restore_js_path), "%sworldmodel/interface_restore.js", exe_dir);
     int event_stream_js_len = snprintf(event_stream_js_path, sizeof(event_stream_js_path), "%sworldmodel/event_stream.js", exe_dir);
     int chat_stream_js_len = snprintf(chat_stream_js_path, sizeof(chat_stream_js_path), "%sworldmodel/chat_stream.js", exe_dir);
     int interface_text_js_len = snprintf(interface_text_js_path, sizeof(interface_text_js_path), "%sworldmodel/interface_text.js", exe_dir);
@@ -5774,6 +5775,7 @@ static void serve_loop(GGUFIndex *ps, const char *exe_dir) {
         yent_adj_len < 0 || yent_adj_len >= (int)sizeof(yent_adj_path) ||
         worldmodel_adj_len < 0 || worldmodel_adj_len >= (int)sizeof(worldmodel_adj_path) ||
         interface_session_js_len < 0 || interface_session_js_len >= (int)sizeof(interface_session_js_path) ||
+        interface_restore_js_len < 0 || interface_restore_js_len >= (int)sizeof(interface_restore_js_path) ||
         event_stream_js_len < 0 || event_stream_js_len >= (int)sizeof(event_stream_js_path) ||
         chat_stream_js_len < 0 || chat_stream_js_len >= (int)sizeof(chat_stream_js_path) ||
         interface_text_js_len < 0 || interface_text_js_len >= (int)sizeof(interface_text_js_path) ||
@@ -5866,6 +5868,11 @@ static void serve_loop(GGUFIndex *ps, const char *exe_dir) {
             } else if (strcmp(path, "/worldmodel/interface_session.js") == 0) {
                 if (!http_serve_static_file(client, interface_session_js_path, "application/javascript; charset=utf-8")) {
                     const char *msg = "worldmodel/interface_session.js not found";
+                    http_send_text(client, 404, msg);
+                }
+            } else if (strcmp(path, "/worldmodel/interface_restore.js") == 0) {
+                if (!http_serve_static_file(client, interface_restore_js_path, "application/javascript; charset=utf-8")) {
+                    const char *msg = "worldmodel/interface_restore.js not found";
                     http_send_text(client, 404, msg);
                 }
             } else if (strcmp(path, "/worldmodel/event_stream.js") == 0) {

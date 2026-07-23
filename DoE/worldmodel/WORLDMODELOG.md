@@ -183,6 +183,13 @@ Yent worldmodel interface log.
   is present and also checks script order plus the no-`messages = restored`
   boundary.
 
+## 2026-07-23 - shared restore receipt boundary
+
+- Added `interface_restore.js` so both surfaces restore visible tab-local
+  receipt state through one replay-aware loader.
+- The helper returns visible messages, combined text, and last assistant turn;
+  JANUS and WORLD keep only projection-specific restore effects.
+
 ## 2026-07-20 - deterministic replay fixture
 
 - Added `worldmodel/interface_replay.js` as a query-param-only audit fixture for

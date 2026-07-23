@@ -16,6 +16,7 @@ const interfaceDeps = window.YentInterfaceDeps;
 if (!interfaceDeps) throw new Error('YentInterfaceDeps helper missing');
 const deps = interfaceDeps.load();
 const interfaceSession = deps.interfaceSession;
+const interfaceRestore = deps.interfaceRestore;
 const chatStream = deps.chatStream;
 const interfaceText = deps.interfaceText;
 const tokenTelemetry = deps.tokenTelemetry;
@@ -346,15 +347,14 @@ function setStatus(text) {
 }
 
 function restoreInterfaceSession() {
-  if (replayMode) return;
-  const restored = sessionReceipt.load();
-  if (!restored.length) return;
+  const restored = interfaceRestore.load({ sessionReceipt, replayMode });
+  if (!restored) return;
 
-  visibleMessages = restored;
+  visibleMessages = restored.visibleMessages;
   transcript.textContent = '';
   for (const msg of visibleMessages) addTurn(msg.role, msg.content);
 
-  const tapeText = interfaceText.tokenTapeText(visibleMessages.map(msg => msg.content).join(' '));
+  const tapeText = interfaceText.tokenTapeText(restored.combinedText);
   if (tapeText) tokenTape = (seedWords.join('') + ' ' + tapeText).slice(-900);
 }
 
