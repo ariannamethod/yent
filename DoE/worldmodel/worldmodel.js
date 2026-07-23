@@ -30,6 +30,7 @@ const interfaceOutcome = deps.interfaceOutcome;
 const worldGeometry = deps.worldGeometry;
 const interfaceRun = deps.interfaceRun;
 const interfaceBoot = deps.interfaceBoot;
+const interfaceCanvas = deps.interfaceCanvas;
 const clamp = deps.interfaceMath.clamp;
 const mix = deps.interfaceMath.mix;
 const generationRun = interfaceRun.create({ button: sendButton });
@@ -85,14 +86,10 @@ function syncTopologyFromGeometry() {
 }
 
 function resize() {
-  dpr = Math.min(2, window.devicePixelRatio || 1);
-  width = window.innerWidth;
-  height = window.innerHeight;
-  canvas.width = Math.max(1, Math.floor(width * dpr));
-  canvas.height = Math.max(1, Math.floor(height * dpr));
-  canvas.style.width = width + 'px';
-  canvas.style.height = height + 'px';
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const size = interfaceCanvas.resize({ window, canvas, context: ctx });
+  dpr = size.dpr;
+  width = size.width;
+  height = size.height;
 }
 
 const cleanWords = interfaceText.cleanWords;
