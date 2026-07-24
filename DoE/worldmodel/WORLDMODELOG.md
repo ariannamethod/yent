@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-24 - shared state baseline
+
+- Added `interface_state.js` for the browser HUD/runtime baseline shared by
+  JANUS and WORLD.
+- The two surfaces now inherit the same debt, consensus, field, throughput,
+  entropy, and candidate-telemetry defaults while keeping page-specific motion
+  and topology fields local.
+
 ## 2026-07-24 - shared browser style lookup
 
 - Added `interface_style.js` for browser font-family lookup.

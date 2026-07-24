@@ -22,6 +22,7 @@ const interfaceRestore = deps.interfaceRestore;
 const chatStream = deps.chatStream;
 const interfaceText = deps.interfaceText;
 const tokenTelemetry = deps.tokenTelemetry;
+const interfaceState = deps.interfaceState;
 const interfaceHud = deps.interfaceHud;
 const interfaceReplay = deps.interfaceReplay;
 const interfaceInput = deps.interfaceInput;
@@ -42,27 +43,17 @@ const sessionReceipt = interfaceSession.createAdapter({ storage: sessionStorage,
 const hud = interfaceHud.bind(document);
 const fonts = interfaceStyle.create({ document, getComputedStyle });
 
-const state = {
-  debt: 0.0,
-  consensus: 0.62,
-  field: 1.0,
-  entropy: 0.0,
-  tokps: 0.0,
-  step: 0,
+const state = interfaceState.create({
   cameraX: 0,
   cameraY: 0,
   cameraZ: 0,
   angle: 0,
   topologySeed: 0.37,
   topologyWarp: 0.0,
-  selectedProb: 0.0,
-  selectedRank: 0,
-  candidateTail: 0.0,
-  hasCandidateTelemetry: false,
   pulse: 0,
   quake: 0,
   idle: 0
-};
+});
 
 let dpr = 1;
 let width = 0;

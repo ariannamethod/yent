@@ -20,6 +20,7 @@ func TestWorldmodelInterfaceSessionHelper(t *testing.T) {
 		filepath.Join(root, "DoE", "worldmodel", "chat_stream.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_text.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "token_telemetry.test.cjs"),
+		filepath.Join(root, "DoE", "worldmodel", "interface_state.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_hud.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_replay.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_input.test.cjs"),
@@ -55,6 +56,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	restoreJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_restore.js"))
 	textJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_text.js"))
 	tokenTelemetryJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "token_telemetry.js"))
+	stateJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_state.js"))
 	eventsJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_events.js"))
 	submitJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_submit.js"))
 	outcomeJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_outcome.js"))
@@ -71,6 +73,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/chat_stream.js",
 		"/worldmodel/interface_text.js",
 		"/worldmodel/token_telemetry.js",
+		"/worldmodel/interface_state.js",
 		"/worldmodel/interface_hud.js",
 		"/worldmodel/interface_replay.js",
 		"/worldmodel/interface_input.js",
@@ -92,6 +95,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/chat_stream.js",
 		"/worldmodel/interface_text.js",
 		"/worldmodel/token_telemetry.js",
+		"/worldmodel/interface_state.js",
 		"/worldmodel/interface_hud.js",
 		"/worldmodel/interface_replay.js",
 		"/worldmodel/interface_input.js",
@@ -131,6 +135,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(doeC, `"/worldmodel/token_telemetry.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/token_telemetry.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist token_telemetry.js")
+	}
+	if !strings.Contains(doeC, `"/worldmodel/interface_state.js"`) ||
+		!strings.Contains(doeC, `"worldmodel/interface_state.js not found"`) {
+		t.Fatalf("DoE server does not explicitly whitelist interface_state.js")
 	}
 	if !strings.Contains(doeC, `"/worldmodel/interface_hud.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_hud.js not found"`) {
@@ -301,6 +309,24 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			!strings.Contains(tc.src, "tokenTelemetry.resetCandidateState(state)") {
 			t.Fatalf("%s does not keep candidate telemetry bookkeeping in token_telemetry.js", tc.name)
 		}
+		if !strings.Contains(tc.src, "deps.interfaceState") ||
+			!strings.Contains(tc.src, "interfaceState.create({") {
+			t.Fatalf("%s does not initialize shared HUD/runtime defaults through interface_state", tc.name)
+		}
+		for _, localStateDefault := range []string{
+			"debt: 0.0",
+			"consensus: 0.62",
+			"field: 1.0",
+			"tokps: 0.0",
+			"selectedProb: 0.0",
+			"selectedRank: 0",
+			"candidateTail: 0.0",
+			"hasCandidateTelemetry: false",
+		} {
+			if strings.Contains(tc.src, localStateDefault) {
+				t.Fatalf("%s still carries shared interface state default %s locally", tc.name, localStateDefault)
+			}
+		}
 		if strings.Contains(tc.src, "telemetry.candidateTailMass") ||
 			strings.Contains(tc.src, "telemetry.hasSelectedProb ?") ||
 			strings.Contains(tc.src, "telemetry.hasSelectedRank ?") {
@@ -367,6 +393,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			"window.YentChatStream",
 			"window.YentInterfaceText",
 			"window.YentTokenTelemetry",
+			"window.YentInterfaceState",
 			"window.YentInterfaceHud",
 			"window.YentInterfaceReplay",
 			"window.YentInterfaceInput",
@@ -398,6 +425,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"YentChatStream",
 		"YentInterfaceText",
 		"YentTokenTelemetry",
+		"YentInterfaceState",
 		"YentInterfaceHud",
 		"YentInterfaceReplay",
 		"YentInterfaceInput",
@@ -420,6 +448,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"`DoE/worldmodel/interface_restore.js`",
 		"`DoE/worldmodel/token_telemetry.js`",
 		"`DoE/worldmodel/interface_text.js`",
+		"`DoE/worldmodel/interface_state.js`",
 		"`DoE/worldmodel/interface_hud.js`",
 		"`DoE/worldmodel/worldmodel_geometry.js`",
 		"`DoE/worldmodel/interface_replay.js`",
@@ -452,6 +481,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(tokenTelemetryJS, "function applyCandidateState") ||
 		!strings.Contains(tokenTelemetryJS, "options.candidateCount") {
 		t.Fatalf("token_telemetry.js does not own shared candidate state bookkeeping")
+	}
+	if !strings.Contains(stateJS, "BASELINE") ||
+		!strings.Contains(stateJS, "function create") ||
+		!strings.Contains(stateJS, "hasCandidateTelemetry") {
+		t.Fatalf("interface_state.js does not own shared HUD/runtime state defaults")
 	}
 	if !strings.Contains(restoreJS, "if (options.replayMode) return null") ||
 		!strings.Contains(restoreJS, "session.load()") ||

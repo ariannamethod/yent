@@ -179,6 +179,7 @@ async function runPage(page) {
     'chat_stream.js',
     'interface_text.js',
     'token_telemetry.js',
+    'interface_state.js',
     'interface_hud.js',
     'interface_replay.js',
     'interface_input.js',

@@ -20,6 +20,7 @@ const interfaceRestore = deps.interfaceRestore;
 const chatStream = deps.chatStream;
 const interfaceText = deps.interfaceText;
 const tokenTelemetry = deps.tokenTelemetry;
+const interfaceState = deps.interfaceState;
 const interfaceHud = deps.interfaceHud;
 const interfaceReplay = deps.interfaceReplay;
 const interfaceInput = deps.interfaceInput;
@@ -38,19 +39,10 @@ const replayMode = replayRequest.enabled;
 const sessionReceipt = interfaceSession.createAdapter({ storage: sessionStorage, replayMode });
 const hud = interfaceHud.bind(document);
 const fonts = interfaceStyle.create({ document, getComputedStyle });
-const state = {
-  debt: 0.0,
-  consensus: 0.62,
-  field: 1.0,
-  experts: 0,
-  tokps: 0.0,
+const state = interfaceState.create({
   velocity: 1.2,
-  sidePulse: 0.0,
-  selectedProb: 0.0,
-  selectedRank: 0,
-  candidateTail: 0.0,
-  hasCandidateTelemetry: false
-};
+  sidePulse: 0.0
+});
 
 let width = 0;
 let height = 0;

@@ -8,6 +8,7 @@ const commonGlobals = [
   'YentChatStream',
   'YentInterfaceText',
   'YentTokenTelemetry',
+  'YentInterfaceState',
   'YentInterfaceHud',
   'YentInterfaceReplay',
   'YentInterfaceInput',
@@ -39,6 +40,7 @@ function main() {
     assert.equal(loaded.chatStream, root.YentChatStream);
     assert.equal(loaded.interfaceText, root.YentInterfaceText);
     assert.equal(loaded.tokenTelemetry, root.YentTokenTelemetry);
+    assert.equal(loaded.interfaceState, root.YentInterfaceState);
     assert.equal(loaded.interfaceHud, root.YentInterfaceHud);
     assert.equal(loaded.interfaceReplay, root.YentInterfaceReplay);
     assert.equal(loaded.interfaceInput, root.YentInterfaceInput);
