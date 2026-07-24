@@ -6,6 +6,17 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-24 - interface browser event helper
+
+- Added `DoE/worldmodel/interface_events.js` for shared browser input event
+  binding.
+- WORLD now uses the helper for keyboard state while keeping walkable camera
+  physics local.
+- JANUS now uses the helper for pointer tracking while keeping particle burst
+  consequences local.
+- Static routes, HTML script order, dependency loading, and Go contracts cover
+  the new helper.
+
 ## 2026-07-24 - interface boot composer binding
 
 - Moved `/yent` and `/worldmodel` composer submit binding into

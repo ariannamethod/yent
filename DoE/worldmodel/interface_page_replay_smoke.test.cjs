@@ -182,6 +182,7 @@ async function runPage(page) {
     'interface_hud.js',
     'interface_replay.js',
     'interface_input.js',
+    'interface_events.js',
     'interface_turn.js',
     'interface_submit.js',
     'interface_outcome.js',

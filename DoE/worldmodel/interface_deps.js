@@ -11,6 +11,7 @@
     ['interfaceHud', 'YentInterfaceHud'],
     ['interfaceReplay', 'YentInterfaceReplay'],
     ['interfaceInput', 'YentInterfaceInput'],
+    ['interfaceEvents', 'YentInterfaceEvents'],
     ['interfaceTurn', 'YentInterfaceTurn'],
     ['interfaceSubmit', 'YentInterfaceSubmit'],
     ['interfaceOutcome', 'YentInterfaceOutcome'],

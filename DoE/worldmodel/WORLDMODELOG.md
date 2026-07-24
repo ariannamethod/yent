@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-24 - shared browser event binding
+
+- Added `interface_events.js` for keyboard and pointer event wiring.
+- WORLD still owns movement/camera consequences; JANUS still owns mouse
+  repulsion and burst physics.
+- The shared contract now keeps listener binding out of page scripts before the
+  two surfaces receive deeper runtime telemetry.
+
 ## 2026-07-24 - shared composer boot binding
 
 - Moved composer submit binding into `interface_boot.js`.

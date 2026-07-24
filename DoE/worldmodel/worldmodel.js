@@ -25,6 +25,7 @@ const tokenTelemetry = deps.tokenTelemetry;
 const interfaceHud = deps.interfaceHud;
 const interfaceReplay = deps.interfaceReplay;
 const interfaceInput = deps.interfaceInput;
+const interfaceEvents = deps.interfaceEvents;
 const interfaceSubmit = deps.interfaceSubmit;
 const interfaceOutcome = deps.interfaceOutcome;
 const worldGeometry = deps.worldGeometry;
@@ -602,13 +603,10 @@ async function generate(text) {
   });
 }
 
-window.addEventListener('keydown', event => {
-  if (document.activeElement === promptInput) return;
-  keys[event.key.toLowerCase()] = true;
-});
-
-window.addEventListener('keyup', event => {
-  keys[event.key.toLowerCase()] = false;
+interfaceEvents.bindKeyState({
+  window,
+  keys,
+  ignore: () => document.activeElement === promptInput
 });
 
 interfaceBoot.start({
