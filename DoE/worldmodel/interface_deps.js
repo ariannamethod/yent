@@ -18,7 +18,8 @@
     ['interfaceRun', 'YentInterfaceRun'],
     ['interfaceBoot', 'YentInterfaceBoot'],
     ['interfaceMath', 'YentInterfaceMath'],
-    ['interfaceCanvas', 'YentInterfaceCanvas']
+    ['interfaceCanvas', 'YentInterfaceCanvas'],
+    ['interfaceStyle', 'YentInterfaceStyle']
   ];
 
   function requireHelper(host, globalName) {

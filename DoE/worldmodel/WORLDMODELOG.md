@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-24 - shared browser style lookup
+
+- Added `interface_style.js` for browser font-family lookup.
+- WORLD and JANUS now resolve canvas fonts through the shared dependency gate,
+  keeping DOM CSS variable reads out of page render loops.
+- This is still UI plumbing only: visual physics, token streams, and runtime
+  telemetry are unchanged.
+
 ## 2026-07-24 - shared browser event binding
 
 - Added `interface_events.js` for keyboard and pointer event wiring.

@@ -29,6 +29,7 @@ const interfaceOutcome = deps.interfaceOutcome;
 const interfaceRun = deps.interfaceRun;
 const interfaceBoot = deps.interfaceBoot;
 const interfaceCanvas = deps.interfaceCanvas;
+const interfaceStyle = deps.interfaceStyle;
 const clamp = deps.interfaceMath.clamp;
 const mix = deps.interfaceMath.mix;
 const generationRun = interfaceRun.create({ button: sendButton });
@@ -36,6 +37,7 @@ const replayRequest = interfaceReplay.request(window.location);
 const replayMode = replayRequest.enabled;
 const sessionReceipt = interfaceSession.createAdapter({ storage: sessionStorage, replayMode });
 const hud = interfaceHud.bind(document);
+const fonts = interfaceStyle.create({ document, getComputedStyle });
 const state = {
   debt: 0.0,
   consensus: 0.62,
@@ -500,7 +502,7 @@ function animate() {
     if (b.life <= 0) bursts.splice(i, 1);
   }
 
-  ctx.font = width < 620 ? '10px ui-monospace, monospace' : '11px ui-monospace, monospace';
+  ctx.font = `${width < 620 ? 10 : 11}px ${fonts.mono()}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   for (const p of particles) {
