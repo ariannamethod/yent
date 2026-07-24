@@ -32,6 +32,7 @@ func TestWorldmodelInterfaceSessionHelper(t *testing.T) {
 		filepath.Join(root, "DoE", "worldmodel", "interface_boot.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_math.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_canvas.test.cjs"),
+		filepath.Join(root, "DoE", "worldmodel", "interface_style.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_deps.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "worldmodel_geometry.test.cjs"),
 	} {
@@ -59,6 +60,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	outcomeJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_outcome.js"))
 	bootJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_boot.js"))
 	canvasJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_canvas.js"))
+	styleJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_style.js"))
 	depsJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_deps.js"))
 	readme := readTextFile(t, filepath.Join(root, "README.md"))
 
@@ -80,6 +82,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/interface_boot.js",
 		"/worldmodel/interface_math.js",
 		"/worldmodel/interface_canvas.js",
+		"/worldmodel/interface_style.js",
 		"/worldmodel/interface_deps.js",
 		"/worldmodel/yent.js")
 	assertScriptOrder(t, "worldmodel.html", worldHTML,
@@ -100,6 +103,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/interface_boot.js",
 		"/worldmodel/interface_math.js",
 		"/worldmodel/interface_canvas.js",
+		"/worldmodel/interface_style.js",
 		"/worldmodel/interface_deps.js",
 		"/worldmodel/worldmodel_geometry.js",
 		"/worldmodel/worldmodel.js")
@@ -172,6 +176,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(doeC, `"worldmodel/interface_canvas.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist interface_canvas.js")
 	}
+	if !strings.Contains(doeC, `"/worldmodel/interface_style.js"`) ||
+		!strings.Contains(doeC, `"worldmodel/interface_style.js not found"`) {
+		t.Fatalf("DoE server does not explicitly whitelist interface_style.js")
+	}
 	if !strings.Contains(doeC, `"/worldmodel/interface_deps.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_deps.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist interface_deps.js")
@@ -223,6 +231,13 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if !strings.Contains(tc.src, "deps.interfaceCanvas") ||
 			!strings.Contains(tc.src, "interfaceCanvas.resize(") {
 			t.Fatalf("%s does not size canvases through the shared helper", tc.name)
+		}
+		if !strings.Contains(tc.src, "deps.interfaceStyle") ||
+			!strings.Contains(tc.src, "interfaceStyle.create(") {
+			t.Fatalf("%s does not read browser font/style state through the shared helper", tc.name)
+		}
+		if strings.Contains(tc.src, "getComputedStyle(document.documentElement)") {
+			t.Fatalf("%s still reads CSS variables directly from documentElement", tc.name)
 		}
 		if !strings.Contains(tc.src, "deps.interfaceEvents") {
 			t.Fatalf("%s does not load browser input events through the shared helper", tc.name)
@@ -362,6 +377,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			"window.YentInterfaceBoot",
 			"window.YentInterfaceMath",
 			"window.YentInterfaceCanvas",
+			"window.YentInterfaceStyle",
 			"window.YentWorldmodelGeometry",
 		} {
 			if strings.Contains(tc.src, forbidden) {
@@ -393,6 +409,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"YentInterfaceBoot",
 		"YentInterfaceMath",
 		"YentInterfaceCanvas",
+		"YentInterfaceStyle",
 		"YentWorldmodelGeometry",
 	} {
 		if !strings.Contains(depsJS, required) {
@@ -414,6 +431,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"`DoE/worldmodel/interface_boot.js`",
 		"`DoE/worldmodel/interface_math.js`",
 		"`DoE/worldmodel/interface_canvas.js`",
+		"`DoE/worldmodel/interface_style.js`",
 		"`DoE/worldmodel/interface_deps.js`",
 		"`/yent?replay=1`",
 		"`/worldmodel?replay=1`",
@@ -446,6 +464,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(canvasJS, "canvas.width = Math.max") ||
 		!strings.Contains(canvasJS, "canvas.style.width") {
 		t.Fatalf("interface_canvas.js does not own shared canvas backing-store sizing")
+	}
+	if !strings.Contains(styleJS, "function create") ||
+		!strings.Contains(styleJS, "getComputedStyle") ||
+		!strings.Contains(styleJS, "FALLBACKS") {
+		t.Fatalf("interface_style.js does not own shared browser font/style lookup")
 	}
 	if !strings.Contains(eventsJS, "function bindKeyState") ||
 		!strings.Contains(eventsJS, "function bindPointer") ||

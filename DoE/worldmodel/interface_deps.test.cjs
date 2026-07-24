@@ -18,7 +18,8 @@ const commonGlobals = [
   'YentInterfaceRun',
   'YentInterfaceBoot',
   'YentInterfaceMath',
-  'YentInterfaceCanvas'
+  'YentInterfaceCanvas',
+  'YentInterfaceStyle'
 ];
 
 function makeRoot() {
@@ -49,6 +50,7 @@ function main() {
     assert.equal(loaded.interfaceBoot, root.YentInterfaceBoot);
     assert.equal(loaded.interfaceMath, root.YentInterfaceMath);
     assert.equal(loaded.interfaceCanvas, root.YentInterfaceCanvas);
+    assert.equal(loaded.interfaceStyle, root.YentInterfaceStyle);
     assert.equal(loaded.worldGeometry, root.YentWorldmodelGeometry);
   }
 

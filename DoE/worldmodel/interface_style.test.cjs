@@ -1,0 +1,41 @@
+const assert = require('node:assert/strict');
+const style = require('./interface_style.js');
+
+function main() {
+  {
+    let reads = 0;
+    const fonts = style.create({
+      document: { documentElement: {} },
+      getComputedStyle() {
+        reads += 1;
+        return {
+          getPropertyValue(name) {
+            if (name === '--mono') return ' Test Mono ';
+            if (name === '--sans') return ' Test Sans ';
+            return '';
+          }
+        };
+      }
+    });
+
+    assert.equal(fonts.mono(), 'Test Mono');
+    assert.equal(fonts.mono(), 'Test Mono');
+    assert.equal(reads, 1);
+    assert.equal(fonts.sans(), 'Test Sans');
+    assert.match(fonts.serif(), /serif/);
+    fonts.reset();
+    assert.equal(fonts.mono(), 'Test Mono');
+    assert.equal(reads, 4);
+  }
+
+  {
+    const fonts = style.create({ document: null, getComputedStyle: null });
+    assert.match(fonts.mono(), /monospace/);
+    assert.match(fonts.serif(), /serif/);
+    assert.match(fonts.sans(), /sans-serif/);
+    assert.equal(fonts.family('--unknown', 'Custom Family'), 'Custom Family');
+    assert.equal(fonts.family('', 'Empty Name'), 'Empty Name');
+  }
+}
+
+main();

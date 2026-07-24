@@ -32,6 +32,7 @@ const worldGeometry = deps.worldGeometry;
 const interfaceRun = deps.interfaceRun;
 const interfaceBoot = deps.interfaceBoot;
 const interfaceCanvas = deps.interfaceCanvas;
+const interfaceStyle = deps.interfaceStyle;
 const clamp = deps.interfaceMath.clamp;
 const mix = deps.interfaceMath.mix;
 const generationRun = interfaceRun.create({ button: sendButton });
@@ -39,6 +40,7 @@ const replayRequest = interfaceReplay.request(window.location);
 const replayMode = replayRequest.enabled;
 const sessionReceipt = interfaceSession.createAdapter({ storage: sessionStorage, replayMode });
 const hud = interfaceHud.bind(document);
+const fonts = interfaceStyle.create({ document, getComputedStyle });
 
 const state = {
   debt: 0.0,
@@ -312,7 +314,7 @@ function drawWallSurface(side) {
       const fs = clamp(6.5 + p.scale * 12.5 + (head ? 1.8 : 0), 7, 18);
       const alpha = depthFade * (tail ? 0.22 : head ? 0.82 : 0.34 + p.scale * 0.35);
       const weight = head ? 700 : tail ? 350 : 470;
-      ctx.font = `${weight} ${fs}px ${getComputedStyle(document.documentElement).getPropertyValue('--mono')}`;
+      ctx.font = `${weight} ${fs}px ${fonts.mono()}`;
       ctx.fillStyle = head
         ? `rgba(197,68,107,${alpha})`
         : `rgba(13,13,11,${alpha})`;
@@ -348,7 +350,7 @@ function drawRejectedMass() {
     const depthFade = clamp((depth - 760) / 700, 0, 1) * clamp((3600 - depth) / 980, 0, 1);
     const alpha = depthFade * (0.06 + hash(i + 4) * 0.19);
     const fs = clamp(7 + p.scale * 18 + hash(i + 8) * 5, 8, 21);
-    ctx.font = `${fs}px ${getComputedStyle(document.documentElement).getPropertyValue('--mono')}`;
+    ctx.font = `${fs}px ${fonts.mono()}`;
     ctx.fillStyle = i % 7 === 0
       ? `rgba(71,122,168,${alpha})`
       : `rgba(73,72,67,${alpha})`;
@@ -374,7 +376,7 @@ function drawRejectedMass() {
     if (alpha <= 0.025) continue;
     const fs = clamp(8 + p.scale * 26 + probBoost * 24 + rankBoost * 4, 8, 34);
     const weight = c.rank <= 2 ? 720 : c.rank <= 5 ? 610 : 470;
-    ctx.font = `${weight} ${fs}px ${getComputedStyle(document.documentElement).getPropertyValue('--mono')}`;
+    ctx.font = `${weight} ${fs}px ${fonts.mono()}`;
     ctx.fillStyle = c.rank <= 2
       ? `rgba(197,68,107,${alpha})`
       : `rgba(71,122,168,${alpha * 0.76})`;
@@ -403,7 +405,7 @@ function drawManifestedAnswer() {
   }
 
   const fontSize = (width < 720 ? 22 : 32) * clamp(anchor.scale * 1.9, 0.62, 1.0);
-  ctx.font = `650 ${fontSize}px ${getComputedStyle(document.documentElement).getPropertyValue('--serif')}`;
+  ctx.font = `650 ${fontSize}px ${fonts.serif()}`;
 
   const lines = [];
   let line = '';

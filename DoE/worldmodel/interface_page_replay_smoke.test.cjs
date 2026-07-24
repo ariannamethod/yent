@@ -190,6 +190,7 @@ async function runPage(page) {
     'interface_boot.js',
     'interface_math.js',
     'interface_canvas.js',
+    'interface_style.js',
     'interface_deps.js'
   ]) {
     runScript(context, rel);
