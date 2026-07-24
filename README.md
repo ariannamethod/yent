@@ -443,10 +443,13 @@ Browser startup order is centralized in
 `DoE/worldmodel/interface_boot.js`: restore receipt, resize the surface, start
 animation, then optionally start replay. The same helper owns the browser resize
 listener and composer submit binding, so pages provide resize effects and turn
-callbacks without binding those lifecycle events locally. Shared interface interpolation and
-bounded numeric projection live at `DoE/worldmodel/interface_math.js`, keeping
-JANUS and WORLD visual physics on the same clamp/mix contract without sharing
-their page-specific rendering. Canvas viewport/DPR backing-store sizing lives at
+callbacks without binding those lifecycle events locally. Shared HUD/runtime
+state defaults live at `DoE/worldmodel/interface_state.js`, so JANUS and WORLD
+start from one debt/consensus/field/candidate-telemetry baseline before adding
+their page-specific physics. Shared interface interpolation and bounded numeric
+projection live at `DoE/worldmodel/interface_math.js`, keeping JANUS and WORLD
+visual physics on the same clamp/mix contract without sharing their
+page-specific rendering. Canvas viewport/DPR backing-store sizing lives at
 `DoE/worldmodel/interface_canvas.js`, so both surfaces resize through one
 browser contract while keeping their page-specific render loops. Browser
 font/style lookup lives at `DoE/worldmodel/interface_style.js`, so canvas

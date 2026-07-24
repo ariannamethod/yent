@@ -8,6 +8,7 @@
     ['chatStream', 'YentChatStream'],
     ['interfaceText', 'YentInterfaceText'],
     ['tokenTelemetry', 'YentTokenTelemetry'],
+    ['interfaceState', 'YentInterfaceState'],
     ['interfaceHud', 'YentInterfaceHud'],
     ['interfaceReplay', 'YentInterfaceReplay'],
     ['interfaceInput', 'YentInterfaceInput'],

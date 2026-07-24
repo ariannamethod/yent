@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-24 - interface state baseline helper
+
+- Added `DoE/worldmodel/interface_state.js` for shared browser HUD/runtime
+  defaults.
+- JANUS and WORLD now start from one debt/consensus/field/candidate-telemetry
+  baseline, then add only page-specific visual physics fields locally.
+- Static routes, HTML script order, dependency loading, replay smoke, and Go
+  contracts cover the new helper.
+
 ## 2026-07-24 - interface style helper
 
 - Added `DoE/worldmodel/interface_style.js` for shared browser font-family
