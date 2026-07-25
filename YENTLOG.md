@@ -6,6 +6,16 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-26 - interface status label helper
+
+- Added `DoE/worldmodel/interface_status.js` for shared browser status label
+  writes.
+- JANUS keeps its run-state language and WORLD keeps its field/manifest
+  language, but both now write labels and manifest active flags through one DOM
+  helper.
+- Static routes, HTML script order, dependency loading, replay smoke, and Go
+  contracts cover the new helper.
+
 ## 2026-07-24 - interface generation clock helper
 
 - Added `DoE/worldmodel/interface_clock.js` for shared browser generation

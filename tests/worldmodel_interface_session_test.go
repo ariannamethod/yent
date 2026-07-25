@@ -22,6 +22,7 @@ func TestWorldmodelInterfaceSessionHelper(t *testing.T) {
 		filepath.Join(root, "DoE", "worldmodel", "token_telemetry.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_state.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_clock.test.cjs"),
+		filepath.Join(root, "DoE", "worldmodel", "interface_status.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_hud.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_replay.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_input.test.cjs"),
@@ -59,6 +60,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	tokenTelemetryJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "token_telemetry.js"))
 	stateJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_state.js"))
 	clockJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_clock.js"))
+	statusJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_status.js"))
 	eventsJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_events.js"))
 	submitJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_submit.js"))
 	outcomeJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_outcome.js"))
@@ -77,6 +79,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/token_telemetry.js",
 		"/worldmodel/interface_state.js",
 		"/worldmodel/interface_clock.js",
+		"/worldmodel/interface_status.js",
 		"/worldmodel/interface_hud.js",
 		"/worldmodel/interface_replay.js",
 		"/worldmodel/interface_input.js",
@@ -100,6 +103,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/token_telemetry.js",
 		"/worldmodel/interface_state.js",
 		"/worldmodel/interface_clock.js",
+		"/worldmodel/interface_status.js",
 		"/worldmodel/interface_hud.js",
 		"/worldmodel/interface_replay.js",
 		"/worldmodel/interface_input.js",
@@ -147,6 +151,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(doeC, `"/worldmodel/interface_clock.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_clock.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist interface_clock.js")
+	}
+	if !strings.Contains(doeC, `"/worldmodel/interface_status.js"`) ||
+		!strings.Contains(doeC, `"worldmodel/interface_status.js not found"`) {
+		t.Fatalf("DoE server does not explicitly whitelist interface_status.js")
 	}
 	if !strings.Contains(doeC, `"/worldmodel/interface_hud.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_hud.js not found"`) {
@@ -327,6 +335,29 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			!strings.Contains(tc.src, "tokenClock.tick()") {
 			t.Fatalf("%s does not track generation throughput through interface_clock", tc.name)
 		}
+		if !strings.Contains(tc.src, "deps.interfaceStatus") ||
+			!strings.Contains(tc.src, "interfaceStatus.bind(") ||
+			!strings.Contains(tc.src, "interfaceStatus.setText(") {
+			t.Fatalf("%s does not write status labels through interface_status", tc.name)
+		}
+		for _, localStatus := range []string{
+			"const runState = document.getElementById('run-state')",
+			`const runState = document.getElementById("run-state")`,
+			"const statusNote = document.getElementById('status-note')",
+			`const statusNote = document.getElementById("status-note")`,
+			"const manifestState = document.getElementById('manifest-state')",
+			`const manifestState = document.getElementById("manifest-state")`,
+			"const manifestShell = document.getElementById('manifest-shell')",
+			`const manifestShell = document.getElementById("manifest-shell")`,
+			"runState.textContent",
+			"statusNote.textContent",
+			"manifestState.textContent",
+			"manifestShell.dataset.active",
+		} {
+			if strings.Contains(tc.src, localStatus) {
+				t.Fatalf("%s still carries page-local status label DOM wiring: %s", tc.name, localStatus)
+			}
+		}
 		for _, localClock := range []string{
 			"let tokenCount",
 			"let startTime",
@@ -422,6 +453,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			"window.YentTokenTelemetry",
 			"window.YentInterfaceState",
 			"window.YentInterfaceClock",
+			"window.YentInterfaceStatus",
 			"window.YentInterfaceHud",
 			"window.YentInterfaceReplay",
 			"window.YentInterfaceInput",
@@ -443,6 +475,9 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(worldJS, "interfaceDeps.load({ worldGeometry: true })") {
 		t.Fatalf("worldmodel.js does not request worldmodel geometry through interface_deps")
 	}
+	if !strings.Contains(worldJS, "interfaceStatus.setManifest(") {
+		t.Fatalf("worldmodel.js does not write manifest state through interface_status")
+	}
 	if strings.Contains(worldJS, "function textSeed") || strings.Contains(worldJS, "function hash") {
 		t.Fatalf("worldmodel.js still carries page-local topology hash/seed helpers")
 	}
@@ -455,6 +490,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"YentTokenTelemetry",
 		"YentInterfaceState",
 		"YentInterfaceClock",
+		"YentInterfaceStatus",
 		"YentInterfaceHud",
 		"YentInterfaceReplay",
 		"YentInterfaceInput",
@@ -479,6 +515,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"`DoE/worldmodel/interface_text.js`",
 		"`DoE/worldmodel/interface_state.js`",
 		"`DoE/worldmodel/interface_clock.js`",
+		"`DoE/worldmodel/interface_status.js`",
 		"`DoE/worldmodel/interface_hud.js`",
 		"`DoE/worldmodel/worldmodel_geometry.js`",
 		"`DoE/worldmodel/interface_replay.js`",
@@ -522,6 +559,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(clockJS, "function tick") ||
 		!strings.Contains(clockJS, "minElapsedSeconds") {
 		t.Fatalf("interface_clock.js does not own shared generation throughput timing")
+	}
+	if !strings.Contains(statusJS, "function bind") ||
+		!strings.Contains(statusJS, "function setText") ||
+		!strings.Contains(statusJS, "function setActive") ||
+		!strings.Contains(statusJS, "function setManifest") {
+		t.Fatalf("interface_status.js does not own shared status label writes")
 	}
 	if !strings.Contains(restoreJS, "if (options.replayMode) return null") ||
 		!strings.Contains(restoreJS, "session.load()") ||

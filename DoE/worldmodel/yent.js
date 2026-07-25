@@ -8,7 +8,6 @@ const transcript = document.getElementById('transcript');
 const composer = document.getElementById('composer');
 const promptInput = document.getElementById('prompt');
 const sendButton = document.getElementById('send');
-const runState = document.getElementById('run-state');
 
 const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_./-=+*#@%&';
 const seedWords = 'Yent DoE Janus parliament notorch prophecy debt consensus memory limpha identity boundary'.split(' ');
@@ -22,6 +21,7 @@ const interfaceText = deps.interfaceText;
 const tokenTelemetry = deps.tokenTelemetry;
 const interfaceState = deps.interfaceState;
 const interfaceClock = deps.interfaceClock;
+const interfaceStatus = deps.interfaceStatus;
 const interfaceHud = deps.interfaceHud;
 const interfaceReplay = deps.interfaceReplay;
 const interfaceInput = deps.interfaceInput;
@@ -39,6 +39,7 @@ const replayRequest = interfaceReplay.request(window.location);
 const replayMode = replayRequest.enabled;
 const sessionReceipt = interfaceSession.createAdapter({ storage: sessionStorage, replayMode });
 const hud = interfaceHud.bind(document);
+const statusLabels = interfaceStatus.bind(document, { run: 'run-state' });
 const fonts = interfaceStyle.create({ document, getComputedStyle });
 const tokenClock = interfaceClock.create({ performance });
 const state = interfaceState.create({
@@ -336,7 +337,7 @@ function addTurn(role, text) {
 }
 
 function setStatus(text) {
-  runState.textContent = text;
+  interfaceStatus.setText(statusLabels.run, text);
 }
 
 function restoreInterfaceSession() {
