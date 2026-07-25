@@ -23,6 +23,7 @@ const chatStream = deps.chatStream;
 const interfaceText = deps.interfaceText;
 const tokenTelemetry = deps.tokenTelemetry;
 const interfaceState = deps.interfaceState;
+const interfaceClock = deps.interfaceClock;
 const interfaceHud = deps.interfaceHud;
 const interfaceReplay = deps.interfaceReplay;
 const interfaceInput = deps.interfaceInput;
@@ -42,6 +43,7 @@ const replayMode = replayRequest.enabled;
 const sessionReceipt = interfaceSession.createAdapter({ storage: sessionStorage, replayMode });
 const hud = interfaceHud.bind(document);
 const fonts = interfaceStyle.create({ document, getComputedStyle });
+const tokenClock = interfaceClock.create({ performance, minElapsedSeconds: 0.001 });
 
 const state = interfaceState.create({
   cameraX: 0,
@@ -66,8 +68,6 @@ let fieldWords = baseWords.slice();
 let candidateCloud = [];
 let messages = [];
 let visibleMessages = [];
-let tokenCount = 0;
-let startTime = 0;
 const keys = Object.create(null);
 const geometry = worldGeometry.create({ seed: state.topologySeed });
 
@@ -147,7 +147,6 @@ function absorbToken(token, data) {
     insertAt++;
   }
   while (fieldWords.length > 280) fieldWords.pop();
-  tokenCount++;
   if (telemetry.hasStep) state.step = telemetry.step;
   else state.step++;
   state.pulse = 1;
@@ -159,8 +158,7 @@ function absorbToken(token, data) {
   state.debt = telemetry.hasDebt ? telemetry.debt : clamp(state.debt * 0.985 + 0.006, 0, 1);
   state.consensus = telemetry.hasConsensus ? telemetry.consensus : clamp(state.consensus * 0.992 + 0.004, 0, 1);
   state.field = telemetry.hasFieldHealth ? telemetry.fieldHealth : clamp(state.field * 0.996 + 0.004, 0, 1);
-  const elapsed = Math.max(0.001, (performance.now() - startTime) / 1000);
-  state.tokps = tokenCount / elapsed;
+  state.tokps = tokenClock.tick();
   if (telemetry.hasEntropy) {
     state.entropy = telemetry.entropy;
   } else {
@@ -550,8 +548,7 @@ async function generate(text) {
       setManifestText('');
       chosenText = '';
       manifestWords = [];
-      tokenCount = 0;
-      startTime = performance.now();
+      tokenClock.reset();
       state.debt = 0.46;
       state.consensus = 0.16;
       state.field = 0.92;

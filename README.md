@@ -446,7 +446,10 @@ listener and composer submit binding, so pages provide resize effects and turn
 callbacks without binding those lifecycle events locally. Shared HUD/runtime
 state defaults live at `DoE/worldmodel/interface_state.js`, so JANUS and WORLD
 start from one debt/consensus/field/candidate-telemetry baseline before adding
-their page-specific physics. Shared interface interpolation and bounded numeric
+their page-specific physics. Generation clock/rate tracking lives at
+`DoE/worldmodel/interface_clock.js`, so token throughput is derived from one
+reset/tick contract while animation frame timing remains page-local. Shared
+interface interpolation and bounded numeric
 projection live at `DoE/worldmodel/interface_math.js`, keeping JANUS and WORLD
 visual physics on the same clamp/mix contract without sharing their
 page-specific rendering. Canvas viewport/DPR backing-store sizing lives at

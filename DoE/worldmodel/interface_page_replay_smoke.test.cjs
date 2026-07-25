@@ -180,6 +180,7 @@ async function runPage(page) {
     'interface_text.js',
     'token_telemetry.js',
     'interface_state.js',
+    'interface_clock.js',
     'interface_hud.js',
     'interface_replay.js',
     'interface_input.js',

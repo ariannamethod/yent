@@ -21,6 +21,7 @@ const chatStream = deps.chatStream;
 const interfaceText = deps.interfaceText;
 const tokenTelemetry = deps.tokenTelemetry;
 const interfaceState = deps.interfaceState;
+const interfaceClock = deps.interfaceClock;
 const interfaceHud = deps.interfaceHud;
 const interfaceReplay = deps.interfaceReplay;
 const interfaceInput = deps.interfaceInput;
@@ -39,6 +40,7 @@ const replayMode = replayRequest.enabled;
 const sessionReceipt = interfaceSession.createAdapter({ storage: sessionStorage, replayMode });
 const hud = interfaceHud.bind(document);
 const fonts = interfaceStyle.create({ document, getComputedStyle });
+const tokenClock = interfaceClock.create({ performance });
 const state = interfaceState.create({
   velocity: 1.2,
   sidePulse: 0.0
@@ -54,8 +56,6 @@ let tokenTape = seedWords.join('');
 let latentTape = seedWords.join('');
 let messages = [];
 let visibleMessages = [];
-let startTime = 0;
-let tokenCount = 0;
 let mouseX = -9999;
 let mouseY = -9999;
 let smoothX = 0;
@@ -368,10 +368,7 @@ function absorbToken(token, data) {
   tokenTape = interfaceText.appendTape(tokenTape, token, 900);
   const latent = candidateTapeText(telemetry);
   if (latent) latentTape = (latentTape + latent + ' ').slice(-900);
-  tokenCount += 1;
-
-  const elapsed = Math.max((performance.now() - startTime) / 1000, 0.01);
-  state.tokps = tokenCount / elapsed;
+  state.tokps = tokenClock.tick();
 
   if (telemetry.hasExperts) state.experts = telemetry.experts;
   if (telemetry.hasDebt) state.debt = telemetry.debt;
@@ -526,8 +523,7 @@ async function generate(text) {
     text,
     beforeUser: () => {
       setStatus('GENERATING');
-      tokenCount = 0;
-      startTime = performance.now();
+      tokenClock.reset();
       state.debt = 0.42;
       state.consensus = 0.12;
       state.field = 0.86;

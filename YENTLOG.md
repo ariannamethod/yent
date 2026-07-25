@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-24 - interface generation clock helper
+
+- Added `DoE/worldmodel/interface_clock.js` for shared browser generation
+  throughput timing.
+- JANUS and WORLD now reset/tick one clock contract for `tok/s` instead of
+  carrying separate token counters and start times.
+- Animation frame timing remains page-local; static routes, HTML script order,
+  dependency loading, replay smoke, and Go contracts cover the new helper.
+
 ## 2026-07-24 - interface state baseline helper
 
 - Added `DoE/worldmodel/interface_state.js` for shared browser HUD/runtime
