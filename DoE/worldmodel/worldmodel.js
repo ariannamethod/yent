@@ -3,9 +3,6 @@ const ctx = canvas.getContext('2d', { alpha: false });
 const promptInput = document.getElementById('prompt');
 const composer = document.getElementById('composer');
 const sendButton = document.getElementById('send');
-const statusNote = document.getElementById('status-note');
-const manifestShell = document.getElementById('manifest-shell');
-const manifestState = document.getElementById('manifest-state');
 const manifestText = document.getElementById('manifest-text');
 
 const baseWords = (
@@ -24,6 +21,7 @@ const interfaceText = deps.interfaceText;
 const tokenTelemetry = deps.tokenTelemetry;
 const interfaceState = deps.interfaceState;
 const interfaceClock = deps.interfaceClock;
+const interfaceStatus = deps.interfaceStatus;
 const interfaceHud = deps.interfaceHud;
 const interfaceReplay = deps.interfaceReplay;
 const interfaceInput = deps.interfaceInput;
@@ -42,6 +40,11 @@ const replayRequest = interfaceReplay.request(window.location);
 const replayMode = replayRequest.enabled;
 const sessionReceipt = interfaceSession.createAdapter({ storage: sessionStorage, replayMode });
 const hud = interfaceHud.bind(document);
+const statusLabels = interfaceStatus.bind(document, {
+  note: 'status-note',
+  manifest: 'manifest-state',
+  shell: 'manifest-shell'
+});
 const fonts = interfaceStyle.create({ document, getComputedStyle });
 const tokenClock = interfaceClock.create({ performance, minElapsedSeconds: 0.001 });
 
@@ -485,14 +488,11 @@ function animate(now) {
 }
 
 function setStatus(text) {
-  statusNote.textContent = text;
+  interfaceStatus.setText(statusLabels.note, text);
 }
 
 function setManifestState(text, active) {
-  manifestState.textContent = text;
-  if (typeof active === 'boolean') {
-    manifestShell.dataset.active = active ? 'true' : 'false';
-  }
+  interfaceStatus.setManifest(statusLabels, text, active);
 }
 
 function setManifestText(text) {

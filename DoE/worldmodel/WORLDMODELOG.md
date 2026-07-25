@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-26 - shared status label boundary
+
+- Added `interface_status.js` for browser status label writes.
+- JANUS and WORLD still decide their own status language, but text updates and
+  WORLD manifest active state now pass through one helper.
+- This keeps UI receipt/status plumbing centralized before deeper runtime
+  telemetry starts driving both surfaces.
+
 ## 2026-07-24 - shared generation clock
 
 - Added `interface_clock.js` for browser generation throughput timing.

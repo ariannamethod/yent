@@ -10,6 +10,7 @@
     ['tokenTelemetry', 'YentTokenTelemetry'],
     ['interfaceState', 'YentInterfaceState'],
     ['interfaceClock', 'YentInterfaceClock'],
+    ['interfaceStatus', 'YentInterfaceStatus'],
     ['interfaceHud', 'YentInterfaceHud'],
     ['interfaceReplay', 'YentInterfaceReplay'],
     ['interfaceInput', 'YentInterfaceInput'],
