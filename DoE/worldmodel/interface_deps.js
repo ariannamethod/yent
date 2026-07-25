@@ -9,6 +9,7 @@
     ['interfaceText', 'YentInterfaceText'],
     ['tokenTelemetry', 'YentTokenTelemetry'],
     ['interfaceState', 'YentInterfaceState'],
+    ['interfaceClock', 'YentInterfaceClock'],
     ['interfaceHud', 'YentInterfaceHud'],
     ['interfaceReplay', 'YentInterfaceReplay'],
     ['interfaceInput', 'YentInterfaceInput'],

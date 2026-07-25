@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-24 - shared generation clock
+
+- Added `interface_clock.js` for browser generation throughput timing.
+- JANUS and WORLD now derive `tok/s` through one reset/tick helper while keeping
+  visual frame clocks and motion loops local.
+- This is interface plumbing only: token streams, runtime telemetry, and visual
+  physics are unchanged.
+
 ## 2026-07-24 - shared state baseline
 
 - Added `interface_state.js` for the browser HUD/runtime baseline shared by
