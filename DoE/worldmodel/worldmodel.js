@@ -72,7 +72,7 @@ let dpr = 1;
 let width = 0;
 let height = 0;
 let time = 0;
-let lastFrame = performance.now();
+let lastFrame = tokenClock.now();
 let chosenText = '';
 let manifestWords = [];
 let fieldWords = baseWords.slice();
@@ -469,8 +469,9 @@ function tickCamera(dt) {
   state.cameraX *= Math.pow(0.93, dt * 60);
 }
 
-function animate(now) {
+function animate(frameNow) {
   animationFrame.requestFrame(animate);
+  const now = tokenClock.now(frameNow);
   const dt = Math.min(0.05, (now - lastFrame) / 1000);
   lastFrame = now;
   time += dt;

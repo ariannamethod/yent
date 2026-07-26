@@ -449,11 +449,12 @@ state defaults live at `DoE/worldmodel/interface_state.js`, so JANUS and WORLD
 start from one debt/consensus/field/candidate-telemetry baseline before adding
 their page-specific physics. Generation clock/rate tracking lives at
 `DoE/worldmodel/interface_clock.js`, so token throughput is derived from one
-reset/tick contract while animation frame timing remains page-local. Shared
-status label writes live at `DoE/worldmodel/interface_status.js`, so JANUS and
-WORLD keep their own status language while text updates and manifest active
-flags pass through one DOM boundary. Assistant and manifest output lookup and
-text writes live at `DoE/worldmodel/interface_output.js`, so response bodies,
+reset/tick contract and WORLD frame timing uses the same injected clock boundary
+instead of raw `performance.now()`. Shared status label writes live at
+`DoE/worldmodel/interface_status.js`, so JANUS and WORLD keep their own status
+language while text updates and manifest active flags pass through one DOM
+boundary. Assistant and manifest output lookup and text writes live at
+`DoE/worldmodel/interface_output.js`, so response bodies,
 transcript containers, and selected WORLD text share scroll-safe DOM updates
 while pages keep only the semantic names of their output surfaces. JANUS
 transcript turn-card rendering lives at

@@ -28,6 +28,10 @@
       return tokens / elapsed;
     }
 
+    function now(at) {
+      return Number.isFinite(at) ? at : nowFrom(options);
+    }
+
     function count() {
       return tokens;
     }
@@ -37,7 +41,7 @@
     }
 
     reset(options.startedAt);
-    return { reset, tick, count, started };
+    return { reset, tick, count, started, now };
   }
 
   const api = { create };

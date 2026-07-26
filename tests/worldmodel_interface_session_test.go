@@ -429,6 +429,9 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 				t.Fatalf("%s still carries page-local generation clock state: %s", tc.name, localClock)
 			}
 		}
+		if strings.Contains(tc.src, "performance.now()") {
+			t.Fatalf("%s still reads raw browser time instead of interface_clock", tc.name)
+		}
 		for _, localStateDefault := range []string{
 			"debt: 0.0",
 			"consensus: 0.62",
