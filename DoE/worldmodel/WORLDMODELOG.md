@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-26 - frame clock boundary
+
+- Added `clock.now()` to the shared browser clock helper.
+- WORLD now uses the injected clock for its animation frame baseline and
+  timestamp fallback, so replay frames without browser timestamps still advance
+  through the same timing boundary.
+- Page scripts no longer call `performance.now()` directly.
+
 ## 2026-07-26 - output container boundary
 
 - Added helper-owned output container lookup to `interface_output.js`.

@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-26 - interface frame clock boundary
+
+- Added `clock.now()` to `DoE/worldmodel/interface_clock.js`.
+- `/worldmodel` now initializes and advances its animation frame baseline
+  through the shared injected clock instead of raw `performance.now()`.
+- The interface contract now rejects direct `performance.now()` reads in page
+  scripts.
+
 ## 2026-07-26 - interface output container boundary
 
 - Added `interfaceOutput.bind()` for helper-owned output container lookup.
