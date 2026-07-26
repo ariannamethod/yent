@@ -315,6 +315,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if !strings.Contains(tc.src, "interfaceInput.bindControls(document)") {
 			t.Fatalf("%s does not bind shared prompt controls through interface_input", tc.name)
 		}
+		if !strings.Contains(tc.src, "interfaceOutput.bind(document,") {
+			t.Fatalf("%s does not bind output containers through interface_output", tc.name)
+		}
+		if strings.Contains(tc.src, "document.getElementById(") {
+			t.Fatalf("%s still binds DOM elements locally instead of helper-owned lookup", tc.name)
+		}
 		if strings.Contains(tc.src, "messages = restored") {
 			t.Fatalf("%s repopulates prompt messages from restored UI receipt", tc.name)
 		}
@@ -550,6 +556,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(worldJS, "interfaceStatus.setManifest(") {
 		t.Fatalf("worldmodel.js does not write manifest state through interface_status")
 	}
+	if !strings.Contains(yentJS, "interfaceOutput.bind(document, 'transcript')") {
+		t.Fatalf("yent.js does not bind transcript output through interface_output")
+	}
+	if !strings.Contains(worldJS, "interfaceOutput.bind(document, 'manifest-text')") {
+		t.Fatalf("worldmodel.js does not bind manifest output through interface_output")
+	}
 	if !strings.Contains(yentJS, "interfaceOutput.setTextAndScroll(assistantBody") ||
 		!strings.Contains(yentJS, "interfaceOutput.setText(assistantBody") {
 		t.Fatalf("yent.js does not route live assistant output writes through interface_output")
@@ -678,10 +690,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(inputJS, "sendButton") {
 		t.Fatalf("interface_input.js does not own shared prompt/composer/send control binding")
 	}
-	if !strings.Contains(outputJS, "function setText") ||
+	if !strings.Contains(outputJS, "function bind") ||
+		!strings.Contains(outputJS, "documentRef.getElementById(id)") ||
+		!strings.Contains(outputJS, "function setText") ||
 		!strings.Contains(outputJS, "function scrollBottom") ||
 		!strings.Contains(outputJS, "function setTextAndScroll") {
-		t.Fatalf("interface_output.js does not own shared output text and scroll writes")
+		t.Fatalf("interface_output.js does not own shared output lookup, text, and scroll writes")
 	}
 	if !strings.Contains(transcriptJS, "function labelFor") ||
 		!strings.Contains(transcriptJS, "function appendTurn") ||

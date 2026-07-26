@@ -1,6 +1,18 @@
 (function (root) {
   'use strict';
 
+  function bind(documentRef, id) {
+    if (!documentRef || typeof documentRef.getElementById !== 'function') {
+      throw new Error('YentInterfaceOutput document unavailable');
+    }
+    const target = documentRef.getElementById(id);
+    if (!target) throw new Error(`YentInterfaceOutput target unavailable: ${id}`);
+    if (typeof target.textContent !== 'string') {
+      throw new Error(`YentInterfaceOutput target must expose textContent: ${id}`);
+    }
+    return target;
+  }
+
   function setText(target, text) {
     if (!target) return;
     target.textContent = text == null ? '' : String(text);
@@ -19,7 +31,7 @@
     scrollBottom(scrollTarget || target);
   }
 
-  const api = { setText, scrollBottom, setTextAndScroll };
+  const api = { bind, setText, scrollBottom, setTextAndScroll };
   root.YentInterfaceOutput = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

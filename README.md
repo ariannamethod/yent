@@ -452,10 +452,11 @@ their page-specific physics. Generation clock/rate tracking lives at
 reset/tick contract while animation frame timing remains page-local. Shared
 status label writes live at `DoE/worldmodel/interface_status.js`, so JANUS and
 WORLD keep their own status language while text updates and manifest active
-flags pass through one DOM boundary. Assistant and manifest output text writes
-live at `DoE/worldmodel/interface_output.js`, so response bodies and selected
-WORLD text share scroll-safe DOM updates while page-specific containers remain
-local. JANUS transcript turn-card rendering lives at
+flags pass through one DOM boundary. Assistant and manifest output lookup and
+text writes live at `DoE/worldmodel/interface_output.js`, so response bodies,
+transcript containers, and selected WORLD text share scroll-safe DOM updates
+while pages keep only the semantic names of their output surfaces. JANUS
+transcript turn-card rendering lives at
 `DoE/worldmodel/interface_transcript.js`, keeping role labels, turn bodies,
 append, clear, and transcript scroll under one optional dependency boundary.
 Shared

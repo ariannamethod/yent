@@ -1,5 +1,3 @@
-const manifestText = document.getElementById('manifest-text');
-
 const baseWords = (
   'yent janus doe parliament notorch field resonance debt drift identity boundary ' +
   'limpha memory evidence silence chosen rejected thought answer token tensor ' +
@@ -34,6 +32,7 @@ const inputControls = interfaceInput.bindControls(document);
 const promptInput = inputControls.promptInput;
 const composer = inputControls.composer;
 const sendButton = inputControls.sendButton;
+const manifestText = interfaceOutput.bind(document, 'manifest-text');
 const clamp = deps.interfaceMath.clamp;
 const mix = deps.interfaceMath.mix;
 const fieldSurface = interfaceCanvas.bind({
