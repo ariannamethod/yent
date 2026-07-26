@@ -5741,7 +5741,7 @@ static void serve_loop(GGUFIndex *ps, const char *exe_dir) {
     /* Resolve HTML file paths relative to executable */
     char ui_path[512], vis_path[512], yent_path[512], worldmodel_path[512];
     char yent_adj_path[512], worldmodel_adj_path[512];
-    char interface_session_js_path[512], interface_restore_js_path[512], event_stream_js_path[512], chat_stream_js_path[512], interface_text_js_path[512], token_telemetry_js_path[512], interface_state_js_path[512], interface_clock_js_path[512], interface_status_js_path[512], interface_output_js_path[512], interface_hud_js_path[512], interface_replay_js_path[512], interface_input_js_path[512], interface_events_js_path[512], interface_turn_js_path[512], interface_submit_js_path[512], interface_outcome_js_path[512], interface_run_js_path[512], interface_boot_js_path[512], interface_math_js_path[512], interface_canvas_js_path[512], interface_style_js_path[512], interface_deps_js_path[512];
+    char interface_session_js_path[512], interface_restore_js_path[512], event_stream_js_path[512], chat_stream_js_path[512], interface_text_js_path[512], token_telemetry_js_path[512], interface_state_js_path[512], interface_clock_js_path[512], interface_status_js_path[512], interface_output_js_path[512], interface_transcript_js_path[512], interface_hud_js_path[512], interface_replay_js_path[512], interface_input_js_path[512], interface_events_js_path[512], interface_turn_js_path[512], interface_submit_js_path[512], interface_outcome_js_path[512], interface_run_js_path[512], interface_boot_js_path[512], interface_math_js_path[512], interface_canvas_js_path[512], interface_style_js_path[512], interface_deps_js_path[512];
     char yent_js_path[512], worldmodel_geometry_js_path[512], worldmodel_js_path[512];
     int ui_len = snprintf(ui_path, sizeof(ui_path), "%sdoe_ui.html", exe_dir);
     int vis_len = snprintf(vis_path, sizeof(vis_path), "%sdoe.html", exe_dir);
@@ -5759,6 +5759,7 @@ static void serve_loop(GGUFIndex *ps, const char *exe_dir) {
     int interface_clock_js_len = snprintf(interface_clock_js_path, sizeof(interface_clock_js_path), "%sworldmodel/interface_clock.js", exe_dir);
     int interface_status_js_len = snprintf(interface_status_js_path, sizeof(interface_status_js_path), "%sworldmodel/interface_status.js", exe_dir);
     int interface_output_js_len = snprintf(interface_output_js_path, sizeof(interface_output_js_path), "%sworldmodel/interface_output.js", exe_dir);
+    int interface_transcript_js_len = snprintf(interface_transcript_js_path, sizeof(interface_transcript_js_path), "%sworldmodel/interface_transcript.js", exe_dir);
     int interface_hud_js_len = snprintf(interface_hud_js_path, sizeof(interface_hud_js_path), "%sworldmodel/interface_hud.js", exe_dir);
     int interface_replay_js_len = snprintf(interface_replay_js_path, sizeof(interface_replay_js_path), "%sworldmodel/interface_replay.js", exe_dir);
     int interface_input_js_len = snprintf(interface_input_js_path, sizeof(interface_input_js_path), "%sworldmodel/interface_input.js", exe_dir);
@@ -5791,6 +5792,7 @@ static void serve_loop(GGUFIndex *ps, const char *exe_dir) {
         interface_clock_js_len < 0 || interface_clock_js_len >= (int)sizeof(interface_clock_js_path) ||
         interface_status_js_len < 0 || interface_status_js_len >= (int)sizeof(interface_status_js_path) ||
         interface_output_js_len < 0 || interface_output_js_len >= (int)sizeof(interface_output_js_path) ||
+        interface_transcript_js_len < 0 || interface_transcript_js_len >= (int)sizeof(interface_transcript_js_path) ||
         interface_hud_js_len < 0 || interface_hud_js_len >= (int)sizeof(interface_hud_js_path) ||
         interface_replay_js_len < 0 || interface_replay_js_len >= (int)sizeof(interface_replay_js_path) ||
         interface_input_js_len < 0 || interface_input_js_len >= (int)sizeof(interface_input_js_path) ||
@@ -5927,6 +5929,11 @@ static void serve_loop(GGUFIndex *ps, const char *exe_dir) {
             } else if (strcmp(path, "/worldmodel/interface_output.js") == 0) {
                 if (!http_serve_static_file(client, interface_output_js_path, "application/javascript; charset=utf-8")) {
                     const char *msg = "worldmodel/interface_output.js not found";
+                    http_send_text(client, 404, msg);
+                }
+            } else if (strcmp(path, "/worldmodel/interface_transcript.js") == 0) {
+                if (!http_serve_static_file(client, interface_transcript_js_path, "application/javascript; charset=utf-8")) {
+                    const char *msg = "worldmodel/interface_transcript.js not found";
                     http_send_text(client, 404, msg);
                 }
             } else if (strcmp(path, "/worldmodel/interface_hud.js") == 0) {

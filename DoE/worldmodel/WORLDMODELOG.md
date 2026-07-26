@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-26 - shared transcript turn boundary
+
+- Added `interface_transcript.js` for JANUS transcript turn-card rendering.
+- Role labels, text body creation, append, restore clear, and transcript scroll
+  now pass through one optional browser helper.
+- WORLD does not load this helper in HTML; the dependency remains page-specific
+  while replay smoke can still exercise the full helper set.
+
 ## 2026-07-26 - shared output text boundary
 
 - Added `interface_output.js` for browser output text and scroll writes.

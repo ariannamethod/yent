@@ -13,7 +13,7 @@ const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_
 const seedWords = 'Yent DoE Janus parliament notorch prophecy debt consensus memory limpha identity boundary'.split(' ');
 const interfaceDeps = window.YentInterfaceDeps;
 if (!interfaceDeps) throw new Error('YentInterfaceDeps helper missing');
-const deps = interfaceDeps.load();
+const deps = interfaceDeps.load({ transcript: true });
 const interfaceSession = deps.interfaceSession;
 const interfaceRestore = deps.interfaceRestore;
 const chatStream = deps.chatStream;
@@ -23,6 +23,7 @@ const interfaceState = deps.interfaceState;
 const interfaceClock = deps.interfaceClock;
 const interfaceStatus = deps.interfaceStatus;
 const interfaceOutput = deps.interfaceOutput;
+const interfaceTranscript = deps.interfaceTranscript;
 const interfaceHud = deps.interfaceHud;
 const interfaceReplay = deps.interfaceReplay;
 const interfaceInput = deps.interfaceInput;
@@ -319,22 +320,13 @@ function resize() {
 }
 
 function addTurn(role, text) {
-  const node = document.createElement('article');
-  node.className = `turn ${role}`;
-
-  const label = document.createElement('div');
-  label.className = 'role';
-  label.textContent = role === 'user' ? 'OLEG' : 'YENT';
-
-  const body = document.createElement('div');
-  body.className = 'text';
-  interfaceOutput.setText(body, text || '');
-
-  node.appendChild(label);
-  node.appendChild(body);
-  transcript.appendChild(node);
-  interfaceOutput.scrollBottom(transcript);
-  return body;
+  return interfaceTranscript.appendTurn(transcript, {
+    document,
+    interfaceOutput,
+    role,
+    text,
+    labels: { user: 'OLEG', assistant: 'YENT' }
+  });
 }
 
 function setStatus(text) {
@@ -346,7 +338,7 @@ function restoreInterfaceSession() {
   if (!restored) return;
 
   visibleMessages = restored.visibleMessages;
-  transcript.textContent = '';
+  interfaceTranscript.clear(transcript, { interfaceOutput });
   for (const msg of visibleMessages) addTurn(msg.role, msg.content);
 
   const tapeText = interfaceText.tokenTapeText(restored.combinedText);

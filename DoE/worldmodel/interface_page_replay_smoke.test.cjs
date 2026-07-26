@@ -183,6 +183,7 @@ async function runPage(page) {
     'interface_clock.js',
     'interface_status.js',
     'interface_output.js',
+    'interface_transcript.js',
     'interface_hud.js',
     'interface_replay.js',
     'interface_input.js',

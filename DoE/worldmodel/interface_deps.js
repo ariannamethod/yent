@@ -42,6 +42,9 @@
     if (options.worldGeometry) {
       deps.worldGeometry = requireHelper(host, 'YentWorldmodelGeometry');
     }
+    if (options.transcript) {
+      deps.interfaceTranscript = requireHelper(host, 'YentInterfaceTranscript');
+    }
     return deps;
   }
 

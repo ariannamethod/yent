@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-26 - interface transcript helper
+
+- Added `DoE/worldmodel/interface_transcript.js` as an optional browser helper
+  for JANUS transcript turn-card rendering.
+- `/yent` now routes role labels, turn body creation, transcript append, restore
+  clear, and scroll-to-bottom through that helper.
+- Static routes, HTML script order, dependency loading, replay smoke, and Go
+  contracts cover the new helper.
+
 ## 2026-07-26 - interface output helper
 
 - Added `DoE/worldmodel/interface_output.js` for shared browser output text and
