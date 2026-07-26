@@ -118,6 +118,17 @@ function docElements(elements) {
   });
 }
 
+{
+  const promptInput = { value: '' };
+  const other = { value: '' };
+  const d = docElements({ prompt: promptInput });
+  d.activeElement = promptInput;
+  assert.equal(input.isFocused(d, promptInput), true);
+  assert.equal(input.isFocused(d, other), false);
+  assert.equal(input.isFocused(null, promptInput), false);
+  assert.equal(input.isFocused(d, null), false);
+}
+
 async function main() {
   {
     let seen = null;

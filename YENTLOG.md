@@ -6,6 +6,13 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-26 - interface input focus boundary
+
+- Added `interfaceInput.isFocused()` for helper-owned prompt focus checks.
+- `/worldmodel` now gates movement keys through the input helper instead of
+  reading `document.activeElement` locally.
+- The interface contract now rejects page-local `document.activeElement` reads.
+
 ## 2026-07-26 - interface frame clock boundary
 
 - Added `clock.now()` to `DoE/worldmodel/interface_clock.js`.

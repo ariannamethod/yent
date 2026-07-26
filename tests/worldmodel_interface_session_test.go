@@ -315,6 +315,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if !strings.Contains(tc.src, "interfaceInput.bindControls(document)") {
 			t.Fatalf("%s does not bind shared prompt controls through interface_input", tc.name)
 		}
+		if tc.name == "worldmodel.js" && !strings.Contains(tc.src, "interfaceInput.isFocused(document, promptInput)") {
+			t.Fatalf("worldmodel.js does not test prompt focus through interface_input")
+		}
+		if strings.Contains(tc.src, "document.activeElement") {
+			t.Fatalf("%s still reads activeElement locally instead of interface_input", tc.name)
+		}
 		if !strings.Contains(tc.src, "interfaceOutput.bind(document,") {
 			t.Fatalf("%s does not bind output containers through interface_output", tc.name)
 		}
@@ -690,7 +696,9 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(inputJS, "function bindControls") ||
 		!strings.Contains(inputJS, "documentRef.getElementById(id)") ||
 		!strings.Contains(inputJS, "promptInput") ||
-		!strings.Contains(inputJS, "sendButton") {
+		!strings.Contains(inputJS, "sendButton") ||
+		!strings.Contains(inputJS, "function isFocused") ||
+		!strings.Contains(inputJS, "documentRef.activeElement") {
 		t.Fatalf("interface_input.js does not own shared prompt/composer/send control binding")
 	}
 	if !strings.Contains(outputJS, "function bind") ||

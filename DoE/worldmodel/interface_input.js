@@ -46,6 +46,10 @@
     return { temperature, maxTokens };
   }
 
+  function isFocused(documentRef, control) {
+    return !!documentRef && !!control && documentRef.activeElement === control;
+  }
+
   function streamFor(options) {
     options = options || {};
     const replayMode = !!options.replayMode;
@@ -69,7 +73,7 @@
     return streamOptions => chat.stream(streamOptions);
   }
 
-  const api = { bindControls, readParams, streamFor };
+  const api = { bindControls, readParams, isFocused, streamFor };
   root.YentInterfaceInput = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
