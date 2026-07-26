@@ -51,5 +51,32 @@ function makeSurface() {
 }
 
 {
+  const calls = [];
+  const documentRef = {
+    createElement(tag) {
+      assert.equal(tag, 'canvas');
+      return {
+        getContext(type, options) {
+          calls.push([type, options]);
+          return { type, options };
+        }
+      };
+    }
+  };
+  const scratch = canvas.createScratch({
+    document: documentRef,
+    contextOptions: { willReadFrequently: true }
+  });
+  assert.deepEqual(calls, [['2d', { willReadFrequently: true }]]);
+  assert.equal(scratch.context.type, '2d');
+  assert.equal(scratch.context.options.willReadFrequently, true);
+}
+
+{
   assert.throws(() => canvas.resize({ canvas: {}, context: {} }), /interface canvas surface unavailable/);
+  assert.throws(() => canvas.createScratch({ document: {} }), /interface canvas document unavailable/);
+  assert.throws(() => canvas.createScratch({ document: { createElement: () => ({}) } }), /interface canvas scratch surface unavailable/);
+  assert.throws(() => canvas.createScratch({
+    document: { createElement: () => ({ getContext: () => null }) }
+  }), /interface canvas scratch context unavailable/);
 }

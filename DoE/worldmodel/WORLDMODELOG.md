@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-26 - scratch canvas boundary
+
+- Added helper-owned scratch canvas creation to `interface_canvas.js`.
+- JANUS mask rendering still stays JANUS-specific, but the browser canvas
+  allocation and context contract now live beside shared viewport resizing.
+- Page scripts are no longer allowed to allocate scratch canvases directly.
+
 ## 2026-07-26 - session storage boundary
 
 - `/yent` and `/worldmodel` no longer pass `sessionStorage` directly.
