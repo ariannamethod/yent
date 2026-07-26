@@ -1,5 +1,3 @@
-const canvas = document.getElementById('field');
-const ctx = canvas.getContext('2d', { alpha: false });
 const promptInput = document.getElementById('prompt');
 const composer = document.getElementById('composer');
 const sendButton = document.getElementById('send');
@@ -36,6 +34,13 @@ const interfaceCanvas = deps.interfaceCanvas;
 const interfaceStyle = deps.interfaceStyle;
 const clamp = deps.interfaceMath.clamp;
 const mix = deps.interfaceMath.mix;
+const fieldSurface = interfaceCanvas.bind({
+  document,
+  id: 'field',
+  contextOptions: { alpha: false }
+});
+const canvas = fieldSurface.canvas;
+const ctx = fieldSurface.context;
 const generationRun = interfaceRun.create({ button: sendButton });
 const replayRequest = interfaceReplay.request(window.location);
 const replayMode = replayRequest.enabled;

@@ -271,6 +271,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			!strings.Contains(tc.src, "interfaceCanvas.resize(") {
 			t.Fatalf("%s does not size canvases through the shared helper", tc.name)
 		}
+		if !strings.Contains(tc.src, "interfaceCanvas.bind(") {
+			t.Fatalf("%s does not bind canvas elements through interface_canvas", tc.name)
+		}
+		if strings.Contains(tc.src, ".getContext(") {
+			t.Fatalf("%s still opens canvas contexts locally instead of interface_canvas", tc.name)
+		}
 		if strings.Contains(tc.src, "document.createElement('canvas')") ||
 			strings.Contains(tc.src, `document.createElement("canvas")`) {
 			t.Fatalf("%s still creates scratch canvases locally instead of interface_canvas", tc.name)
@@ -652,10 +658,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(canvasJS, "setTransform(base.dpr") ||
 		!strings.Contains(canvasJS, "canvas.width = Math.max") ||
 		!strings.Contains(canvasJS, "canvas.style.width") ||
+		!strings.Contains(canvasJS, "function bind") ||
+		!strings.Contains(canvasJS, "documentRef.getElementById(id)") ||
 		!strings.Contains(canvasJS, "function createScratch") ||
 		!strings.Contains(canvasJS, "documentRef.createElement('canvas')") ||
 		!strings.Contains(canvasJS, "canvas.getContext(contextType") {
-		t.Fatalf("interface_canvas.js does not own shared canvas backing-store sizing")
+		t.Fatalf("interface_canvas.js does not own shared canvas binding and backing-store sizing")
 	}
 	if !strings.Contains(styleJS, "function create") ||
 		!strings.Contains(styleJS, "getComputedStyle") ||

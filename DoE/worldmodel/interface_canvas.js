@@ -53,6 +53,24 @@
     };
   }
 
+  function bind(options) {
+    options = options || {};
+    const documentRef = options.document || root.document;
+    if (!documentRef || typeof documentRef.getElementById !== 'function') {
+      throw new Error('interface canvas document unavailable');
+    }
+    const id = options.id;
+    if (!id) throw new Error('interface canvas id missing');
+    const canvas = documentRef.getElementById(id);
+    if (!canvas || typeof canvas.getContext !== 'function') {
+      throw new Error(`interface canvas element unavailable: ${id}`);
+    }
+    const contextType = options.contextType || '2d';
+    const context = canvas.getContext(contextType, options.contextOptions);
+    if (!context) throw new Error(`interface canvas context unavailable: ${id}`);
+    return { canvas, context };
+  }
+
   function createScratch(options) {
     options = options || {};
     const documentRef = options.document || root.document;
@@ -69,7 +87,7 @@
     return { canvas, context };
   }
 
-  const api = { pixelRatio, viewport, resize, createScratch };
+  const api = { pixelRatio, viewport, resize, bind, createScratch };
   root.YentInterfaceCanvas = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

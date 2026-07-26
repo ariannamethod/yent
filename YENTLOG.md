@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-26 - interface canvas bind boundary
+
+- Added `interfaceCanvas.bind()` for helper-owned canvas element lookup and
+  context creation.
+- `/yent` now binds both `field` and `trace` through `interface_canvas.js`;
+  `/worldmodel` binds its `field` canvas through the same helper.
+- Added helper tests and a Go contract that rejects page-local canvas
+  `getContext()` calls.
+
 ## 2026-07-26 - interface scratch canvas boundary
 
 - Added `interfaceCanvas.createScratch()` for helper-owned scratch canvas

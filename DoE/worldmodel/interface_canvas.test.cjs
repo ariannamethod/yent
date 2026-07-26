@@ -73,7 +73,36 @@ function makeSurface() {
 }
 
 {
+  const calls = [];
+  const documentRef = {
+    getElementById(id) {
+      assert.equal(id, 'field');
+      return {
+        getContext(type, options) {
+          calls.push([type, options]);
+          return { type, options };
+        }
+      };
+    }
+  };
+  const bound = canvas.bind({
+    document: documentRef,
+    id: 'field',
+    contextOptions: { alpha: false }
+  });
+  assert.deepEqual(calls, [['2d', { alpha: false }]]);
+  assert.equal(bound.context.type, '2d');
+  assert.equal(bound.context.options.alpha, false);
+}
+
+{
   assert.throws(() => canvas.resize({ canvas: {}, context: {} }), /interface canvas surface unavailable/);
+  assert.throws(() => canvas.bind({ document: {} }), /interface canvas document unavailable/);
+  assert.throws(() => canvas.bind({ document: { getElementById: () => null }, id: 'missing' }), /interface canvas element unavailable: missing/);
+  assert.throws(() => canvas.bind({
+    document: { getElementById: () => ({ getContext: () => null }) },
+    id: 'field'
+  }), /interface canvas context unavailable: field/);
   assert.throws(() => canvas.createScratch({ document: {} }), /interface canvas document unavailable/);
   assert.throws(() => canvas.createScratch({ document: { createElement: () => ({}) } }), /interface canvas scratch surface unavailable/);
   assert.throws(() => canvas.createScratch({
