@@ -22,6 +22,7 @@ const tokenTelemetry = deps.tokenTelemetry;
 const interfaceState = deps.interfaceState;
 const interfaceClock = deps.interfaceClock;
 const interfaceStatus = deps.interfaceStatus;
+const interfaceOutput = deps.interfaceOutput;
 const interfaceHud = deps.interfaceHud;
 const interfaceReplay = deps.interfaceReplay;
 const interfaceInput = deps.interfaceInput;
@@ -496,8 +497,7 @@ function setManifestState(text, active) {
 }
 
 function setManifestText(text) {
-  manifestText.textContent = text;
-  manifestText.scrollTop = manifestText.scrollHeight;
+  interfaceOutput.setTextAndScroll(manifestText, text);
 }
 
 function restoreInterfaceSession() {

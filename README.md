@@ -451,7 +451,10 @@ their page-specific physics. Generation clock/rate tracking lives at
 reset/tick contract while animation frame timing remains page-local. Shared
 status label writes live at `DoE/worldmodel/interface_status.js`, so JANUS and
 WORLD keep their own status language while text updates and manifest active
-flags pass through one DOM boundary. Shared
+flags pass through one DOM boundary. Assistant and manifest output text writes
+live at `DoE/worldmodel/interface_output.js`, so response bodies and selected
+WORLD text share scroll-safe DOM updates while page-specific containers remain
+local. Shared
 interface interpolation and bounded numeric
 projection live at `DoE/worldmodel/interface_math.js`, keeping JANUS and WORLD
 visual physics on the same clamp/mix contract without sharing their

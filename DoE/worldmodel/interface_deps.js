@@ -11,6 +11,7 @@
     ['interfaceState', 'YentInterfaceState'],
     ['interfaceClock', 'YentInterfaceClock'],
     ['interfaceStatus', 'YentInterfaceStatus'],
+    ['interfaceOutput', 'YentInterfaceOutput'],
     ['interfaceHud', 'YentInterfaceHud'],
     ['interfaceReplay', 'YentInterfaceReplay'],
     ['interfaceInput', 'YentInterfaceInput'],

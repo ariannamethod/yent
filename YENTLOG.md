@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-26 - interface output helper
+
+- Added `DoE/worldmodel/interface_output.js` for shared browser output text and
+  scroll writes.
+- JANUS transcript bodies and WORLD manifest text now use one helper for
+  `textContent` writes and scroll-to-bottom behavior.
+- Static routes, HTML script order, dependency loading, replay smoke, and Go
+  contracts cover the new helper.
+
 ## 2026-07-26 - interface status label helper
 
 - Added `DoE/worldmodel/interface_status.js` for shared browser status label

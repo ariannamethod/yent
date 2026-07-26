@@ -22,6 +22,7 @@ const tokenTelemetry = deps.tokenTelemetry;
 const interfaceState = deps.interfaceState;
 const interfaceClock = deps.interfaceClock;
 const interfaceStatus = deps.interfaceStatus;
+const interfaceOutput = deps.interfaceOutput;
 const interfaceHud = deps.interfaceHud;
 const interfaceReplay = deps.interfaceReplay;
 const interfaceInput = deps.interfaceInput;
@@ -327,12 +328,12 @@ function addTurn(role, text) {
 
   const body = document.createElement('div');
   body.className = 'text';
-  body.textContent = text || '';
+  interfaceOutput.setText(body, text || '');
 
   node.appendChild(label);
   node.appendChild(body);
   transcript.appendChild(node);
-  transcript.scrollTop = transcript.scrollHeight;
+  interfaceOutput.scrollBottom(transcript);
   return body;
 }
 
@@ -541,9 +542,8 @@ async function generate(text) {
       assistantBody = addTurn('assistant', '');
     },
     onToken: (token, data, responseText) => {
-      assistantBody.textContent = responseText;
+      interfaceOutput.setTextAndScroll(assistantBody, responseText, transcript);
       absorbToken(token, data);
-      transcript.scrollTop = transcript.scrollHeight;
     }
   });
 
@@ -555,9 +555,9 @@ async function generate(text) {
     },
     fault: (turn, result) => {
       setStatus('FAULT');
-      assistantBody.textContent = result.hasText
+      interfaceOutput.setText(assistantBody, result.hasText
         ? `${turn.text}\n\n[stream fault: ${result.message}]`
-        : `parliament unreachable: ${result.message}`;
+        : `parliament unreachable: ${result.message}`);
     },
     complete: (_turn, result) => {
       setStatus(result.kind === 'empty' ? 'EMPTY' : 'COMPLETE');
