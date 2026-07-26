@@ -12,6 +12,7 @@ const commonGlobals = [
   'YentInterfaceClock',
   'YentInterfaceStatus',
   'YentInterfaceOutput',
+  'YentInterfaceTranscript',
   'YentInterfaceHud',
   'YentInterfaceReplay',
   'YentInterfaceInput',
@@ -62,12 +63,24 @@ function main() {
     assert.equal(loaded.worldGeometry, root.YentWorldmodelGeometry);
   }
 
+  {
+    const root = makeRoot();
+    const loaded = deps.load({ root, transcript: true });
+    assert.equal(loaded.interfaceTranscript, root.YentInterfaceTranscript);
+  }
+
   assert.throws(() => deps.load({ root: {} }), /YentInterfaceSession helper missing/);
 
   {
     const root = makeRoot();
     delete root.YentWorldmodelGeometry;
     assert.throws(() => deps.load({ root, worldGeometry: true }), /YentWorldmodelGeometry helper missing/);
+  }
+
+  {
+    const root = makeRoot();
+    delete root.YentInterfaceTranscript;
+    assert.throws(() => deps.load({ root, transcript: true }), /YentInterfaceTranscript helper missing/);
   }
 }
 

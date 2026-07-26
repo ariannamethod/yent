@@ -24,6 +24,7 @@ func TestWorldmodelInterfaceSessionHelper(t *testing.T) {
 		filepath.Join(root, "DoE", "worldmodel", "interface_clock.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_status.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_output.test.cjs"),
+		filepath.Join(root, "DoE", "worldmodel", "interface_transcript.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_hud.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_replay.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_input.test.cjs"),
@@ -63,6 +64,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	clockJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_clock.js"))
 	statusJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_status.js"))
 	outputJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_output.js"))
+	transcriptJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_transcript.js"))
 	eventsJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_events.js"))
 	submitJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_submit.js"))
 	outcomeJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_outcome.js"))
@@ -83,6 +85,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/interface_clock.js",
 		"/worldmodel/interface_status.js",
 		"/worldmodel/interface_output.js",
+		"/worldmodel/interface_transcript.js",
 		"/worldmodel/interface_hud.js",
 		"/worldmodel/interface_replay.js",
 		"/worldmodel/interface_input.js",
@@ -163,6 +166,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(doeC, `"/worldmodel/interface_output.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_output.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist interface_output.js")
+	}
+	if !strings.Contains(doeC, `"/worldmodel/interface_transcript.js"`) ||
+		!strings.Contains(doeC, `"worldmodel/interface_transcript.js not found"`) {
+		t.Fatalf("DoE server does not explicitly whitelist interface_transcript.js")
 	}
 	if !strings.Contains(doeC, `"/worldmodel/interface_hud.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_hud.js not found"`) {
@@ -487,24 +494,35 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(worldJS, "interfaceDeps.load({ worldGeometry: true })") {
 		t.Fatalf("worldmodel.js does not request worldmodel geometry through interface_deps")
 	}
+	if !strings.Contains(yentJS, "interfaceDeps.load({ transcript: true })") {
+		t.Fatalf("yent.js does not request transcript rendering through interface_deps")
+	}
 	if !strings.Contains(worldJS, "interfaceStatus.setManifest(") {
 		t.Fatalf("worldmodel.js does not write manifest state through interface_status")
 	}
-	if !strings.Contains(yentJS, "interfaceOutput.setText(body") ||
-		!strings.Contains(yentJS, "interfaceOutput.setTextAndScroll(assistantBody") ||
-		!strings.Contains(yentJS, "interfaceOutput.scrollBottom(transcript)") {
-		t.Fatalf("yent.js does not route transcript output writes through interface_output")
+	if !strings.Contains(yentJS, "interfaceOutput.setTextAndScroll(assistantBody") ||
+		!strings.Contains(yentJS, "interfaceOutput.setText(assistantBody") {
+		t.Fatalf("yent.js does not route live assistant output writes through interface_output")
 	}
 	if !strings.Contains(worldJS, "interfaceOutput.setTextAndScroll(manifestText") {
 		t.Fatalf("worldmodel.js does not route manifest output writes through interface_output")
+	}
+	if !strings.Contains(yentJS, "deps.interfaceTranscript") ||
+		!strings.Contains(yentJS, "interfaceTranscript.appendTurn(") ||
+		!strings.Contains(yentJS, "interfaceTranscript.clear(") {
+		t.Fatalf("yent.js does not route transcript turn rendering through interface_transcript")
 	}
 	for _, directOutput := range []string{
 		"body.textContent = text || ''",
 		"assistantBody.textContent = responseText",
 		"assistantBody.textContent = result.hasText",
 		"manifestText.textContent = text",
+		"transcript.textContent = ''",
 		"transcript.scrollTop = transcript.scrollHeight",
 		"manifestText.scrollTop = manifestText.scrollHeight",
+		"document.createElement('article')",
+		"document.createElement(\"article\")",
+		"label.textContent = role === 'user'",
 	} {
 		if strings.Contains(yentJS, directOutput) || strings.Contains(worldJS, directOutput) {
 			t.Fatalf("interface page still writes output text/scroll locally: %s", directOutput)
@@ -524,6 +542,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"YentInterfaceClock",
 		"YentInterfaceStatus",
 		"YentInterfaceOutput",
+		"YentInterfaceTranscript",
 		"YentInterfaceHud",
 		"YentInterfaceReplay",
 		"YentInterfaceInput",
@@ -550,6 +569,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"`DoE/worldmodel/interface_clock.js`",
 		"`DoE/worldmodel/interface_status.js`",
 		"`DoE/worldmodel/interface_output.js`",
+		"`DoE/worldmodel/interface_transcript.js`",
 		"`DoE/worldmodel/interface_hud.js`",
 		"`DoE/worldmodel/worldmodel_geometry.js`",
 		"`DoE/worldmodel/interface_replay.js`",
@@ -604,6 +624,13 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(outputJS, "function scrollBottom") ||
 		!strings.Contains(outputJS, "function setTextAndScroll") {
 		t.Fatalf("interface_output.js does not own shared output text and scroll writes")
+	}
+	if !strings.Contains(transcriptJS, "function labelFor") ||
+		!strings.Contains(transcriptJS, "function appendTurn") ||
+		!strings.Contains(transcriptJS, "function clear") ||
+		!strings.Contains(transcriptJS, "output.setText(body") ||
+		!strings.Contains(transcriptJS, "output.scrollBottom(container)") {
+		t.Fatalf("interface_transcript.js does not own transcript turn rendering")
 	}
 	if !strings.Contains(restoreJS, "if (options.replayMode) return null") ||
 		!strings.Contains(restoreJS, "session.load()") ||
