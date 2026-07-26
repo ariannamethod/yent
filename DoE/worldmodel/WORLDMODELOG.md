@@ -2,6 +2,15 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-27 - browser defaults boundary
+
+- `interfaceReplay.request()` now owns default browser location lookup.
+- JANUS and WORLD call replay request parsing without passing `window.location`
+  through page code.
+- `interfaceStyle.create()` now owns default browser style lookup.
+- Page scripts no longer own replay URL parsing inputs or pass
+  `document/getComputedStyle` into font resolution.
+
 ## 2026-07-26 - input focus boundary
 
 - Added `interfaceInput.isFocused()` to the shared browser input helper.

@@ -423,8 +423,9 @@ For audits and visual smoke, both
 fixture from `DoE/worldmodel/interface_replay.js`. Replay uses the same page
 token handlers as the live stream but deliberately skips the local
 `sessionStorage` receipt, so it does not become model memory or tab continuity.
-The same helper owns replay autostart, including prompt seeding, delayed start,
-and the guard that refuses to start a fixture while a generation run is active.
+The same helper owns browser location parsing and replay autostart, including
+prompt seeding, delayed start, and the guard that refuses to start a fixture
+while a generation run is active.
 Generation request input is centralized in `DoE/worldmodel/interface_input.js`;
 it binds the shared `prompt`, `composer`, and `send` controls, reads and clamps
 `temp` / `max_tokens` once, owns prompt focus checks for keyboard gating, and
@@ -480,7 +481,9 @@ pass replay state while the helper owns the default session store lookup.
 Browser
 font/style lookup lives at `DoE/worldmodel/interface_style.js`, so canvas
 renderers ask one resolver for CSS families instead of reaching into the DOM for
-font variables. Browser input event wiring lives at
+font variables. The helper owns default browser style lookup, so pages no longer
+pass `document/getComputedStyle` through their scripts. Browser input event
+wiring lives at
 `DoE/worldmodel/interface_events.js`: WORLD keeps its walkable camera physics
 and JANUS keeps pointer-driven particle consequences, but neither page binds
 keyboard or pointer listeners directly. Page dependency loading is centralized in
