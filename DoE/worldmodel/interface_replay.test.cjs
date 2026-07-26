@@ -24,6 +24,20 @@ async function main() {
 }
 
 {
+  const prior = globalThis.location;
+  globalThis.location = { search: '?replay=1&delay=0' };
+  try {
+    const req = replay.request();
+    assert.equal(req.enabled, true);
+    assert.equal(req.name, 'boundary');
+    assert.equal(req.delayMs, 0);
+  } finally {
+    if (prior === undefined) delete globalThis.location;
+    else globalThis.location = prior;
+  }
+}
+
+{
   const one = replay.scenario('boundary');
   const two = replay.scenario('boundary');
   assert.notEqual(one.events, two.events);

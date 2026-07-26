@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-27 - interface browser defaults boundary
+
+- `interfaceReplay.request()` now falls back to the browser's `root.location`.
+- `/yent` and `/worldmodel` no longer pass `window.location` from page code.
+- `interfaceStyle.create()` now resolves default browser style state without
+  page-local `document/getComputedStyle` arguments.
+- The interface contract now rejects page-local `window.location` and
+  `getComputedStyle` reads.
+
 ## 2026-07-26 - interface input focus boundary
 
 - Added `interfaceInput.isFocused()` for helper-owned prompt focus checks.

@@ -113,7 +113,7 @@
   }
 
   function request(location) {
-    const params = paramsFor(location);
+    const params = paramsFor(location || root.location);
     const enabled = enabledFlag(params, 'replay') || enabledFlag(params, 'demo');
     const name = scenarioName(params.get('fixture') || params.get('scenario'));
     const selected = scenario(name);

@@ -36,6 +36,34 @@ function main() {
     assert.equal(fonts.family('--unknown', 'Custom Family'), 'Custom Family');
     assert.equal(fonts.family('', 'Empty Name'), 'Empty Name');
   }
+
+  {
+    const hadDocument = Object.prototype.hasOwnProperty.call(globalThis, 'document');
+    const hadGetComputedStyle = Object.prototype.hasOwnProperty.call(globalThis, 'getComputedStyle');
+    const previousDocument = globalThis.document;
+    const previousGetComputedStyle = globalThis.getComputedStyle;
+    let hostSeen = null;
+    globalThis.document = { documentElement: { id: 'root' } };
+    globalThis.getComputedStyle = host => {
+      hostSeen = host;
+      return {
+        getPropertyValue(name) {
+          return name === '--serif' ? ' Root Serif ' : '';
+        }
+      };
+    };
+    try {
+      const fonts = style.create();
+      assert.equal(fonts.serif(), 'Root Serif');
+      assert.equal(hostSeen, globalThis.document.documentElement);
+      assert.match(fonts.mono(), /monospace/);
+    } finally {
+      if (hadDocument) globalThis.document = previousDocument;
+      else delete globalThis.document;
+      if (hadGetComputedStyle) globalThis.getComputedStyle = previousGetComputedStyle;
+      else delete globalThis.getComputedStyle;
+    }
+  }
 }
 
 main();

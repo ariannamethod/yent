@@ -43,7 +43,7 @@ const fieldSurface = interfaceCanvas.bind({
 const canvas = fieldSurface.canvas;
 const ctx = fieldSurface.context;
 const generationRun = interfaceRun.create({ button: sendButton });
-const replayRequest = interfaceReplay.request(window.location);
+const replayRequest = interfaceReplay.request();
 const replayMode = replayRequest.enabled;
 const sessionReceipt = interfaceSession.createAdapter({ replayMode });
 const hud = interfaceHud.bind(document);
@@ -52,7 +52,7 @@ const statusLabels = interfaceStatus.bind(document, {
   manifest: 'manifest-state',
   shell: 'manifest-shell'
 });
-const fonts = interfaceStyle.create({ document, getComputedStyle });
+const fonts = interfaceStyle.create();
 const animationFrame = interfaceAnimation.create();
 const tokenClock = interfaceClock.create({ performance, minElapsedSeconds: 0.001 });
 

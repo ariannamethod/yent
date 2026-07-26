@@ -66,6 +66,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	statusJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_status.js"))
 	outputJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_output.js"))
 	transcriptJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_transcript.js"))
+	replayJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_replay.js"))
 	eventsJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_events.js"))
 	inputJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_input.js"))
 	submitJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_submit.js"))
@@ -263,6 +264,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			!strings.Contains(tc.src, "interfaceRestore.load(") {
 			t.Fatalf("%s does not restore UI receipt state through the shared helper", tc.name)
 		}
+		if !strings.Contains(tc.src, "interfaceReplay.request()") {
+			t.Fatalf("%s does not read replay request through the shared helper default location", tc.name)
+		}
+		if strings.Contains(tc.src, "window.location") {
+			t.Fatalf("%s still reads window.location locally instead of interface_replay", tc.name)
+		}
 		if !strings.Contains(tc.src, "interfaceSubmit.run(") {
 			t.Fatalf("%s does not submit turns through the shared interface submit helper", tc.name)
 		}
@@ -303,11 +310,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			t.Fatalf("yent.js does not create its JANUS mask scratch surface through interface_canvas")
 		}
 		if !strings.Contains(tc.src, "deps.interfaceStyle") ||
-			!strings.Contains(tc.src, "interfaceStyle.create(") {
+			!strings.Contains(tc.src, "interfaceStyle.create()") {
 			t.Fatalf("%s does not read browser font/style state through the shared helper", tc.name)
 		}
-		if strings.Contains(tc.src, "getComputedStyle(document.documentElement)") {
-			t.Fatalf("%s still reads CSS variables directly from documentElement", tc.name)
+		if strings.Contains(tc.src, "getComputedStyle") {
+			t.Fatalf("%s still reads browser style state locally instead of interface_style", tc.name)
 		}
 		if !strings.Contains(tc.src, "deps.interfaceEvents") {
 			t.Fatalf("%s does not load browser input events through the shared helper", tc.name)
@@ -720,6 +727,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(restoreJS, "combinedText") ||
 		!strings.Contains(restoreJS, "lastAssistant") {
 		t.Fatalf("interface_restore.js does not own shared replay-aware receipt restore")
+	}
+	if !strings.Contains(replayJS, "function request") ||
+		!strings.Contains(replayJS, "root.location") ||
+		!strings.Contains(replayJS, "startIfRequested") {
+		t.Fatalf("interface_replay.js does not own replay request/default location handling")
 	}
 	if !strings.Contains(canvasJS, "devicePixelRatio") ||
 		!strings.Contains(canvasJS, "setTransform(base.dpr") ||
