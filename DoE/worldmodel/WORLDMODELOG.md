@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-26 - session storage boundary
+
+- `/yent` and `/worldmodel` no longer pass `sessionStorage` directly.
+- `interface_session.js` owns the browser default storage lookup; pages pass
+  only replay state to the shared receipt adapter.
+- The contract now rejects future page-local session storage wiring.
+
 ## 2026-07-26 - shared transcript turn boundary
 
 - Added `interface_transcript.js` for JANUS transcript turn-card rendering.

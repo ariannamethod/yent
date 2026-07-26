@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-26 - interface session storage boundary
+
+- Removed page-local `sessionStorage` wiring from both `/yent` and
+  `/worldmodel`.
+- `interface_session.js` remains the only browser helper responsible for
+  selecting the default session store; pages pass replay state only.
+- Added a default-storage adapter test and a Go contract that rejects direct
+  page access to browser session storage.
+
 ## 2026-07-26 - interface transcript helper
 
 - Added `DoE/worldmodel/interface_transcript.js` as an optional browser helper
