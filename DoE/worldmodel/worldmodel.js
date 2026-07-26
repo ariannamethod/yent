@@ -27,6 +27,7 @@ const interfaceOutcome = deps.interfaceOutcome;
 const worldGeometry = deps.worldGeometry;
 const interfaceRun = deps.interfaceRun;
 const interfaceBoot = deps.interfaceBoot;
+const interfaceAnimation = deps.interfaceAnimation;
 const interfaceCanvas = deps.interfaceCanvas;
 const interfaceStyle = deps.interfaceStyle;
 const inputControls = interfaceInput.bindControls(document);
@@ -53,6 +54,7 @@ const statusLabels = interfaceStatus.bind(document, {
   shell: 'manifest-shell'
 });
 const fonts = interfaceStyle.create({ document, getComputedStyle });
+const animationFrame = interfaceAnimation.create();
 const tokenClock = interfaceClock.create({ performance, minElapsedSeconds: 0.001 });
 
 const state = interfaceState.create({
@@ -469,7 +471,7 @@ function tickCamera(dt) {
 }
 
 function animate(now) {
-  requestAnimationFrame(animate);
+  animationFrame.requestFrame(animate);
   const dt = Math.min(0.05, (now - lastFrame) / 1000);
   lastFrame = now;
   time += dt;
@@ -610,7 +612,7 @@ interfaceBoot.start({
   resize,
   window,
   composer,
-  startAnimation: () => requestAnimationFrame(animate),
+  startAnimation: () => animationFrame.start(animate),
   interfaceReplay,
   replayMode,
   replayRequest,

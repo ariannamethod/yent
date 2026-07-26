@@ -35,6 +35,7 @@ func TestWorldmodelInterfaceSessionHelper(t *testing.T) {
 		filepath.Join(root, "DoE", "worldmodel", "interface_page_replay_smoke.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_run.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_boot.test.cjs"),
+		filepath.Join(root, "DoE", "worldmodel", "interface_animation.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_math.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_canvas.test.cjs"),
 		filepath.Join(root, "DoE", "worldmodel", "interface_style.test.cjs"),
@@ -70,6 +71,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	submitJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_submit.js"))
 	outcomeJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_outcome.js"))
 	bootJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_boot.js"))
+	animationJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_animation.js"))
 	canvasJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_canvas.js"))
 	styleJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_style.js"))
 	depsJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_deps.js"))
@@ -96,6 +98,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/interface_outcome.js",
 		"/worldmodel/interface_run.js",
 		"/worldmodel/interface_boot.js",
+		"/worldmodel/interface_animation.js",
 		"/worldmodel/interface_math.js",
 		"/worldmodel/interface_canvas.js",
 		"/worldmodel/interface_style.js",
@@ -121,6 +124,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"/worldmodel/interface_outcome.js",
 		"/worldmodel/interface_run.js",
 		"/worldmodel/interface_boot.js",
+		"/worldmodel/interface_animation.js",
 		"/worldmodel/interface_math.js",
 		"/worldmodel/interface_canvas.js",
 		"/worldmodel/interface_style.js",
@@ -208,6 +212,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(doeC, `"worldmodel/interface_boot.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist interface_boot.js")
 	}
+	if !strings.Contains(doeC, `"/worldmodel/interface_animation.js"`) ||
+		!strings.Contains(doeC, `"worldmodel/interface_animation.js not found"`) {
+		t.Fatalf("DoE server does not explicitly whitelist interface_animation.js")
+	}
 	if !strings.Contains(doeC, `"/worldmodel/interface_math.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_math.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist interface_math.js")
@@ -268,6 +276,15 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			t.Fatalf("%s does not start through the shared boot helper", tc.name)
 		}
 		assertInterfaceBootStartOptions(t, tc.name, tc.src)
+		if !strings.Contains(tc.src, "deps.interfaceAnimation") ||
+			!strings.Contains(tc.src, "interfaceAnimation.create(") ||
+			!strings.Contains(tc.src, "animationFrame.requestFrame(") ||
+			!strings.Contains(tc.src, "animationFrame.start(") {
+			t.Fatalf("%s does not schedule animation frames through interface_animation", tc.name)
+		}
+		if strings.Contains(tc.src, "requestAnimationFrame(") {
+			t.Fatalf("%s still schedules animation frames locally", tc.name)
+		}
 		if !strings.Contains(tc.src, "deps.interfaceCanvas") ||
 			!strings.Contains(tc.src, "interfaceCanvas.resize(") {
 			t.Fatalf("%s does not size canvases through the shared helper", tc.name)
@@ -513,6 +530,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			"window.YentInterfaceOutcome",
 			"window.YentInterfaceRun",
 			"window.YentInterfaceBoot",
+			"window.YentInterfaceAnimation",
 			"window.YentInterfaceMath",
 			"window.YentInterfaceCanvas",
 			"window.YentInterfaceStyle",
@@ -584,6 +602,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"YentInterfaceOutcome",
 		"YentInterfaceRun",
 		"YentInterfaceBoot",
+		"YentInterfaceAnimation",
 		"YentInterfaceMath",
 		"YentInterfaceCanvas",
 		"YentInterfaceStyle",
@@ -611,6 +630,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		"`DoE/worldmodel/interface_submit.js`",
 		"`DoE/worldmodel/interface_outcome.js`",
 		"`DoE/worldmodel/interface_boot.js`",
+		"`DoE/worldmodel/interface_animation.js`",
 		"`DoE/worldmodel/interface_math.js`",
 		"`DoE/worldmodel/interface_canvas.js`",
 		"`DoE/worldmodel/interface_style.js`",
@@ -716,6 +736,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(bootJS, "generationRun.bindComposer(") ||
 		!strings.Contains(bootJS, "bindComposer(options)") {
 		t.Fatalf("interface_boot.js does not own shared composer listener binding")
+	}
+	if !strings.Contains(animationJS, "function create") ||
+		!strings.Contains(animationJS, "requestAnimationFrame") ||
+		!strings.Contains(animationJS, "function requestFrame") {
+		t.Fatalf("interface_animation.js does not own shared animation frame scheduling")
 	}
 }
 

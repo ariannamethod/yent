@@ -22,6 +22,7 @@ const commonGlobals = [
   'YentInterfaceOutcome',
   'YentInterfaceRun',
   'YentInterfaceBoot',
+  'YentInterfaceAnimation',
   'YentInterfaceMath',
   'YentInterfaceCanvas',
   'YentInterfaceStyle'
@@ -57,6 +58,7 @@ function main() {
     assert.equal(loaded.interfaceOutcome, root.YentInterfaceOutcome);
     assert.equal(loaded.interfaceRun, root.YentInterfaceRun);
     assert.equal(loaded.interfaceBoot, root.YentInterfaceBoot);
+    assert.equal(loaded.interfaceAnimation, root.YentInterfaceAnimation);
     assert.equal(loaded.interfaceMath, root.YentInterfaceMath);
     assert.equal(loaded.interfaceCanvas, root.YentInterfaceCanvas);
     assert.equal(loaded.interfaceStyle, root.YentInterfaceStyle);
