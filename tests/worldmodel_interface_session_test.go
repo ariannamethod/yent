@@ -66,6 +66,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	outputJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_output.js"))
 	transcriptJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_transcript.js"))
 	eventsJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_events.js"))
+	inputJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_input.js"))
 	submitJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_submit.js"))
 	outcomeJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_outcome.js"))
 	bootJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_boot.js"))
@@ -294,6 +295,9 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if !strings.Contains(tc.src, "deps.interfaceEvents") {
 			t.Fatalf("%s does not load browser input events through the shared helper", tc.name)
 		}
+		if !strings.Contains(tc.src, "interfaceInput.bindControls(document)") {
+			t.Fatalf("%s does not bind shared prompt controls through interface_input", tc.name)
+		}
 		if strings.Contains(tc.src, "messages = restored") {
 			t.Fatalf("%s repopulates prompt messages from restored UI receipt", tc.name)
 		}
@@ -437,6 +441,18 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		}
 		if strings.Contains(tc.src, "sessionStorage") {
 			t.Fatalf("%s still passes browser sessionStorage locally instead of interface_session default storage", tc.name)
+		}
+		for _, localControl := range []string{
+			"document.getElementById('prompt')",
+			`document.getElementById("prompt")`,
+			"document.getElementById('composer')",
+			`document.getElementById("composer")`,
+			"document.getElementById('send')",
+			`document.getElementById("send")`,
+		} {
+			if strings.Contains(tc.src, localControl) {
+				t.Fatalf("%s still binds shared form controls locally: %s", tc.name, localControl)
+			}
 		}
 		if strings.Contains(tc.src, "function startReplayIfRequested") ||
 			strings.Contains(tc.src, "interfaceReplay.startIfRequested(") ||
@@ -635,6 +651,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(statusJS, "function setActive") ||
 		!strings.Contains(statusJS, "function setManifest") {
 		t.Fatalf("interface_status.js does not own shared status label writes")
+	}
+	if !strings.Contains(inputJS, "function bindControls") ||
+		!strings.Contains(inputJS, "documentRef.getElementById(id)") ||
+		!strings.Contains(inputJS, "promptInput") ||
+		!strings.Contains(inputJS, "sendButton") {
+		t.Fatalf("interface_input.js does not own shared prompt/composer/send control binding")
 	}
 	if !strings.Contains(outputJS, "function setText") ||
 		!strings.Contains(outputJS, "function scrollBottom") ||

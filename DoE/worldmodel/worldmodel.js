@@ -1,6 +1,3 @@
-const promptInput = document.getElementById('prompt');
-const composer = document.getElementById('composer');
-const sendButton = document.getElementById('send');
 const manifestText = document.getElementById('manifest-text');
 
 const baseWords = (
@@ -32,6 +29,10 @@ const interfaceRun = deps.interfaceRun;
 const interfaceBoot = deps.interfaceBoot;
 const interfaceCanvas = deps.interfaceCanvas;
 const interfaceStyle = deps.interfaceStyle;
+const inputControls = interfaceInput.bindControls(document);
+const promptInput = inputControls.promptInput;
+const composer = inputControls.composer;
+const sendButton = inputControls.sendButton;
 const clamp = deps.interfaceMath.clamp;
 const mix = deps.interfaceMath.mix;
 const fieldSurface = interfaceCanvas.bind({

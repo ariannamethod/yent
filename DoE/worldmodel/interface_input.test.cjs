@@ -10,6 +10,67 @@ function doc(values) {
   };
 }
 
+function docElements(elements) {
+  return {
+    getElementById(id) {
+      return Object.prototype.hasOwnProperty.call(elements, id) ? elements[id] : null;
+    }
+  };
+}
+
+{
+  const composer = { addEventListener() {} };
+  const promptInput = { value: 'speak' };
+  const sendButton = { textContent: 'SEND' };
+  assert.deepEqual(input.bindControls(docElements({
+    composer,
+    prompt: promptInput,
+    send: sendButton
+  })), {
+    composer,
+    promptInput,
+    sendButton
+  });
+}
+
+{
+  const composer = { addEventListener() {} };
+  const promptInput = { value: '' };
+  const sendButton = {};
+  assert.deepEqual(input.bindControls(docElements({
+    ask: composer,
+    words: promptInput,
+    go: sendButton
+  }), {
+    composer: 'ask',
+    prompt: 'words',
+    send: 'go'
+  }), {
+    composer,
+    promptInput,
+    sendButton
+  });
+}
+
+{
+  assert.throws(() => input.bindControls(null), /document unavailable/);
+  assert.throws(() => input.bindControls(docElements({})), /composer control unavailable: composer/);
+  assert.throws(() => input.bindControls(docElements({
+    composer: {},
+    prompt: { value: '' },
+    send: {}
+  })), /composer control cannot receive submit events/);
+  assert.throws(() => input.bindControls(docElements({
+    composer: { addEventListener() {} },
+    prompt: {},
+    send: {}
+  })), /prompt control must expose a string value/);
+  assert.throws(() => input.bindControls(docElements({
+    composer: { addEventListener() {} },
+    prompt: { value: '' }
+  })), /send control unavailable: send/);
+}
+
 {
   assert.deepEqual(input.readParams(doc({
     temp: '0.35',
