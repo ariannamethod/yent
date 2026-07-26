@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-26 - shared output text boundary
+
+- Added `interface_output.js` for browser output text and scroll writes.
+- JANUS transcript text and WORLD manifested answer text now share one DOM
+  update contract while their page-specific containers stay local.
+- This keeps live generation output plumbing centralized before deeper runtime
+  telemetry starts driving visual consequence layers.
+
 ## 2026-07-26 - shared status label boundary
 
 - Added `interface_status.js` for browser status label writes.
