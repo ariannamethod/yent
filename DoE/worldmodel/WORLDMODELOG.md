@@ -2,6 +2,15 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-26 - canvas binding boundary
+
+- Added helper-owned canvas element lookup and context creation to
+  `interface_canvas.js`.
+- JANUS and WORLD now bind their visible canvases through the same browser
+  boundary that already owns resize and scratch-surface allocation.
+- Page scripts keep rendering physics, but no longer open canvas contexts
+  directly.
+
 ## 2026-07-26 - scratch canvas boundary
 
 - Added helper-owned scratch canvas creation to `interface_canvas.js`.

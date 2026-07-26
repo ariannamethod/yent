@@ -463,8 +463,10 @@ projection live at `DoE/worldmodel/interface_math.js`, keeping JANUS and WORLD
 visual physics on the same clamp/mix contract without sharing their
 page-specific rendering. Canvas viewport/DPR backing-store sizing lives at
 `DoE/worldmodel/interface_canvas.js`, so both surfaces resize through one
-browser contract while keeping their page-specific render loops; JANUS scratch
-mask creation goes through the same helper instead of local canvas allocation.
+browser contract while keeping their page-specific render loops. Field/trace
+canvas lookup and context creation also pass through that helper, and JANUS
+scratch mask creation goes through the same helper instead of local canvas
+allocation.
 Browser
 session persistence is owned by `DoE/worldmodel/interface_session.js`, so pages
 pass replay state while the helper owns the default session store lookup.

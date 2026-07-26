@@ -1,7 +1,3 @@
-const field = document.getElementById('field');
-const ctx = field.getContext('2d', { alpha: false });
-const trace = document.getElementById('trace');
-const tctx = trace.getContext('2d');
 const transcript = document.getElementById('transcript');
 const composer = document.getElementById('composer');
 const promptInput = document.getElementById('prompt');
@@ -34,6 +30,16 @@ const interfaceCanvas = deps.interfaceCanvas;
 const interfaceStyle = deps.interfaceStyle;
 const clamp = deps.interfaceMath.clamp;
 const mix = deps.interfaceMath.mix;
+const fieldSurface = interfaceCanvas.bind({
+  document,
+  id: 'field',
+  contextOptions: { alpha: false }
+});
+const field = fieldSurface.canvas;
+const ctx = fieldSurface.context;
+const traceSurface = interfaceCanvas.bind({ document, id: 'trace' });
+const trace = traceSurface.canvas;
+const tctx = traceSurface.context;
 const maskSurface = interfaceCanvas.createScratch({
   document,
   contextOptions: { willReadFrequently: true }
