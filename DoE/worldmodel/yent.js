@@ -1,7 +1,4 @@
 const transcript = document.getElementById('transcript');
-const composer = document.getElementById('composer');
-const promptInput = document.getElementById('prompt');
-const sendButton = document.getElementById('send');
 
 const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_./-=+*#@%&';
 const seedWords = 'Yent DoE Janus parliament notorch prophecy debt consensus memory limpha identity boundary'.split(' ');
@@ -28,6 +25,10 @@ const interfaceRun = deps.interfaceRun;
 const interfaceBoot = deps.interfaceBoot;
 const interfaceCanvas = deps.interfaceCanvas;
 const interfaceStyle = deps.interfaceStyle;
+const inputControls = interfaceInput.bindControls(document);
+const composer = inputControls.composer;
+const promptInput = inputControls.promptInput;
+const sendButton = inputControls.sendButton;
 const clamp = deps.interfaceMath.clamp;
 const mix = deps.interfaceMath.mix;
 const fieldSurface = interfaceCanvas.bind({

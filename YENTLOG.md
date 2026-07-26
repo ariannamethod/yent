@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-26 - interface form control boundary
+
+- Added `interfaceInput.bindControls()` for helper-owned `prompt`, `composer`,
+  and `send` DOM lookup.
+- `/yent` and `/worldmodel` now bind shared form controls through
+  `interface_input.js` while keeping page-specific output containers local.
+- Added helper tests and a Go contract that rejects page-local shared form
+  control lookup.
+
 ## 2026-07-26 - interface canvas bind boundary
 
 - Added `interfaceCanvas.bind()` for helper-owned canvas element lookup and

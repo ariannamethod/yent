@@ -2,6 +2,15 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-26 - form control boundary
+
+- Added helper-owned `prompt`, `composer`, and `send` lookup to
+  `interface_input.js`.
+- JANUS and WORLD now share the same browser control binding before submit,
+  request parameter parsing, and stream selection.
+- Page scripts keep their own transcript/manifest containers, but shared form
+  controls no longer live as local DOM wiring.
+
 ## 2026-07-26 - canvas binding boundary
 
 - Added helper-owned canvas element lookup and context creation to
