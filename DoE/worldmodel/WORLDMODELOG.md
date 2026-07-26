@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-26 - input focus boundary
+
+- Added `interfaceInput.isFocused()` to the shared browser input helper.
+- WORLD now uses the helper for prompt-focus movement gating instead of reading
+  `document.activeElement` in page code.
+- Page scripts no longer own active-element checks.
+
 ## 2026-07-26 - frame clock boundary
 
 - Added `clock.now()` to the shared browser clock helper.

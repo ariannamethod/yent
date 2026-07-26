@@ -427,8 +427,9 @@ The same helper owns replay autostart, including prompt seeding, delayed start,
 and the guard that refuses to start a fixture while a generation run is active.
 Generation request input is centralized in `DoE/worldmodel/interface_input.js`;
 it binds the shared `prompt`, `composer`, and `send` controls, reads and clamps
-`temp` / `max_tokens` once, and selects either live `/chat/completions`
-streaming or replay playback for both surfaces. These
+`temp` / `max_tokens` once, owns prompt focus checks for keyboard gating, and
+selects either live `/chat/completions` streaming or replay playback for both
+surfaces. These
 requests then pass through `DoE/worldmodel/interface_turn.js`, which owns the
 assistant stream-turn lifecycle: token accumulation, receipt preview, shared
 outcome classification, and assistant commit policy. JANUS and WORLD still keep
