@@ -9,7 +9,26 @@ function element(scrollHeight) {
   };
 }
 
+function doc(elements) {
+  return {
+    getElementById(id) {
+      return Object.prototype.hasOwnProperty.call(elements, id) ? elements[id] : null;
+    }
+  };
+}
+
 function main() {
+  {
+    const target = element(12);
+    assert.equal(output.bind(doc({ transcript: target }), 'transcript'), target);
+  }
+
+  {
+    assert.throws(() => output.bind(null, 'manifest-text'), /document unavailable/);
+    assert.throws(() => output.bind(doc({}), 'manifest-text'), /target unavailable: manifest-text/);
+    assert.throws(() => output.bind(doc({ output: {} }), 'output'), /target must expose textContent: output/);
+  }
+
   {
     const target = element(42);
     output.setText(target, 'new');

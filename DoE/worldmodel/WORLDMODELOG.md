@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-26 - output container boundary
+
+- Added helper-owned output container lookup to `interface_output.js`.
+- JANUS binds its transcript container through the shared output helper; WORLD
+  binds its manifest text container through the same boundary.
+- Page scripts no longer call `document.getElementById()` directly.
+
 ## 2026-07-26 - animation frame boundary
 
 - Added `interface_animation.js` for shared browser animation frame scheduling.

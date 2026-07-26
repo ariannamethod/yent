@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-26 - interface output container boundary
+
+- Added `interfaceOutput.bind()` for helper-owned output container lookup.
+- `/yent` now binds the transcript container through `interface_output.js`;
+  `/worldmodel` binds the manifest text container through the same helper.
+- The interface contract now rejects page-local `document.getElementById()`
+  calls in both page scripts.
+
 ## 2026-07-26 - interface animation frame boundary
 
 - Added `DoE/worldmodel/interface_animation.js` for helper-owned
