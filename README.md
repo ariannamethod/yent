@@ -464,6 +464,9 @@ visual physics on the same clamp/mix contract without sharing their
 page-specific rendering. Canvas viewport/DPR backing-store sizing lives at
 `DoE/worldmodel/interface_canvas.js`, so both surfaces resize through one
 browser contract while keeping their page-specific render loops. Browser
+session persistence is owned by `DoE/worldmodel/interface_session.js`, so pages
+pass replay state while the helper owns the default session store lookup.
+Browser
 font/style lookup lives at `DoE/worldmodel/interface_style.js`, so canvas
 renderers ask one resolver for CSS families instead of reaching into the DOM for
 font variables. Browser input event wiring lives at

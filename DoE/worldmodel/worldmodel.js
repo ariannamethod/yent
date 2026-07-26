@@ -39,7 +39,7 @@ const mix = deps.interfaceMath.mix;
 const generationRun = interfaceRun.create({ button: sendButton });
 const replayRequest = interfaceReplay.request(window.location);
 const replayMode = replayRequest.enabled;
-const sessionReceipt = interfaceSession.createAdapter({ storage: sessionStorage, replayMode });
+const sessionReceipt = interfaceSession.createAdapter({ replayMode });
 const hud = interfaceHud.bind(document);
 const statusLabels = interfaceStatus.bind(document, {
   note: 'status-note',

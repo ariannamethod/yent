@@ -422,6 +422,9 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			strings.Contains(tc.src, "const stream = replayMode") {
 			t.Fatalf("%s still carries page-local generation request parsing", tc.name)
 		}
+		if strings.Contains(tc.src, "sessionStorage") {
+			t.Fatalf("%s still passes browser sessionStorage locally instead of interface_session default storage", tc.name)
+		}
 		if strings.Contains(tc.src, "function startReplayIfRequested") ||
 			strings.Contains(tc.src, "interfaceReplay.startIfRequested(") ||
 			strings.Contains(tc.src, "setTimeout(() =>") ||

@@ -48,6 +48,22 @@ function storage() {
 }
 
 {
+  const saved = globalThis.sessionStorage;
+  const s = storage();
+  globalThis.sessionStorage = s;
+  try {
+    const receipt = session.createAdapter({ replayMode: false });
+    receipt.commitUser([], [], 'default storage prompt');
+    assert.deepEqual(receipt.load(), [
+      { role: 'user', content: 'default storage prompt' }
+    ]);
+  } finally {
+    if (saved === undefined) delete globalThis.sessionStorage;
+    else globalThis.sessionStorage = saved;
+  }
+}
+
+{
   const s = storage();
   s.setItem(session.KEY, '{not valid json');
   assert.deepEqual(session.load(s), []);
