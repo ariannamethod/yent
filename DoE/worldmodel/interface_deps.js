@@ -21,6 +21,7 @@
     ['interfaceOutcome', 'YentInterfaceOutcome'],
     ['interfaceRun', 'YentInterfaceRun'],
     ['interfaceBoot', 'YentInterfaceBoot'],
+    ['interfaceAnimation', 'YentInterfaceAnimation'],
     ['interfaceMath', 'YentInterfaceMath'],
     ['interfaceCanvas', 'YentInterfaceCanvas'],
     ['interfaceStyle', 'YentInterfaceStyle']

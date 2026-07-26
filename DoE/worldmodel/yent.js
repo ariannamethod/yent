@@ -23,6 +23,7 @@ const interfaceSubmit = deps.interfaceSubmit;
 const interfaceOutcome = deps.interfaceOutcome;
 const interfaceRun = deps.interfaceRun;
 const interfaceBoot = deps.interfaceBoot;
+const interfaceAnimation = deps.interfaceAnimation;
 const interfaceCanvas = deps.interfaceCanvas;
 const interfaceStyle = deps.interfaceStyle;
 const inputControls = interfaceInput.bindControls(document);
@@ -54,6 +55,7 @@ const sessionReceipt = interfaceSession.createAdapter({ replayMode });
 const hud = interfaceHud.bind(document);
 const statusLabels = interfaceStatus.bind(document, { run: 'run-state' });
 const fonts = interfaceStyle.create({ document, getComputedStyle });
+const animationFrame = interfaceAnimation.create();
 const tokenClock = interfaceClock.create({ performance });
 const state = interfaceState.create({
   velocity: 1.2,
@@ -468,7 +470,7 @@ function drawFieldHaze(scene) {
 }
 
 function animate() {
-  requestAnimationFrame(animate);
+  animationFrame.requestFrame(animate);
   time += 0.016;
   state.sidePulse *= 0.96;
   if (!generationRun.isRunning()) {
@@ -590,7 +592,7 @@ interfaceBoot.start({
   resize,
   window,
   composer,
-  startAnimation: animate,
+  startAnimation: () => animationFrame.start(animate),
   interfaceReplay,
   replayMode,
   replayRequest,

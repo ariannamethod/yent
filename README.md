@@ -468,6 +468,9 @@ browser contract while keeping their page-specific render loops. Field/trace
 canvas lookup and context creation also pass through that helper, and JANUS
 scratch mask creation goes through the same helper instead of local canvas
 allocation.
+Animation frame scheduling lives at `DoE/worldmodel/interface_animation.js`, so
+JANUS and WORLD request browser frames through one helper while keeping their
+render loops and visual physics page-specific.
 Browser
 session persistence is owned by `DoE/worldmodel/interface_session.js`, so pages
 pass replay state while the helper owns the default session store lookup.

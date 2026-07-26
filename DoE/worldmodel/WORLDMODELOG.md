@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-26 - animation frame boundary
+
+- Added `interface_animation.js` for shared browser animation frame scheduling.
+- JANUS and WORLD now request frames through one helper while preserving their
+  separate render loops, clocks, and visual physics.
+- The replay smoke path loads the same helper, so deterministic UI smoke covers
+  the browser scheduling boundary.
+
 ## 2026-07-26 - form control boundary
 
 - Added helper-owned `prompt`, `composer`, and `send` lookup to

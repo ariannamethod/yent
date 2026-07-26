@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-26 - interface animation frame boundary
+
+- Added `DoE/worldmodel/interface_animation.js` for helper-owned
+  `requestAnimationFrame` scheduling.
+- `/yent` and `/worldmodel` now schedule browser animation frames through that
+  helper while keeping render loops and visual physics page-specific.
+- Static routes, dependency loading, replay smoke, helper tests, and Go
+  contracts cover the new boundary.
+
 ## 2026-07-26 - interface form control boundary
 
 - Added `interfaceInput.bindControls()` for helper-owned `prompt`, `composer`,

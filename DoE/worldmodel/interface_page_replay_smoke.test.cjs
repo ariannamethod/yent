@@ -193,6 +193,7 @@ async function runPage(page) {
     'interface_outcome.js',
     'interface_run.js',
     'interface_boot.js',
+    'interface_animation.js',
     'interface_math.js',
     'interface_canvas.js',
     'interface_style.js',
