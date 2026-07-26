@@ -2,8 +2,6 @@ const field = document.getElementById('field');
 const ctx = field.getContext('2d', { alpha: false });
 const trace = document.getElementById('trace');
 const tctx = trace.getContext('2d');
-const mask = document.createElement('canvas');
-const mctx = mask.getContext('2d', { willReadFrequently: true });
 const transcript = document.getElementById('transcript');
 const composer = document.getElementById('composer');
 const promptInput = document.getElementById('prompt');
@@ -36,6 +34,12 @@ const interfaceCanvas = deps.interfaceCanvas;
 const interfaceStyle = deps.interfaceStyle;
 const clamp = deps.interfaceMath.clamp;
 const mix = deps.interfaceMath.mix;
+const maskSurface = interfaceCanvas.createScratch({
+  document,
+  contextOptions: { willReadFrequently: true }
+});
+const mask = maskSurface.canvas;
+const mctx = maskSurface.context;
 const generationRun = interfaceRun.create({ button: sendButton });
 const replayRequest = interfaceReplay.request(window.location);
 const replayMode = replayRequest.enabled;

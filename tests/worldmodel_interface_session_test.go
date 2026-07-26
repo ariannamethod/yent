@@ -271,6 +271,13 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			!strings.Contains(tc.src, "interfaceCanvas.resize(") {
 			t.Fatalf("%s does not size canvases through the shared helper", tc.name)
 		}
+		if strings.Contains(tc.src, "document.createElement('canvas')") ||
+			strings.Contains(tc.src, `document.createElement("canvas")`) {
+			t.Fatalf("%s still creates scratch canvases locally instead of interface_canvas", tc.name)
+		}
+		if tc.name == "yent.js" && !strings.Contains(tc.src, "interfaceCanvas.createScratch(") {
+			t.Fatalf("yent.js does not create its JANUS mask scratch surface through interface_canvas")
+		}
 		if !strings.Contains(tc.src, "deps.interfaceStyle") ||
 			!strings.Contains(tc.src, "interfaceStyle.create(") {
 			t.Fatalf("%s does not read browser font/style state through the shared helper", tc.name)
@@ -644,7 +651,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(canvasJS, "devicePixelRatio") ||
 		!strings.Contains(canvasJS, "setTransform(base.dpr") ||
 		!strings.Contains(canvasJS, "canvas.width = Math.max") ||
-		!strings.Contains(canvasJS, "canvas.style.width") {
+		!strings.Contains(canvasJS, "canvas.style.width") ||
+		!strings.Contains(canvasJS, "function createScratch") ||
+		!strings.Contains(canvasJS, "documentRef.createElement('canvas')") ||
+		!strings.Contains(canvasJS, "canvas.getContext(contextType") {
 		t.Fatalf("interface_canvas.js does not own shared canvas backing-store sizing")
 	}
 	if !strings.Contains(styleJS, "function create") ||

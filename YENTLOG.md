@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-26 - interface scratch canvas boundary
+
+- Added `interfaceCanvas.createScratch()` for helper-owned scratch canvas
+  allocation and context creation.
+- `/yent` now creates the JANUS mask surface through `interface_canvas.js`
+  instead of calling `document.createElement('canvas')` locally.
+- Added helper tests and a Go contract that rejects page-local scratch canvas
+  allocation.
+
 ## 2026-07-26 - interface session storage boundary
 
 - Removed page-local `sessionStorage` wiring from both `/yent` and

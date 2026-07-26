@@ -53,7 +53,23 @@
     };
   }
 
-  const api = { pixelRatio, viewport, resize };
+  function createScratch(options) {
+    options = options || {};
+    const documentRef = options.document || root.document;
+    if (!documentRef || typeof documentRef.createElement !== 'function') {
+      throw new Error('interface canvas document unavailable');
+    }
+    const canvas = documentRef.createElement('canvas');
+    if (!canvas || typeof canvas.getContext !== 'function') {
+      throw new Error('interface canvas scratch surface unavailable');
+    }
+    const contextType = options.contextType || '2d';
+    const context = canvas.getContext(contextType, options.contextOptions);
+    if (!context) throw new Error('interface canvas scratch context unavailable');
+    return { canvas, context };
+  }
+
+  const api = { pixelRatio, viewport, resize, createScratch };
   root.YentInterfaceCanvas = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
