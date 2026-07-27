@@ -15,7 +15,7 @@
   }
 
   function resolveResizeTarget(options) {
-    return (options && (options.resizeTarget || options.window)) || root;
+    return (options && options.resizeTarget) || root;
   }
 
   function bindResize(options, resize) {

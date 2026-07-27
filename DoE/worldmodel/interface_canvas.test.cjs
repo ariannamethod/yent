@@ -29,7 +29,7 @@ function makeSurface() {
   const main = makeSurface();
   const trace = makeSurface();
   const result = canvas.resize({
-    window: { innerWidth: 960, innerHeight: 720, devicePixelRatio: 2.5 },
+    viewport: { innerWidth: 960, innerHeight: 720, devicePixelRatio: 2.5 },
     surfaces: [
       { canvas: main.canvas, context: main.context },
       { canvas: trace.canvas, context: trace.context, height: 22 }

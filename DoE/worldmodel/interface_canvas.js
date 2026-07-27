@@ -41,7 +41,7 @@
 
   function resize(options) {
     options = options || {};
-    const base = viewport(options.window, options.maxDpr);
+    const base = viewport(options.viewport, options.maxDpr);
     const surfaces = Array.isArray(options.surfaces)
       ? options.surfaces
       : [{ canvas: options.canvas, context: options.context }];

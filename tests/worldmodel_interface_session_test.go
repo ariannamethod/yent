@@ -662,30 +662,15 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		}
 	}
 	for _, required := range []string{
-		"`DoE/worldmodel/interface_restore.js`",
-		"`DoE/worldmodel/token_telemetry.js`",
-		"`DoE/worldmodel/interface_text.js`",
-		"`DoE/worldmodel/interface_state.js`",
-		"`DoE/worldmodel/interface_clock.js`",
-		"`DoE/worldmodel/interface_status.js`",
-		"`DoE/worldmodel/interface_output.js`",
-		"`DoE/worldmodel/interface_transcript.js`",
-		"`DoE/worldmodel/interface_hud.js`",
-		"`DoE/worldmodel/worldmodel_geometry.js`",
-		"`DoE/worldmodel/interface_replay.js`",
-		"`DoE/worldmodel/interface_input.js`",
-		"`DoE/worldmodel/interface_events.js`",
-		"`DoE/worldmodel/interface_turn.js`",
-		"`DoE/worldmodel/interface_submit.js`",
-		"`DoE/worldmodel/interface_outcome.js`",
-		"`DoE/worldmodel/interface_boot.js`",
-		"`DoE/worldmodel/interface_animation.js`",
-		"`DoE/worldmodel/interface_math.js`",
-		"`DoE/worldmodel/interface_canvas.js`",
-		"`DoE/worldmodel/interface_style.js`",
-		"`DoE/worldmodel/interface_deps.js`",
-		"`/yent?replay=1`",
-		"`/worldmodel?replay=1`",
+		"`GET /yent`",
+		"Janus parliament face",
+		"`GET /worldmodel`",
+		"walkable probability field",
+		"`POST /chat/completions`",
+		"You can freely run this code with regular Mistral Model",
+		"notorch",
+		"MetaJanus",
+		"Will",
 	} {
 		if !strings.Contains(readme, required) {
 			t.Fatalf("README.md does not document current interface contract: missing %s", required)
@@ -775,6 +760,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(eventsJS, "resolveTarget(options)") ||
 		!strings.Contains(eventsJS, "addEventListener") {
 		t.Fatalf("interface_events.js does not own shared browser input event binding")
+	}
+	if strings.Contains(canvasJS, "options.window") ||
+		strings.Contains(eventsJS, "options.window") ||
+		strings.Contains(bootJS, "options.window") {
+		t.Fatalf("interface helpers still expose page window alias parameters")
 	}
 	if !strings.Contains(submitJS, "generationRun.begin(") ||
 		!strings.Contains(submitJS, "session.commitUser(") ||
