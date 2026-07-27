@@ -6,6 +6,12 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-27 - interface canvas viewport boundary
+
+- `interfaceCanvas.resize()` now owns default browser `window` viewport lookup.
+- `/yent` and `/worldmodel` no longer pass `window` into canvas resize calls.
+- The interface contract now rejects page-local resize-window plumbing.
+
 ## 2026-07-27 - interface clock default boundary
 
 - `interfaceClock.create()` now owns default browser `performance` lookup.
@@ -189,6 +195,8 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
   DPR canvas backing-store sizing.
 - `/yent` and `/worldmodel` now resize their canvases through one helper while
   keeping their page-specific render loops and visual physics local.
+- The helper owns default browser viewport lookup, so pages no longer pass
+  `window` into resize calls.
 - Node/Go contracts reject page-local `devicePixelRatio` / backing-store sizing
   returning to either surface.
 

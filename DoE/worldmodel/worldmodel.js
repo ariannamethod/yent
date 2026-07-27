@@ -91,7 +91,7 @@ function syncTopologyFromGeometry() {
 }
 
 function resize() {
-  const size = interfaceCanvas.resize({ window, canvas, context: ctx });
+  const size = interfaceCanvas.resize({ canvas, context: ctx });
   dpr = size.dpr;
   width = size.width;
   height = size.height;

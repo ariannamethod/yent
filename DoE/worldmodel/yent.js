@@ -316,7 +316,6 @@ function buildParticles() {
 
 function resize() {
   const size = interfaceCanvas.resize({
-    window,
     surfaces: [
       { canvas: field, context: ctx },
       { canvas: trace, context: tctx, height: 22 }
