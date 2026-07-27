@@ -65,6 +65,35 @@ function main() {
     assert.equal(seen.length, 3);
   }
 
+  {
+    const hadAdd = Object.prototype.hasOwnProperty.call(globalThis, 'addEventListener');
+    const hadRemove = Object.prototype.hasOwnProperty.call(globalThis, 'removeEventListener');
+    const previousAdd = globalThis.addEventListener;
+    const previousRemove = globalThis.removeEventListener;
+    const listeners = {};
+    globalThis.addEventListener = (type, handler, options) => {
+      if (!listeners[type]) listeners[type] = [];
+      listeners[type].push({ handler, options });
+    };
+    globalThis.removeEventListener = (type, handler) => {
+      listeners[type] = (listeners[type] || []).filter(entry => entry.handler !== handler);
+    };
+    try {
+      const keys = {};
+      const cleanup = events.bindKeyState({ keys });
+      assert.equal((listeners.keydown || []).length, 1);
+      listeners.keydown[0].handler({ key: 'Q' });
+      assert.equal(keys.q, true);
+      cleanup();
+      assert.equal((listeners.keydown || []).length, 0);
+    } finally {
+      if (hadAdd) globalThis.addEventListener = previousAdd;
+      else delete globalThis.addEventListener;
+      if (hadRemove) globalThis.removeEventListener = previousRemove;
+      else delete globalThis.removeEventListener;
+    }
+  }
+
   assert.throws(() => events.bindKeyState({ target: target() }), /interface key state target missing/);
   assert.throws(() => events.bindPointer({ target: {} }), /interface event target unavailable/);
 }

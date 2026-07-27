@@ -571,7 +571,6 @@ async function generate(text) {
 }
 
 interfaceEvents.bindPointer({
-  window,
   onMove: point => {
     mouseX = point.x;
     mouseY = point.y;

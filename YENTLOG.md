@@ -6,6 +6,13 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-27 - interface event target boundary
+
+- `interfaceEvents.bindKeyState()` and `bindPointer()` now own default browser
+  event target lookup.
+- `/yent` and `/worldmodel` no longer pass `window` into event binding calls.
+- The interface contract now rejects page-local event-window plumbing.
+
 ## 2026-07-27 - interface canvas viewport boundary
 
 - `interfaceCanvas.resize()` now owns default browser `window` viewport lookup.
@@ -158,6 +165,8 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
   physics local.
 - JANUS now uses the helper for pointer tracking while keeping particle burst
   consequences local.
+- The helper owns default browser event target lookup, so pages no longer pass
+  `window` into event bindings.
 - Static routes, HTML script order, dependency loading, and Go contracts cover
   the new helper.
 
