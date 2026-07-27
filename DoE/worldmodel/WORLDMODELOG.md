@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-27 - boot target boundary
+
+- `interfaceBoot.start()` now owns default browser resize target lookup.
+- JANUS and WORLD boot without passing `window` through page code.
+- Page scripts still own resize effects, generation callbacks, and visual
+  startup consequences.
+
 ## 2026-07-27 - event target boundary
 
 - `interfaceEvents.bindKeyState()` and `bindPointer()` now own default browser

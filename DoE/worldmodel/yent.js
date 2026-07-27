@@ -587,7 +587,6 @@ interfaceEvents.bindPointer({
 interfaceBoot.start({
   restore: restoreInterfaceSession,
   resize,
-  window,
   composer,
   startAnimation: () => animationFrame.start(animate),
   interfaceReplay,

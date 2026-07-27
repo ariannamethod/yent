@@ -18,12 +18,12 @@ function main() {
       }
     };
     const timer = () => {};
-    const windowRef = {
-      addEventListener(type, handler) {
-        calls.push(`listen:${type}`);
-        assert.equal(type, 'resize');
-        assert.equal(handler, resize);
-      }
+    const hadAdd = Object.prototype.hasOwnProperty.call(globalThis, 'addEventListener');
+    const previousAdd = globalThis.addEventListener;
+    globalThis.addEventListener = (type, handler) => {
+      calls.push(`listen:${type}`);
+      assert.equal(type, 'resize');
+      assert.equal(handler, resize);
     };
     function resize() {
       calls.push('resize');
@@ -42,21 +42,26 @@ function main() {
       }
     };
 
-    const started = boot.start({
-      restore: () => calls.push('restore'),
-      resize,
-      window: windowRef,
-      composer,
-      startAnimation: () => calls.push('animation'),
-      interfaceReplay: replay,
-      replayMode: true,
-      replayRequest,
-      promptInput,
-      generationRun,
-      generate,
-      startDelayMs: 5,
-      setTimeout: timer
-    });
+    let started;
+    try {
+      started = boot.start({
+        restore: () => calls.push('restore'),
+        resize,
+        composer,
+        startAnimation: () => calls.push('animation'),
+        interfaceReplay: replay,
+        replayMode: true,
+        replayRequest,
+        promptInput,
+        generationRun,
+        generate,
+        startDelayMs: 5,
+        setTimeout: timer
+      });
+    } finally {
+      if (hadAdd) globalThis.addEventListener = previousAdd;
+      else delete globalThis.addEventListener;
+    }
     assert.equal(started, true);
     assert.deepEqual(calls, ['restore', 'resize', 'listen:resize', 'composer', 'animation', 'replay']);
   }
