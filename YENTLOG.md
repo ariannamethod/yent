@@ -6,6 +6,12 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-27 - interface clock default boundary
+
+- `interfaceClock.create()` now owns default browser `performance` lookup.
+- `/yent` and `/worldmodel` no longer pass `performance` from page code.
+- The interface contract now rejects page-local browser performance plumbing.
+
 ## 2026-07-27 - interface browser defaults boundary
 
 - `interfaceReplay.request()` now falls back to the browser's `root.location`.

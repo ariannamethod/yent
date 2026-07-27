@@ -54,7 +54,7 @@ const statusLabels = interfaceStatus.bind(document, {
 });
 const fonts = interfaceStyle.create();
 const animationFrame = interfaceAnimation.create();
-const tokenClock = interfaceClock.create({ performance, minElapsedSeconds: 0.001 });
+const tokenClock = interfaceClock.create({ minElapsedSeconds: 0.001 });
 
 const state = interfaceState.create({
   cameraX: 0,

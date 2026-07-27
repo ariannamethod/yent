@@ -452,7 +452,9 @@ start from one debt/consensus/field/candidate-telemetry baseline before adding
 their page-specific physics. Generation clock/rate tracking lives at
 `DoE/worldmodel/interface_clock.js`, so token throughput is derived from one
 reset/tick contract and WORLD frame timing uses the same injected clock boundary
-instead of raw `performance.now()`. Shared status label writes live at
+instead of raw `performance.now()`. The helper owns default browser
+`performance` lookup, so pages no longer pass browser time sources through their
+scripts. Shared status label writes live at
 `DoE/worldmodel/interface_status.js`, so JANUS and WORLD keep their own status
 language while text updates and manifest active flags pass through one DOM
 boundary. Assistant and manifest output lookup and text writes live at

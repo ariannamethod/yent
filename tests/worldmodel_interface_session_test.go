@@ -403,6 +403,13 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			!strings.Contains(tc.src, "tokenClock.tick()") {
 			t.Fatalf("%s does not track generation throughput through interface_clock", tc.name)
 		}
+		if tc.name == "yent.js" && !strings.Contains(tc.src, "interfaceClock.create()") {
+			t.Fatalf("yent.js does not use interface_clock default browser performance lookup")
+		}
+		if tc.name == "worldmodel.js" &&
+			!strings.Contains(tc.src, "interfaceClock.create({ minElapsedSeconds: 0.001 })") {
+			t.Fatalf("worldmodel.js does not use interface_clock default performance lookup with its frame minimum")
+		}
 		if !strings.Contains(tc.src, "deps.interfaceStatus") ||
 			!strings.Contains(tc.src, "interfaceStatus.bind(") ||
 			!strings.Contains(tc.src, "interfaceStatus.setText(") {
@@ -444,6 +451,9 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		}
 		if strings.Contains(tc.src, "performance.now()") {
 			t.Fatalf("%s still reads raw browser time instead of interface_clock", tc.name)
+		}
+		if strings.Contains(tc.src, "performance") {
+			t.Fatalf("%s still passes browser performance locally instead of interface_clock", tc.name)
 		}
 		for _, localStateDefault := range []string{
 			"debt: 0.0",
