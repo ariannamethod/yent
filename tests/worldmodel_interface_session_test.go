@@ -788,8 +788,9 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		t.Fatalf("interface_outcome.js does not own shared outcome dispatch")
 	}
 	if !strings.Contains(bootJS, "addEventListener('resize'") ||
-		!strings.Contains(bootJS, "bindResize(options.window || root") {
-		t.Fatalf("interface_boot.js does not own shared resize listener binding")
+		!strings.Contains(bootJS, "resolveResizeTarget(options)") ||
+		!strings.Contains(bootJS, "bindResize(options, resize)") {
+		t.Fatalf("interface_boot.js does not own shared resize target lookup and listener binding")
 	}
 	if !strings.Contains(bootJS, "function bindComposer") ||
 		!strings.Contains(bootJS, "generationRun.bindComposer(") ||
@@ -813,8 +814,8 @@ func assertInterfaceBootStartOptions(t *testing.T, name, src string) {
 	if end := strings.Index(block, "\n  });"); end >= 0 {
 		block = block[:end]
 	}
-	if !strings.Contains(block, "\n  window,") && !strings.Contains(block, "\n    window,") {
-		t.Fatalf("%s does not pass the browser window into the shared boot helper", name)
+	if strings.Contains(block, "\n  window,") || strings.Contains(block, "\n    window,") {
+		t.Fatalf("%s still passes the browser window into the shared boot helper", name)
 	}
 	if !strings.Contains(block, "\n  composer,") && !strings.Contains(block, "\n    composer,") {
 		t.Fatalf("%s does not pass the composer form into the shared boot helper", name)

@@ -445,8 +445,9 @@ visual consequences.
 Browser startup order is centralized in
 `DoE/worldmodel/interface_boot.js`: restore receipt, resize the surface, start
 animation, then optionally start replay. The same helper owns the browser resize
-listener and composer submit binding, so pages provide resize effects and turn
-callbacks without binding those lifecycle events locally. Shared HUD/runtime
+listener, default browser resize target lookup, and composer submit binding, so
+pages provide resize effects and turn callbacks without binding those lifecycle
+events locally or passing `window` through startup. Shared HUD/runtime
 state defaults live at `DoE/worldmodel/interface_state.js`, so JANUS and WORLD
 start from one debt/consensus/field/candidate-telemetry baseline before adding
 their page-specific physics. Generation clock/rate tracking lives at
