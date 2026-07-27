@@ -330,16 +330,16 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			strings.Contains(tc.src, "interfaceEvents.bindPointer({\n    window") {
 			t.Fatalf("%s still passes browser window into interface_events", tc.name)
 		}
-		if !strings.Contains(tc.src, "interfaceInput.bindControls(document)") {
+		if !strings.Contains(tc.src, "interfaceInput.bindControls()") {
 			t.Fatalf("%s does not bind shared prompt controls through interface_input", tc.name)
 		}
-		if tc.name == "worldmodel.js" && !strings.Contains(tc.src, "interfaceInput.isFocused(document, promptInput)") {
+		if tc.name == "worldmodel.js" && !strings.Contains(tc.src, "interfaceInput.isFocused(promptInput)") {
 			t.Fatalf("worldmodel.js does not test prompt focus through interface_input")
 		}
 		if strings.Contains(tc.src, "document.activeElement") {
 			t.Fatalf("%s still reads activeElement locally instead of interface_input", tc.name)
 		}
-		if !strings.Contains(tc.src, "interfaceOutput.bind(document,") {
+		if !strings.Contains(tc.src, "interfaceOutput.bind(") {
 			t.Fatalf("%s does not bind output containers through interface_output", tc.name)
 		}
 		if strings.Contains(tc.src, "document.getElementById(") {
@@ -502,6 +502,9 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if strings.Contains(tc.src, "sessionStorage") {
 			t.Fatalf("%s still passes browser sessionStorage locally instead of interface_session default storage", tc.name)
 		}
+		if strings.Contains(tc.src, "document") {
+			t.Fatalf("%s still passes browser document locally instead of helper-owned document defaults", tc.name)
+		}
 		for _, localControl := range []string{
 			"document.getElementById('prompt')",
 			`document.getElementById("prompt")`,
@@ -593,10 +596,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(worldJS, "interfaceStatus.setManifest(") {
 		t.Fatalf("worldmodel.js does not write manifest state through interface_status")
 	}
-	if !strings.Contains(yentJS, "interfaceOutput.bind(document, 'transcript')") {
+	if !strings.Contains(yentJS, "interfaceOutput.bind('transcript')") {
 		t.Fatalf("yent.js does not bind transcript output through interface_output")
 	}
-	if !strings.Contains(worldJS, "interfaceOutput.bind(document, 'manifest-text')") {
+	if !strings.Contains(worldJS, "interfaceOutput.bind('manifest-text')") {
 		t.Fatalf("worldmodel.js does not bind manifest output through interface_output")
 	}
 	if !strings.Contains(yentJS, "interfaceOutput.setTextAndScroll(assistantBody") ||
@@ -707,11 +710,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		t.Fatalf("interface_status.js does not own shared status label writes")
 	}
 	if !strings.Contains(inputJS, "function bindControls") ||
-		!strings.Contains(inputJS, "documentRef.getElementById(id)") ||
+		!strings.Contains(inputJS, "function defaultDocument") ||
+		!strings.Contains(inputJS, "getElementById(id)") ||
 		!strings.Contains(inputJS, "promptInput") ||
 		!strings.Contains(inputJS, "sendButton") ||
 		!strings.Contains(inputJS, "function isFocused") ||
-		!strings.Contains(inputJS, "documentRef.activeElement") {
+		!strings.Contains(inputJS, "activeElement === target") {
 		t.Fatalf("interface_input.js does not own shared prompt/composer/send control binding")
 	}
 	if !strings.Contains(outputJS, "function bind") ||

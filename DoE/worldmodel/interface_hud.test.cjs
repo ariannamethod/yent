@@ -69,6 +69,21 @@ function main() {
   }
 
   {
+    const hadDocument = Object.prototype.hasOwnProperty.call(globalThis, 'document');
+    const previousDocument = globalThis.document;
+    const doc = documentWith(['custom-tok']);
+    globalThis.document = doc;
+    try {
+      const cells = hud.bind({ tok: 'custom-tok' });
+      hud.render(cells, { tokps: 2.25 });
+      assert.equal(doc.nodes['custom-tok'].textContent, '2.3');
+    } finally {
+      if (hadDocument) globalThis.document = previousDocument;
+      else delete globalThis.document;
+    }
+  }
+
+  {
     assert.doesNotThrow(() => hud.render({}, { hasCandidateTelemetry: false }));
     assert.throws(
       () => hud.render(hud.bind(documentWith(['hud-prob'])), { hasCandidateTelemetry: true }),

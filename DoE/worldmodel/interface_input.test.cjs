@@ -53,6 +53,40 @@ function docElements(elements) {
 }
 
 {
+  const hadDocument = Object.prototype.hasOwnProperty.call(globalThis, 'document');
+  const previousDocument = globalThis.document;
+  const composer = { addEventListener() {} };
+  const promptInput = { value: 'default doc' };
+  const sendButton = { textContent: 'SEND' };
+  globalThis.document = docElements({ composer, prompt: promptInput, send: sendButton });
+  try {
+    assert.deepEqual(input.bindControls(), { composer, promptInput, sendButton });
+  } finally {
+    if (hadDocument) globalThis.document = previousDocument;
+    else delete globalThis.document;
+  }
+}
+
+{
+  const hadDocument = Object.prototype.hasOwnProperty.call(globalThis, 'document');
+  const previousDocument = globalThis.document;
+  const composer = { addEventListener() {} };
+  const promptInput = { value: 'default ids' };
+  const sendButton = {};
+  globalThis.document = docElements({ ask: composer, words: promptInput, go: sendButton });
+  try {
+    assert.deepEqual(input.bindControls({
+      composer: 'ask',
+      prompt: 'words',
+      send: 'go'
+    }), { composer, promptInput, sendButton });
+  } finally {
+    if (hadDocument) globalThis.document = previousDocument;
+    else delete globalThis.document;
+  }
+}
+
+{
   assert.throws(() => input.bindControls(null), /document unavailable/);
   assert.throws(() => input.bindControls(docElements({})), /composer control unavailable: composer/);
   assert.throws(() => input.bindControls(docElements({
@@ -119,6 +153,24 @@ function docElements(elements) {
 }
 
 {
+  const hadDocument = Object.prototype.hasOwnProperty.call(globalThis, 'document');
+  const previousDocument = globalThis.document;
+  globalThis.document = doc({
+    temp: '1.25',
+    'max-tokens': '99'
+  });
+  try {
+    assert.deepEqual(input.readParams(), {
+      temperature: 1.25,
+      maxTokens: 99
+    });
+  } finally {
+    if (hadDocument) globalThis.document = previousDocument;
+    else delete globalThis.document;
+  }
+}
+
+{
   const promptInput = { value: '' };
   const other = { value: '' };
   const d = docElements({ prompt: promptInput });
@@ -127,6 +179,20 @@ function docElements(elements) {
   assert.equal(input.isFocused(d, other), false);
   assert.equal(input.isFocused(null, promptInput), false);
   assert.equal(input.isFocused(d, null), false);
+}
+
+{
+  const hadDocument = Object.prototype.hasOwnProperty.call(globalThis, 'document');
+  const previousDocument = globalThis.document;
+  const promptInput = { value: '' };
+  globalThis.document = { activeElement: promptInput };
+  try {
+    assert.equal(input.isFocused(promptInput), true);
+    assert.equal(input.isFocused({ value: '' }), false);
+  } finally {
+    if (hadDocument) globalThis.document = previousDocument;
+    else delete globalThis.document;
+  }
 }
 
 async function main() {

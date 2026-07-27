@@ -24,25 +24,23 @@ const interfaceBoot = deps.interfaceBoot;
 const interfaceAnimation = deps.interfaceAnimation;
 const interfaceCanvas = deps.interfaceCanvas;
 const interfaceStyle = deps.interfaceStyle;
-const inputControls = interfaceInput.bindControls(document);
+const inputControls = interfaceInput.bindControls();
 const composer = inputControls.composer;
 const promptInput = inputControls.promptInput;
 const sendButton = inputControls.sendButton;
-const transcript = interfaceOutput.bind(document, 'transcript');
+const transcript = interfaceOutput.bind('transcript');
 const clamp = deps.interfaceMath.clamp;
 const mix = deps.interfaceMath.mix;
 const fieldSurface = interfaceCanvas.bind({
-  document,
   id: 'field',
   contextOptions: { alpha: false }
 });
 const field = fieldSurface.canvas;
 const ctx = fieldSurface.context;
-const traceSurface = interfaceCanvas.bind({ document, id: 'trace' });
+const traceSurface = interfaceCanvas.bind({ id: 'trace' });
 const trace = traceSurface.canvas;
 const tctx = traceSurface.context;
 const maskSurface = interfaceCanvas.createScratch({
-  document,
   contextOptions: { willReadFrequently: true }
 });
 const mask = maskSurface.canvas;
@@ -51,8 +49,8 @@ const generationRun = interfaceRun.create({ button: sendButton });
 const replayRequest = interfaceReplay.request();
 const replayMode = replayRequest.enabled;
 const sessionReceipt = interfaceSession.createAdapter({ replayMode });
-const hud = interfaceHud.bind(document);
-const statusLabels = interfaceStatus.bind(document, { run: 'run-state' });
+const hud = interfaceHud.bind();
+const statusLabels = interfaceStatus.bind({ run: 'run-state' });
 const fonts = interfaceStyle.create();
 const animationFrame = interfaceAnimation.create();
 const tokenClock = interfaceClock.create();
@@ -332,7 +330,6 @@ function resize() {
 
 function addTurn(role, text) {
   return interfaceTranscript.appendTurn(transcript, {
-    document,
     interfaceOutput,
     role,
     text,
@@ -515,7 +512,6 @@ async function generate(text) {
 
   const submit = await interfaceSubmit.run({
     generationRun,
-    document,
     interfaceInput,
     interfaceTurn: deps.interfaceTurn,
     chatStream,

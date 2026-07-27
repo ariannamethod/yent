@@ -28,15 +28,14 @@ const interfaceBoot = deps.interfaceBoot;
 const interfaceAnimation = deps.interfaceAnimation;
 const interfaceCanvas = deps.interfaceCanvas;
 const interfaceStyle = deps.interfaceStyle;
-const inputControls = interfaceInput.bindControls(document);
+const inputControls = interfaceInput.bindControls();
 const promptInput = inputControls.promptInput;
 const composer = inputControls.composer;
 const sendButton = inputControls.sendButton;
-const manifestText = interfaceOutput.bind(document, 'manifest-text');
+const manifestText = interfaceOutput.bind('manifest-text');
 const clamp = deps.interfaceMath.clamp;
 const mix = deps.interfaceMath.mix;
 const fieldSurface = interfaceCanvas.bind({
-  document,
   id: 'field',
   contextOptions: { alpha: false }
 });
@@ -46,8 +45,8 @@ const generationRun = interfaceRun.create({ button: sendButton });
 const replayRequest = interfaceReplay.request();
 const replayMode = replayRequest.enabled;
 const sessionReceipt = interfaceSession.createAdapter({ replayMode });
-const hud = interfaceHud.bind(document);
-const statusLabels = interfaceStatus.bind(document, {
+const hud = interfaceHud.bind();
+const statusLabels = interfaceStatus.bind({
   note: 'status-note',
   manifest: 'manifest-state',
   shell: 'manifest-shell'
@@ -539,7 +538,6 @@ function restoreInterfaceSession() {
 async function generate(text) {
   const submit = await interfaceSubmit.run({
     generationRun,
-    document,
     interfaceInput,
     interfaceTurn: deps.interfaceTurn,
     chatStream,
@@ -603,7 +601,7 @@ async function generate(text) {
 
 interfaceEvents.bindKeyState({
   keys,
-  ignore: () => interfaceInput.isFocused(document, promptInput)
+  ignore: () => interfaceInput.isFocused(promptInput)
 });
 
 interfaceBoot.start({

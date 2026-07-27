@@ -2,6 +2,15 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-28 - document default boundary
+
+- Shared interface helpers now own browser `document` defaults for page-level
+  startup lookup.
+- JANUS and WORLD no longer pass browser `document` into shared helpers or the
+  submit/focus path.
+- Test-only document injection remains available inside helpers, but page
+  scripts no longer carry browser document plumbing.
+
 ## 2026-07-27 - window alias boundary
 
 - Removed helper-level `options.window` aliases from boot, event, and canvas
