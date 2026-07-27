@@ -2,7 +2,7 @@
   'use strict';
 
   function resolveTarget(options) {
-    return (options && (options.target || options.window)) || root;
+    return (options && options.target) || root;
   }
 
   function requireTarget(target) {

@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-27 - interface window alias boundary
+
+- Removed the legacy `options.window` alias from `interfaceBoot`,
+  `interfaceEvents`, and `interfaceCanvas`.
+- Explicit test injection now uses semantic names such as `resizeTarget` and
+  `viewport`; browser defaults still come from the helpers.
+- The interface contract now rejects helper-level page-window alias parameters.
+
 ## 2026-07-27 - interface boot target boundary
 
 - `interfaceBoot.start()` now owns default browser resize target lookup.

@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-27 - window alias boundary
+
+- Removed helper-level `options.window` aliases from boot, event, and canvas
+  APIs.
+- Test-only injection now names the semantic resource: `resizeTarget` or
+  `viewport`.
+- Browser defaults stay helper-owned without keeping page-window aliases alive.
+
 ## 2026-07-27 - boot target boundary
 
 - `interfaceBoot.start()` now owns default browser resize target lookup.
