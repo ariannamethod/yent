@@ -489,7 +489,9 @@ pass `document/getComputedStyle` through their scripts. Browser input event
 wiring lives at
 `DoE/worldmodel/interface_events.js`: WORLD keeps its walkable camera physics
 and JANUS keeps pointer-driven particle consequences, but neither page binds
-keyboard or pointer listeners directly. Page dependency loading is centralized in
+keyboard or pointer listeners directly. The helper owns default browser event
+target lookup, so pages no longer pass `window` into event bindings. Page
+dependency loading is centralized in
 `DoE/worldmodel/interface_deps.js`, so both surfaces fail through one explicit
 helper boundary when a shared browser module is missing. These helpers are served through
 explicit `/worldmodel/*.js` routes, keeping the static surface bounded.

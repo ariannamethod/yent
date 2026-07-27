@@ -602,7 +602,6 @@ async function generate(text) {
 }
 
 interfaceEvents.bindKeyState({
-  window,
   keys,
   ignore: () => interfaceInput.isFocused(document, promptInput)
 });

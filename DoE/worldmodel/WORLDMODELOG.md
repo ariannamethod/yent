@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-27 - event target boundary
+
+- `interfaceEvents.bindKeyState()` and `bindPointer()` now own default browser
+  event target lookup.
+- JANUS and WORLD bind input events without passing `window` through page code.
+- Page scripts no longer own event target injection.
+
 ## 2026-07-27 - canvas viewport boundary
 
 - `interfaceCanvas.resize()` now owns default browser `window` viewport lookup.
@@ -139,6 +146,7 @@ Yent worldmodel interface log.
 - Added `interface_events.js` for keyboard and pointer event wiring.
 - WORLD still owns movement/camera consequences; JANUS still owns mouse
   repulsion and burst physics.
+- Default browser event target lookup now lives in the helper as well.
 - The shared contract now keeps listener binding out of page scripts before the
   two surfaces receive deeper runtime telemetry.
 

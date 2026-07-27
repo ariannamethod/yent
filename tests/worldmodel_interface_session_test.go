@@ -324,6 +324,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if !strings.Contains(tc.src, "deps.interfaceEvents") {
 			t.Fatalf("%s does not load browser input events through the shared helper", tc.name)
 		}
+		if strings.Contains(tc.src, "interfaceEvents.bindKeyState({\n  window") ||
+			strings.Contains(tc.src, "interfaceEvents.bindKeyState({\n    window") ||
+			strings.Contains(tc.src, "interfaceEvents.bindPointer({\n  window") ||
+			strings.Contains(tc.src, "interfaceEvents.bindPointer({\n    window") {
+			t.Fatalf("%s still passes browser window into interface_events", tc.name)
+		}
 		if !strings.Contains(tc.src, "interfaceInput.bindControls(document)") {
 			t.Fatalf("%s does not bind shared prompt controls through interface_input", tc.name)
 		}
@@ -766,6 +772,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	}
 	if !strings.Contains(eventsJS, "function bindKeyState") ||
 		!strings.Contains(eventsJS, "function bindPointer") ||
+		!strings.Contains(eventsJS, "resolveTarget(options)") ||
 		!strings.Contains(eventsJS, "addEventListener") {
 		t.Fatalf("interface_events.js does not own shared browser input event binding")
 	}
