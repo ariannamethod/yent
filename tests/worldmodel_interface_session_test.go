@@ -296,6 +296,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			!strings.Contains(tc.src, "interfaceCanvas.resize(") {
 			t.Fatalf("%s does not size canvases through the shared helper", tc.name)
 		}
+		if strings.Contains(tc.src, "interfaceCanvas.resize({ window") ||
+			strings.Contains(tc.src, "interfaceCanvas.resize({\n    window") ||
+			strings.Contains(tc.src, "interfaceCanvas.resize({\n  window") {
+			t.Fatalf("%s still passes browser window into interface_canvas resize", tc.name)
+		}
 		if !strings.Contains(tc.src, "interfaceCanvas.bind(") {
 			t.Fatalf("%s does not bind canvas elements through interface_canvas", tc.name)
 		}

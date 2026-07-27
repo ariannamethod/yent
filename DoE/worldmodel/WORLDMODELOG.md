@@ -2,6 +2,12 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-27 - canvas viewport boundary
+
+- `interfaceCanvas.resize()` now owns default browser `window` viewport lookup.
+- JANUS and WORLD resize canvases without passing `window` through page code.
+- Page scripts no longer own resize viewport injection.
+
 ## 2026-07-27 - clock default boundary
 
 - `interfaceClock.create()` now owns default browser `performance` lookup.
@@ -346,6 +352,7 @@ Yent worldmodel interface log.
   backing-store sizing.
 - The helper owns CSS size, backing pixels, and `setTransform`; both surfaces
   keep their own render loops, particles, walls, and camera physics.
+- Default browser viewport lookup now lives in the helper as well.
 
 ## 2026-07-23 - shared resize listener boundary
 
