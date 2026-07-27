@@ -55,7 +55,7 @@ const hud = interfaceHud.bind(document);
 const statusLabels = interfaceStatus.bind(document, { run: 'run-state' });
 const fonts = interfaceStyle.create();
 const animationFrame = interfaceAnimation.create();
-const tokenClock = interfaceClock.create({ performance });
+const tokenClock = interfaceClock.create();
 const state = interfaceState.create({
   velocity: 1.2,
   sidePulse: 0.0

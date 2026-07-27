@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-27 - clock default boundary
+
+- `interfaceClock.create()` now owns default browser `performance` lookup.
+- JANUS and WORLD create clocks without passing browser performance through page
+  code.
+- Page scripts no longer own clock source injection.
+
 ## 2026-07-27 - browser defaults boundary
 
 - `interfaceReplay.request()` now owns default browser location lookup.
