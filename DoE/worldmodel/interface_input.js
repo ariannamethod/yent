@@ -10,6 +10,22 @@
     return Math.floor(clampNumber(value, fallback, min, max));
   }
 
+  function hasDocument(value) {
+    return !!value && typeof value.getElementById === 'function';
+  }
+
+  function defaultDocument() {
+    return root && root.document;
+  }
+
+  function resolveBindArgs(documentRef, ids, argc) {
+    if (argc === 0) return { documentRef: defaultDocument(), ids: {} };
+    if (argc === 1 && documentRef && typeof documentRef === 'object' && !hasDocument(documentRef)) {
+      return { documentRef: defaultDocument(), ids: documentRef };
+    }
+    return { documentRef, ids: ids || {} };
+  }
+
   function elementValue(documentRef, id) {
     if (!documentRef || typeof documentRef.getElementById !== 'function') return '';
     const el = documentRef.getElementById(id);
@@ -27,10 +43,12 @@
   }
 
   function bindControls(documentRef, ids) {
-    ids = ids || {};
-    const composer = elementFor(documentRef, ids.composer || 'composer', 'composer');
-    const promptInput = elementFor(documentRef, ids.prompt || 'prompt', 'prompt');
-    const sendButton = elementFor(documentRef, ids.send || 'send', 'send');
+    const args = resolveBindArgs(documentRef, ids, arguments.length);
+    const doc = args.documentRef;
+    const names = args.ids;
+    const composer = elementFor(doc, names.composer || 'composer', 'composer');
+    const promptInput = elementFor(doc, names.prompt || 'prompt', 'prompt');
+    const sendButton = elementFor(doc, names.send || 'send', 'send');
     if (typeof composer.addEventListener !== 'function') {
       throw new Error('YentInterfaceInput composer control cannot receive submit events');
     }
@@ -41,13 +59,16 @@
   }
 
   function readParams(documentRef) {
-    const temperature = clampNumber(parseFloat(elementValue(documentRef, 'temp')), 0.8, 0, 2);
-    const maxTokens = clampInteger(parseInt(elementValue(documentRef, 'max-tokens'), 10), 512, 1, 512);
+    const doc = arguments.length === 0 ? defaultDocument() : documentRef;
+    const temperature = clampNumber(parseFloat(elementValue(doc, 'temp')), 0.8, 0, 2);
+    const maxTokens = clampInteger(parseInt(elementValue(doc, 'max-tokens'), 10), 512, 1, 512);
     return { temperature, maxTokens };
   }
 
   function isFocused(documentRef, control) {
-    return !!documentRef && !!control && documentRef.activeElement === control;
+    const doc = arguments.length <= 1 ? defaultDocument() : documentRef;
+    const target = arguments.length <= 1 ? documentRef : control;
+    return !!doc && !!target && doc.activeElement === target;
   }
 
   function streamFor(options) {

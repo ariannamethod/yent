@@ -1,12 +1,24 @@
 (function (root) {
   'use strict';
 
+  function hasDocument(value) {
+    return !!value && typeof value.getElementById === 'function';
+  }
+
+  function defaultDocument() {
+    return root && root.document;
+  }
+
   function element(documentRef, id) {
     if (!documentRef || typeof documentRef.getElementById !== 'function') return null;
     return documentRef.getElementById(id);
   }
 
   function bind(documentRef, ids) {
+    if (arguments.length === 0 || (arguments.length === 1 && !hasDocument(documentRef))) {
+      ids = documentRef || {};
+      documentRef = defaultDocument();
+    }
     ids = ids || {};
     return {
       tok: element(documentRef, ids.tok || 'hud-tok'),

@@ -6,6 +6,16 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-28 - interface document default boundary
+
+- `interfaceInput`, `interfaceOutput`, `interfaceHud`, and `interfaceStatus`
+  now own default browser `document` lookup for page startup calls.
+- `/yent` and `/worldmodel` no longer pass browser `document` into shared
+  interface helpers, submit flow, transcript rendering, canvas binding, HUD
+  binding, status binding, or prompt-focus checks.
+- The interface contract now rejects page-local `document` plumbing returning
+  to either surface while helper tests keep explicit document injection covered.
+
 ## 2026-07-27 - interface window alias boundary
 
 - Removed the legacy `options.window` alias from `interfaceBoot`,

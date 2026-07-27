@@ -39,6 +39,26 @@ function main() {
 
   assert.doesNotThrow(() => status.setText(null, 'ignored'));
   assert.doesNotThrow(() => status.setManifest(null, 'ignored', true));
+
+  {
+    const hadDocument = Object.prototype.hasOwnProperty.call(globalThis, 'document');
+    const previousDocument = globalThis.document;
+    const defaultDocument = makeDocument();
+    globalThis.document = defaultDocument;
+    try {
+      const defaultLabels = status.bind({
+        run: 'run-state',
+        shell: 'manifest-shell'
+      });
+      status.setText(defaultLabels.run, 'DEFAULT');
+      status.setActive(defaultLabels.shell, true);
+      assert.equal(defaultDocument.elements.get('run-state').textContent, 'DEFAULT');
+      assert.equal(defaultDocument.elements.get('manifest-shell').dataset.active, 'true');
+    } finally {
+      if (hadDocument) globalThis.document = previousDocument;
+      else delete globalThis.document;
+    }
+  }
 }
 
 main();

@@ -24,6 +24,19 @@ function main() {
   }
 
   {
+    const hadDocument = Object.prototype.hasOwnProperty.call(globalThis, 'document');
+    const previousDocument = globalThis.document;
+    const target = element(33);
+    globalThis.document = doc({ transcript: target });
+    try {
+      assert.equal(output.bind('transcript'), target);
+    } finally {
+      if (hadDocument) globalThis.document = previousDocument;
+      else delete globalThis.document;
+    }
+  }
+
+  {
     assert.throws(() => output.bind(null, 'manifest-text'), /document unavailable/);
     assert.throws(() => output.bind(doc({}), 'manifest-text'), /target unavailable: manifest-text/);
     assert.throws(() => output.bind(doc({ output: {} }), 'output'), /target must expose textContent: output/);

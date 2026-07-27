@@ -1,7 +1,15 @@
 (function (root) {
   'use strict';
 
+  function defaultDocument() {
+    return root && root.document;
+  }
+
   function bind(documentRef, id) {
+    if (arguments.length === 1 && typeof documentRef === 'string') {
+      id = documentRef;
+      documentRef = defaultDocument();
+    }
     if (!documentRef || typeof documentRef.getElementById !== 'function') {
       throw new Error('YentInterfaceOutput document unavailable');
     }
