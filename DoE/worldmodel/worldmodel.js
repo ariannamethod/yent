@@ -4,7 +4,7 @@ const baseWords = (
   'calendar dissonance birth origin consensus expert gate scar shadow wall ' +
   'probability manifested almost future present innerworld method arianna'
 ).split(/\s+/);
-const interfaceDeps = window.YentInterfaceDeps;
+const interfaceDeps = globalThis.YentInterfaceDeps;
 if (!interfaceDeps) throw new Error('YentInterfaceDeps helper missing');
 const deps = interfaceDeps.load({ worldGeometry: true });
 const interfaceSession = deps.interfaceSession;

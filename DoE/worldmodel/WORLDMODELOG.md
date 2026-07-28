@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-28 - page global boundary
+
+- JANUS and WORLD now enter the shared dependency loader through
+  `globalThis.YentInterfaceDeps`.
+- Page scripts no longer touch the browser-specific `window` global directly;
+  browser state remains behind interface helpers.
+
 ## 2026-07-28 - request params document boundary
 
 - Submit and turn orchestration no longer expose generic `options.document`.

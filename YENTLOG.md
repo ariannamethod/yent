@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-28 - interface page global boundary
+
+- `/yent` and `/worldmodel` now load the shared dependency helper through
+  `globalThis.YentInterfaceDeps` instead of the browser-specific `window`
+  object.
+- The interface contract now rejects any `window.` access returning to the page
+  scripts; browser globals stay behind shared helpers.
+
 ## 2026-07-28 - interface request params document boundary
 
 - `interfaceSubmit` now forwards only the named `paramsDocument` test seam into

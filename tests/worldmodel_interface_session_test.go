@@ -249,8 +249,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		{"yent.js", yentJS},
 		{"worldmodel.js", worldJS},
 	} {
-		if !strings.Contains(tc.src, "window.YentInterfaceDeps") {
+		if !strings.Contains(tc.src, "globalThis.YentInterfaceDeps") {
 			t.Fatalf("%s does not use the shared interface dependency helper", tc.name)
+		}
+		if strings.Contains(tc.src, "window.") {
+			t.Fatalf("%s still reaches through the browser window global", tc.name)
 		}
 		if !strings.Contains(tc.src, "interfaceDeps.load(") {
 			t.Fatalf("%s does not load interface dependencies through the shared helper", tc.name)
