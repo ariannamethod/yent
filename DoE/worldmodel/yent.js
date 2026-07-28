@@ -1,6 +1,6 @@
 const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_./-=+*#@%&';
 const seedWords = 'Yent DoE Janus parliament notorch prophecy debt consensus memory limpha identity boundary'.split(' ');
-const interfaceDeps = window.YentInterfaceDeps;
+const interfaceDeps = globalThis.YentInterfaceDeps;
 if (!interfaceDeps) throw new Error('YentInterfaceDeps helper missing');
 const deps = interfaceDeps.load({ transcript: true });
 const interfaceSession = deps.interfaceSession;
