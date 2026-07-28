@@ -14,12 +14,13 @@
     return documentRef.getElementById(id);
   }
 
-  function bind(documentRef, ids) {
-    if (arguments.length === 0 || (arguments.length === 1 && !hasDocument(documentRef))) {
-      ids = documentRef || {};
-      documentRef = defaultDocument();
+  function bind(options) {
+    if (hasDocument(options)) {
+      throw new Error('YentInterfaceStatus document must be passed as { document }');
     }
-    ids = ids || {};
+    options = options || {};
+    const documentRef = options.document || defaultDocument();
+    const ids = options.ids || options;
     return {
       run: element(documentRef, ids.run),
       note: element(documentRef, ids.note),

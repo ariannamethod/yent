@@ -65,6 +65,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	clockJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_clock.js"))
 	statusJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_status.js"))
 	outputJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_output.js"))
+	hudJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_hud.js"))
 	transcriptJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_transcript.js"))
 	replayJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_replay.js"))
 	eventsJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_events.js"))
@@ -713,6 +714,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(statusJS, "function setManifest") {
 		t.Fatalf("interface_status.js does not own shared status label writes")
 	}
+	if !strings.Contains(hudJS, "function bind") ||
+		!strings.Contains(hudJS, "function render") {
+		t.Fatalf("interface_hud.js does not own shared HUD binding and rendering")
+	}
 	if !strings.Contains(inputJS, "function bindControls") ||
 		!strings.Contains(inputJS, "function defaultDocument") ||
 		!strings.Contains(inputJS, "getElementById(id)") ||
@@ -728,6 +733,13 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(outputJS, "function scrollBottom") ||
 		!strings.Contains(outputJS, "function setTextAndScroll") {
 		t.Fatalf("interface_output.js does not own shared output lookup, text, and scroll writes")
+	}
+	if strings.Contains(outputJS, "function bind(documentRef") ||
+		strings.Contains(hudJS, "function bind(documentRef") ||
+		strings.Contains(statusJS, "function bind(documentRef") ||
+		strings.Contains(hudJS, "arguments.length") ||
+		strings.Contains(statusJS, "arguments.length") {
+		t.Fatalf("visual binding helpers still expose positional document arguments")
 	}
 	if !strings.Contains(transcriptJS, "function labelFor") ||
 		!strings.Contains(transcriptJS, "function appendTurn") ||

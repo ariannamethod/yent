@@ -20,7 +20,7 @@ function doc(elements) {
 function main() {
   {
     const target = element(12);
-    assert.equal(output.bind(doc({ transcript: target }), 'transcript'), target);
+    assert.equal(output.bind({ document: doc({ transcript: target }), id: 'transcript' }), target);
   }
 
   {
@@ -37,9 +37,10 @@ function main() {
   }
 
   {
-    assert.throws(() => output.bind(null, 'manifest-text'), /document unavailable/);
-    assert.throws(() => output.bind(doc({}), 'manifest-text'), /target unavailable: manifest-text/);
-    assert.throws(() => output.bind(doc({ output: {} }), 'output'), /target must expose textContent: output/);
+    assert.throws(() => output.bind(doc({ transcript: element(1) })), /document must be passed as \{ document \}/);
+    assert.throws(() => output.bind({ document: null, id: 'manifest-text' }), /document unavailable/);
+    assert.throws(() => output.bind({ document: doc({}), id: 'manifest-text' }), /target unavailable: manifest-text/);
+    assert.throws(() => output.bind({ document: doc({ output: {} }), id: 'output' }), /target must expose textContent: output/);
   }
 
   {

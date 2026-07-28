@@ -17,7 +17,7 @@ function main() {
       'hud-tok', 'hud-exp', 'hud-step', 'hud-ent', 'hud-debt', 'hud-cons',
       'hud-field', 'hud-prob', 'hud-rank', 'hud-tail'
     ]);
-    const cells = hud.bind(doc);
+    const cells = hud.bind({ document: doc });
     hud.render(cells, {
       tokps: 12.34,
       experts: 7,
@@ -47,7 +47,7 @@ function main() {
 
   {
     const doc = documentWith(['hud-tok', 'hud-prob', 'hud-rank', 'hud-tail']);
-    const cells = hud.bind(doc);
+    const cells = hud.bind({ document: doc });
     hud.render(cells, {
       tokps: Number.NaN,
       hasCandidateTelemetry: false,
@@ -63,7 +63,7 @@ function main() {
 
   {
     const doc = documentWith(['custom-tok']);
-    const cells = hud.bind(doc, { tok: 'custom-tok' });
+    const cells = hud.bind({ document: doc, ids: { tok: 'custom-tok' } });
     hud.render(cells, { tokps: 1.25 });
     assert.equal(doc.nodes['custom-tok'].textContent, '1.3');
   }
@@ -84,9 +84,10 @@ function main() {
   }
 
   {
+    assert.throws(() => hud.bind(documentWith(['hud-prob'])), /document must be passed as \{ document \}/);
     assert.doesNotThrow(() => hud.render({}, { hasCandidateTelemetry: false }));
     assert.throws(
-      () => hud.render(hud.bind(documentWith(['hud-prob'])), { hasCandidateTelemetry: true }),
+      () => hud.render(hud.bind({ document: documentWith(['hud-prob']) }), { hasCandidateTelemetry: true }),
       /YentTokenTelemetry helper missing/
     );
   }

@@ -14,11 +14,14 @@ function makeDocument() {
 
 function main() {
   const document = makeDocument();
-  const labels = status.bind(document, {
-    run: 'run-state',
-    note: 'status-note',
-    manifest: 'manifest-state',
-    shell: 'manifest-shell'
+  const labels = status.bind({
+    document,
+    ids: {
+      run: 'run-state',
+      note: 'status-note',
+      manifest: 'manifest-state',
+      shell: 'manifest-shell'
+    }
   });
 
   status.setText(labels.run, 'GENERATING');
@@ -39,6 +42,7 @@ function main() {
 
   assert.doesNotThrow(() => status.setText(null, 'ignored'));
   assert.doesNotThrow(() => status.setManifest(null, 'ignored', true));
+  assert.throws(() => status.bind(makeDocument()), /document must be passed as \{ document \}/);
 
   {
     const hadDocument = Object.prototype.hasOwnProperty.call(globalThis, 'document');
