@@ -741,6 +741,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(statusJS, "arguments.length") {
 		t.Fatalf("visual binding helpers still expose positional document arguments")
 	}
+	if strings.Contains(inputJS, "function bindControls(documentRef") ||
+		strings.Contains(inputJS, "function readParams(documentRef") ||
+		strings.Contains(inputJS, "function isFocused(documentRef") ||
+		strings.Contains(inputJS, "arguments.length") {
+		t.Fatalf("interface_input.js still exposes positional document arguments")
+	}
 	if !strings.Contains(transcriptJS, "function labelFor") ||
 		!strings.Contains(transcriptJS, "function appendTurn") ||
 		!strings.Contains(transcriptJS, "function clear") ||
@@ -799,7 +805,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(submitJS, "generationRun.finish(currentRun)") {
 		t.Fatalf("interface_submit.js does not own the shared submit lifecycle")
 	}
-	if !strings.Contains(turnJS, "input.readParams(options.paramsDocument)") ||
+	if !strings.Contains(turnJS, "input.readParams({ document: options.paramsDocument })") ||
 		!strings.Contains(turnJS, "input.readParams()") {
 		t.Fatalf("interface_turn.js does not keep request params behind the named paramsDocument boundary")
 	}

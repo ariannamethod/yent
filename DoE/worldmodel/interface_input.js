@@ -18,12 +18,29 @@
     return root && root.document;
   }
 
-  function resolveBindArgs(documentRef, ids, argc) {
-    if (argc === 0) return { documentRef: defaultDocument(), ids: {} };
-    if (argc === 1 && documentRef && typeof documentRef === 'object' && !hasDocument(documentRef)) {
-      return { documentRef: defaultDocument(), ids: documentRef };
+  function hasOwn(value, key) {
+    return !!value && Object.prototype.hasOwnProperty.call(value, key);
+  }
+
+  function requireNamedDocument(value) {
+    if (hasDocument(value)) {
+      throw new Error('YentInterfaceInput document must be passed as { document }');
     }
-    return { documentRef, ids: ids || {} };
+  }
+
+  function optionDocument(options) {
+    requireNamedDocument(options);
+    if (hasOwn(options, 'document')) return options.document;
+    return defaultDocument();
+  }
+
+  function bindIds(options) {
+    if (!options || typeof options !== 'object') return {};
+    return options.ids || {
+      composer: options.composer,
+      prompt: options.prompt,
+      send: options.send
+    };
   }
 
   function elementValue(documentRef, id) {
@@ -42,10 +59,10 @@
     return el;
   }
 
-  function bindControls(documentRef, ids) {
-    const args = resolveBindArgs(documentRef, ids, arguments.length);
-    const doc = args.documentRef;
-    const names = args.ids;
+  function bindControls(options) {
+    options = options || {};
+    const doc = optionDocument(options);
+    const names = bindIds(options);
     const composer = elementFor(doc, names.composer || 'composer', 'composer');
     const promptInput = elementFor(doc, names.prompt || 'prompt', 'prompt');
     const sendButton = elementFor(doc, names.send || 'send', 'send');
@@ -58,16 +75,19 @@
     return { composer, promptInput, sendButton };
   }
 
-  function readParams(documentRef) {
-    const doc = arguments.length === 0 ? defaultDocument() : documentRef;
+  function readParams(options) {
+    options = options || {};
+    const doc = optionDocument(options);
     const temperature = clampNumber(parseFloat(elementValue(doc, 'temp')), 0.8, 0, 2);
     const maxTokens = clampInteger(parseInt(elementValue(doc, 'max-tokens'), 10), 512, 1, 512);
     return { temperature, maxTokens };
   }
 
-  function isFocused(documentRef, control) {
-    const doc = arguments.length <= 1 ? defaultDocument() : documentRef;
-    const target = arguments.length <= 1 ? documentRef : control;
+  function isFocused(options) {
+    requireNamedDocument(options);
+    const named = options && typeof options === 'object' && hasOwn(options, 'control');
+    const doc = named ? optionDocument(options) : defaultDocument();
+    const target = named ? options.control : options;
     return !!doc && !!target && doc.activeElement === target;
   }
 

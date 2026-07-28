@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-28 - input document boundary
+
+- Request-side input helpers no longer accept positional document arguments.
+- `bindControls`, `readParams`, and focus checks use named document objects in
+  tests while JANUS and WORLD keep default browser calls.
+- Turn orchestration now asks `interfaceInput` for request params through the
+  named `{ document: paramsDocument }` seam.
+
 ## 2026-07-28 - visual binding document boundary
 
 - Output, HUD, and status helpers no longer accept positional document
