@@ -766,6 +766,9 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(replayJS, "startIfRequested") {
 		t.Fatalf("interface_replay.js does not own replay request/default location handling")
 	}
+	if strings.Contains(replayJS, "function request(location)") {
+		t.Fatalf("interface_replay.js still exposes positional replay request location")
+	}
 	if !strings.Contains(canvasJS, "devicePixelRatio") ||
 		!strings.Contains(canvasJS, "setTransform(base.dpr") ||
 		!strings.Contains(canvasJS, "canvas.width = Math.max") ||
