@@ -22,11 +22,13 @@ function docElements(elements) {
   const composer = { addEventListener() {} };
   const promptInput = { value: 'speak' };
   const sendButton = { textContent: 'SEND' };
-  assert.deepEqual(input.bindControls(docElements({
-    composer,
-    prompt: promptInput,
-    send: sendButton
-  })), {
+  assert.deepEqual(input.bindControls({
+    document: docElements({
+      composer,
+      prompt: promptInput,
+      send: sendButton
+    })
+  }), {
     composer,
     promptInput,
     sendButton
@@ -37,14 +39,17 @@ function docElements(elements) {
   const composer = { addEventListener() {} };
   const promptInput = { value: '' };
   const sendButton = {};
-  assert.deepEqual(input.bindControls(docElements({
-    ask: composer,
-    words: promptInput,
-    go: sendButton
-  }), {
-    composer: 'ask',
-    prompt: 'words',
-    send: 'go'
+  assert.deepEqual(input.bindControls({
+    document: docElements({
+      ask: composer,
+      words: promptInput,
+      go: sendButton
+    }),
+    ids: {
+      composer: 'ask',
+      prompt: 'words',
+      send: 'go'
+    }
   }), {
     composer,
     promptInput,
@@ -88,58 +93,68 @@ function docElements(elements) {
 
 {
   assert.throws(() => input.bindControls(null), /document unavailable/);
-  assert.throws(() => input.bindControls(docElements({})), /composer control unavailable: composer/);
-  assert.throws(() => input.bindControls(docElements({
+  assert.throws(() => input.bindControls(docElements({})), /document must be passed as \{ document \}/);
+  assert.throws(() => input.bindControls({ document: docElements({}) }), /composer control unavailable: composer/);
+  assert.throws(() => input.bindControls({ document: docElements({
     composer: {},
     prompt: { value: '' },
     send: {}
-  })), /composer control cannot receive submit events/);
-  assert.throws(() => input.bindControls(docElements({
+  }) }), /composer control cannot receive submit events/);
+  assert.throws(() => input.bindControls({ document: docElements({
     composer: { addEventListener() {} },
     prompt: {},
     send: {}
-  })), /prompt control must expose a string value/);
-  assert.throws(() => input.bindControls(docElements({
+  }) }), /prompt control must expose a string value/);
+  assert.throws(() => input.bindControls({ document: docElements({
     composer: { addEventListener() {} },
     prompt: { value: '' }
-  })), /send control unavailable: send/);
+  }) }), /send control unavailable: send/);
 }
 
 {
-  assert.deepEqual(input.readParams(doc({
-    temp: '0.35',
-    'max-tokens': '33'
-  })), {
+  assert.throws(() => input.readParams(doc({ temp: '0.35' })), /document must be passed as \{ document \}/);
+  assert.deepEqual(input.readParams({
+    document: doc({
+      temp: '0.35',
+      'max-tokens': '33'
+    })
+  }), {
     temperature: 0.35,
     maxTokens: 33
   });
 }
 
 {
-  assert.deepEqual(input.readParams(doc({
-    temp: '9',
-    'max-tokens': '-4'
-  })), {
+  assert.deepEqual(input.readParams({
+    document: doc({
+      temp: '9',
+      'max-tokens': '-4'
+    })
+  }), {
     temperature: 2,
     maxTokens: 1
   });
 }
 
 {
-  assert.deepEqual(input.readParams(doc({
-    temp: '0',
-    'max-tokens': '0'
-  })), {
+  assert.deepEqual(input.readParams({
+    document: doc({
+      temp: '0',
+      'max-tokens': '0'
+    })
+  }), {
     temperature: 0,
     maxTokens: 1
   });
 }
 
 {
-  assert.deepEqual(input.readParams(doc({
-    temp: 'not-a-number',
-    'max-tokens': 'not-a-number'
-  })), {
+  assert.deepEqual(input.readParams({
+    document: doc({
+      temp: 'not-a-number',
+      'max-tokens': 'not-a-number'
+    })
+  }), {
     temperature: 0.8,
     maxTokens: 512
   });
@@ -175,10 +190,11 @@ function docElements(elements) {
   const other = { value: '' };
   const d = docElements({ prompt: promptInput });
   d.activeElement = promptInput;
-  assert.equal(input.isFocused(d, promptInput), true);
-  assert.equal(input.isFocused(d, other), false);
-  assert.equal(input.isFocused(null, promptInput), false);
-  assert.equal(input.isFocused(d, null), false);
+  assert.throws(() => input.isFocused(d), /document must be passed as \{ document \}/);
+  assert.equal(input.isFocused({ document: d, control: promptInput }), true);
+  assert.equal(input.isFocused({ document: d, control: other }), false);
+  assert.equal(input.isFocused({ document: null, control: promptInput }), false);
+  assert.equal(input.isFocused({ document: d, control: null }), false);
 }
 
 {

@@ -25,8 +25,8 @@ function session() {
 
 function inputFor(stream) {
   return {
-    readParams(documentRef) {
-      assert.equal(documentRef.name, 'doc');
+    readParams(options) {
+      assert.equal(options.document.name, 'doc');
       return { temperature: 0.33, maxTokens: 17 };
     },
     streamFor(options) {

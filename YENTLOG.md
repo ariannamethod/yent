@@ -6,6 +6,17 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-28 - interface input document boundary
+
+- `interfaceInput.bindControls`, `readParams`, and focus checks no longer
+  accept positional document arguments.
+- Explicit DOM injection for tests now uses named objects such as
+  `{ document }` or `{ document, control }`; live page calls keep helper-owned
+  browser defaults.
+- `interfaceTurn` passes request parameter reads through
+  `{ document: paramsDocument }`, and the interface contract now rejects the
+  old positional input document path.
+
 ## 2026-07-28 - interface visual binding document boundary
 
 - `interfaceOutput.bind`, `interfaceHud.bind`, and `interfaceStatus.bind` no
