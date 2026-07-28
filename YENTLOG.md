@@ -6,6 +6,16 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-28 - interface visual binding document boundary
+
+- `interfaceOutput.bind`, `interfaceHud.bind`, and `interfaceStatus.bind` no
+  longer accept positional document arguments.
+- Test-only document injection now uses named objects such as
+  `{ document, id }` or `{ document, ids }`; live page calls keep helper-owned
+  browser defaults.
+- The interface contract now rejects positional document binding returning to
+  visual helpers.
+
 ## 2026-07-28 - interface page global boundary
 
 - `/yent` and `/worldmodel` now load the shared dependency helper through

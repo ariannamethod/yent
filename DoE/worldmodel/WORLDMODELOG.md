@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-28 - visual binding document boundary
+
+- Output, HUD, and status helpers no longer accept positional document
+  arguments.
+- Explicit document injection is named (`{ document, id }` or
+  `{ document, ids }`), while JANUS and WORLD still use helper-owned browser
+  defaults.
+
 ## 2026-07-28 - page global boundary
 
 - JANUS and WORLD now enter the shared dependency loader through

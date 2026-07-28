@@ -5,11 +5,16 @@
     return root && root.document;
   }
 
-  function bind(documentRef, id) {
-    if (arguments.length === 1 && typeof documentRef === 'string') {
-      id = documentRef;
-      documentRef = defaultDocument();
+  function hasDocument(value) {
+    return !!value && typeof value.getElementById === 'function';
+  }
+
+  function bind(options) {
+    if (hasDocument(options)) {
+      throw new Error('YentInterfaceOutput document must be passed as { document }');
     }
+    const id = typeof options === 'string' ? options : options && options.id;
+    const documentRef = typeof options === 'string' ? defaultDocument() : ((options && options.document) || defaultDocument());
     if (!documentRef || typeof documentRef.getElementById !== 'function') {
       throw new Error('YentInterfaceOutput document unavailable');
     }
