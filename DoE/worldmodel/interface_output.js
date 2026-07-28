@@ -13,8 +13,11 @@
     if (hasDocument(options)) {
       throw new Error('YentInterfaceOutput document must be passed as { document }');
     }
-    const id = typeof options === 'string' ? options : options && options.id;
-    const documentRef = typeof options === 'string' ? defaultDocument() : ((options && options.document) || defaultDocument());
+    if (typeof options === 'string') {
+      throw new Error('YentInterfaceOutput target id must be passed as { id }');
+    }
+    const id = options && options.id;
+    const documentRef = (options && options.document) || defaultDocument();
     if (!documentRef || typeof documentRef.getElementById !== 'function') {
       throw new Error('YentInterfaceOutput document unavailable');
     }

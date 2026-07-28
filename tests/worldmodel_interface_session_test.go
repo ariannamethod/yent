@@ -601,10 +601,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(worldJS, "interfaceStatus.setManifest(") {
 		t.Fatalf("worldmodel.js does not write manifest state through interface_status")
 	}
-	if !strings.Contains(yentJS, "interfaceOutput.bind('transcript')") {
+	if !strings.Contains(yentJS, "interfaceOutput.bind({ id: 'transcript' })") {
 		t.Fatalf("yent.js does not bind transcript output through interface_output")
 	}
-	if !strings.Contains(worldJS, "interfaceOutput.bind('manifest-text')") {
+	if !strings.Contains(worldJS, "interfaceOutput.bind({ id: 'manifest-text' })") {
 		t.Fatalf("worldmodel.js does not bind manifest output through interface_output")
 	}
 	if !strings.Contains(yentJS, "interfaceOutput.setTextAndScroll(assistantBody") ||
@@ -735,6 +735,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		t.Fatalf("interface_output.js does not own shared output lookup, text, and scroll writes")
 	}
 	if strings.Contains(outputJS, "function bind(documentRef") ||
+		strings.Contains(outputJS, "typeof options === 'string' ?") ||
 		strings.Contains(hudJS, "function bind(documentRef") ||
 		strings.Contains(statusJS, "function bind(documentRef") ||
 		strings.Contains(hudJS, "arguments.length") ||

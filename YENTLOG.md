@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-28 - interface output target boundary
+
+- `interfaceOutput.bind` no longer accepts a bare string target id.
+- JANUS and WORLD now bind output targets through named `{ id }` objects while
+  test-only document injection remains `{ document, id }`.
+- The interface contract rejects the old string overload so output target
+  ownership stays explicit.
+
 ## 2026-07-28 - interface input document boundary
 
 - `interfaceInput.bindControls`, `readParams`, and focus checks no longer

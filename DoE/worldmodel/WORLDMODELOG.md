@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-28 - output target boundary
+
+- Output helper binding no longer accepts a bare string target id.
+- JANUS and WORLD bind transcript/manifest output through named `{ id }`
+  objects, matching the rest of the interface helper surface.
+- Explicit DOM injection for tests remains named as `{ document, id }`.
+
 ## 2026-07-28 - input document boundary
 
 - Request-side input helpers no longer accept positional document arguments.
