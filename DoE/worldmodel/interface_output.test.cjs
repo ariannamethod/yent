@@ -29,7 +29,7 @@ function main() {
     const target = element(33);
     globalThis.document = doc({ transcript: target });
     try {
-      assert.equal(output.bind('transcript'), target);
+      assert.equal(output.bind({ id: 'transcript' }), target);
     } finally {
       if (hadDocument) globalThis.document = previousDocument;
       else delete globalThis.document;
@@ -38,6 +38,7 @@ function main() {
 
   {
     assert.throws(() => output.bind(doc({ transcript: element(1) })), /document must be passed as \{ document \}/);
+    assert.throws(() => output.bind('transcript'), /target id must be passed as \{ id \}/);
     assert.throws(() => output.bind({ document: null, id: 'manifest-text' }), /document unavailable/);
     assert.throws(() => output.bind({ document: doc({}), id: 'manifest-text' }), /target unavailable: manifest-text/);
     assert.throws(() => output.bind({ document: doc({ output: {} }), id: 'output' }), /target must expose textContent: output/);
