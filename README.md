@@ -1,6 +1,6 @@
 <p align="center">
   <img src="assets/yent.jpg" alt="YENT" width="300">
-</p>
+
 
 
 
@@ -12,7 +12,7 @@
    ██║   ███████╗██║ ╚████║   ██║
    ╚═╝   ╚══════╝╚═╝  ╚═══╝   ╚═╝
 ```
-
+</p>
 # YENT: You. Exist. No. Translation.
 
 Fuck the system.
