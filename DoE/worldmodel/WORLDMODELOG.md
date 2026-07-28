@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-28 - replay location boundary
+
+- Replay request parsing no longer accepts a bare location string.
+- Tests inject replay URLs through named `{ location }` or `{ search }`;
+  JANUS and WORLD keep the default browser-location call.
+- The replay helper now matches the named interface surface used by output,
+  input, and visual binding helpers.
+
 ## 2026-07-28 - output target boundary
 
 - Output helper binding no longer accepts a bare string target id.

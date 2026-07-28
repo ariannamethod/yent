@@ -3,13 +3,14 @@ const replay = require('./interface_replay.js');
 
 async function main() {
 {
-  assert.deepEqual(replay.request('/worldmodel'), {
+  assert.throws(() => replay.request('/worldmodel'), /location must be passed as \{ location \}/);
+  assert.deepEqual(replay.request({ location: '/worldmodel' }), {
     enabled: false,
     name: 'boundary',
     prompt: '',
     delayMs: 0
   });
-  const req = replay.request('/worldmodel?replay=1&delay=0');
+  const req = replay.request({ location: '/worldmodel?replay=1&delay=0' });
   assert.equal(req.enabled, true);
   assert.equal(req.name, 'boundary');
   assert.equal(req.delayMs, 0);
@@ -17,10 +18,16 @@ async function main() {
 }
 
 {
-  const req = replay.request({ search: '?demo=1&scenario=unknown&delay=9999' });
+  const req = replay.request({ location: { search: '?demo=1&scenario=unknown&delay=9999' } });
   assert.equal(req.enabled, true);
   assert.equal(req.name, replay.DEFAULT_SCENARIO);
   assert.equal(req.delayMs, 2000);
+}
+
+{
+  const req = replay.request({ search: '?demo=1&delay=0' });
+  assert.equal(req.enabled, true);
+  assert.equal(req.delayMs, 0);
 }
 
 {

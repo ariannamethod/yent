@@ -6,6 +6,13 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-28 - interface replay location boundary
+
+- `interfaceReplay.request` no longer accepts a bare location string.
+- Test replay URL injection now uses named `{ location }` or `{ search }`,
+  while JANUS and WORLD still read the helper-owned default browser location.
+- The interface contract rejects the old positional replay location path.
+
 ## 2026-07-28 - interface output target boundary
 
 - `interfaceOutput.bind` no longer accepts a bare string target id.

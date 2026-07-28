@@ -84,6 +84,10 @@
     return new URLSearchParams(searchText(location));
   }
 
+  function hasOwn(value, key) {
+    return !!value && Object.prototype.hasOwnProperty.call(value, key);
+  }
+
   function enabledFlag(params, key) {
     if (!params.has(key)) return false;
     const value = String(params.get(key) || '').toLowerCase();
@@ -112,8 +116,15 @@
     };
   }
 
-  function request(location) {
-    const params = paramsFor(location || root.location);
+  function request(options) {
+    if (typeof options === 'string') {
+      throw new Error('replay request location must be passed as { location }');
+    }
+    options = options || {};
+    const location = hasOwn(options, 'location')
+      ? options.location
+      : (hasOwn(options, 'search') ? { search: options.search } : root.location);
+    const params = paramsFor(location);
     const enabled = enabledFlag(params, 'replay') || enabledFlag(params, 'demo');
     const name = scenarioName(params.get('fixture') || params.get('scenario'));
     const selected = scenario(name);
