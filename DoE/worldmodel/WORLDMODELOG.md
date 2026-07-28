@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-28 - request params document boundary
+
+- Submit and turn orchestration no longer expose generic `options.document`.
+- Request-control DOM reads use `interfaceInput.readParams()` by default, with
+  a named `paramsDocument` seam only for tests.
+- JANUS and WORLD keep page startup free of browser document plumbing while the
+  shared input helper owns the live default.
+
 ## 2026-07-28 - document default boundary
 
 - Shared interface helpers now own browser `document` defaults for page-level

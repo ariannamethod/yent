@@ -69,6 +69,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	replayJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_replay.js"))
 	eventsJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_events.js"))
 	inputJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_input.js"))
+	turnJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_turn.js"))
 	submitJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_submit.js"))
 	outcomeJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_outcome.js"))
 	bootJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_boot.js"))
@@ -770,11 +771,22 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(bootJS, "options.window") {
 		t.Fatalf("interface helpers still expose page window alias parameters")
 	}
+	if strings.Contains(submitJS, "options.document") ||
+		strings.Contains(turnJS, "options.document") ||
+		strings.Contains(submitJS, "root.document") ||
+		strings.Contains(turnJS, "root.document") {
+		t.Fatalf("submit/turn helpers still expose generic document plumbing")
+	}
 	if !strings.Contains(submitJS, "generationRun.begin(") ||
 		!strings.Contains(submitJS, "session.commitUser(") ||
 		!strings.Contains(submitJS, "turnHelper.streamAssistant(") ||
+		!strings.Contains(submitJS, "paramsDocument: options.paramsDocument") ||
 		!strings.Contains(submitJS, "generationRun.finish(currentRun)") {
 		t.Fatalf("interface_submit.js does not own the shared submit lifecycle")
+	}
+	if !strings.Contains(turnJS, "input.readParams(options.paramsDocument)") ||
+		!strings.Contains(turnJS, "input.readParams()") {
+		t.Fatalf("interface_turn.js does not keep request params behind the named paramsDocument boundary")
 	}
 	if !strings.Contains(outcomeJS, "outcome.stopped") ||
 		!strings.Contains(outcomeJS, "outcome.fault") ||

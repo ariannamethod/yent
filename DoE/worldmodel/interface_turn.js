@@ -28,7 +28,7 @@
     let result = null;
 
     try {
-      const requestParams = input.readParams(options.document || root.document);
+      const requestParams = options.paramsDocument ? input.readParams(options.paramsDocument) : input.readParams();
       const stream = input.streamFor({
         replayMode: !!options.replayMode,
         replayRequest: options.replayRequest || options.request,
