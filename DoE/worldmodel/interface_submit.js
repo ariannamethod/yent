@@ -42,7 +42,7 @@
       call(options.onUser, userTurn, currentRun);
 
       const turn = await turnHelper.streamAssistant({
-        document: options.document || root.document,
+        paramsDocument: options.paramsDocument,
         interfaceInput: options.interfaceInput || root.YentInterfaceInput,
         chatStream: options.chatStream || root.YentChatStream,
         interfaceReplay: options.interfaceReplay || root.YentInterfaceReplay,

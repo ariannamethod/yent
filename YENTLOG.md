@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-28 - interface request params document boundary
+
+- `interfaceSubmit` now forwards only the named `paramsDocument` test seam into
+  the shared turn helper.
+- `interfaceTurn` reads request controls through `interfaceInput.readParams()`
+  in live browser use, or through explicit `paramsDocument` in tests.
+- The interface contract now rejects generic submit/turn `options.document`
+  plumbing and direct `root.document` fallback in the stream-turn path.
+
 ## 2026-07-28 - interface document default boundary
 
 - `interfaceInput`, `interfaceOutput`, `interfaceHud`, and `interfaceStatus`

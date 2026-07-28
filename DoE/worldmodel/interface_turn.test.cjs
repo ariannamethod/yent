@@ -42,7 +42,7 @@ async function main() {
     const sess = session();
     const seen = [];
     const result = await turn.streamAssistant({
-      document: { name: 'doc' },
+      paramsDocument: { name: 'doc' },
       interfaceInput: inputFor(async options => {
         assert.equal(options.temperature, 0.33);
         assert.equal(options.maxTokens, 17);
@@ -76,7 +76,7 @@ async function main() {
     const sess = session();
     const boom = new Error('stream broke');
     const result = await turn.streamAssistant({
-      document: { name: 'doc' },
+      paramsDocument: { name: 'doc' },
       interfaceInput: inputFor(async options => {
         options.onToken('partial', { step: 1 });
         throw boom;
@@ -100,7 +100,7 @@ async function main() {
     const abort = new Error('user stopped');
     abort.name = 'AbortError';
     const result = await turn.streamAssistant({
-      document: { name: 'doc' },
+      paramsDocument: { name: 'doc' },
       interfaceInput: inputFor(async options => {
         options.onToken('partial', { step: 1 });
         throw abort;

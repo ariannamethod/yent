@@ -40,7 +40,8 @@ async function main() {
           events.push({
             signal: options.signal,
             messages: options.messages,
-            visibleMessages: options.visibleMessages
+            visibleMessages: options.visibleMessages,
+            paramsDocument: options.paramsDocument
           });
           options.onToken('ok', { step: 1 }, 'ok');
           return {
@@ -51,7 +52,7 @@ async function main() {
           };
         }
       },
-      document: { name: 'doc' },
+      paramsDocument: { name: 'doc' },
       interfaceInput: { name: 'input' },
       chatStream: { name: 'chat' },
       interfaceReplay: { name: 'replay' },
@@ -69,6 +70,7 @@ async function main() {
     assert.deepEqual(events[1], { user: { role: 'user', content: 'hello' } });
     assert.equal(events[2].signal, 'signal');
     assert.deepEqual(events[2].messages, [{ role: 'user', content: 'hello' }]);
+    assert.deepEqual(events[2].paramsDocument, { name: 'doc' });
     assert.deepEqual(events[3], { token: 'ok', step: 1, text: 'ok' });
     assert.equal(result.text, 'ok');
     assert.equal(result.outcome.kind, 'complete');
