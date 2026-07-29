@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-29 - session persistence boundary
+
+- Top-level session normalize/load/save now take named persistence objects.
+- Storage and message arrays no longer share the same positional call surface.
+- Adapter turn methods remain stable for submit/restore; this closes only the
+  exported persistence helper boundary.
+
 ## 2026-07-29 - animation callback boundary
 
 - Animation scheduling now accepts named `{ callback }` inputs.
