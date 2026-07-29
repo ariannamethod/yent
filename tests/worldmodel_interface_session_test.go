@@ -791,6 +791,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(canvasJS, "pixelRatio(win, maxDpr)") {
 		t.Fatalf("interface_canvas.js still exposes positional viewport/window arguments")
 	}
+	if strings.Contains(hudJS, "function render(hud") ||
+		strings.Contains(yentJS, "interfaceHud.render(hud") ||
+		strings.Contains(worldJS, "interfaceHud.render(hud") {
+		t.Fatalf("interface_hud.js still exposes positional HUD render arguments")
+	}
 	if !strings.Contains(styleJS, "function create") ||
 		!strings.Contains(styleJS, "getComputedStyle") ||
 		!strings.Contains(styleJS, "FALLBACKS") {

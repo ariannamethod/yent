@@ -420,7 +420,7 @@ function drawTrace() {
 }
 
 function updateHud() {
-  interfaceHud.render(hud, state, { tokenTelemetry });
+  interfaceHud.render({ hud, state, tokenTelemetry });
 }
 
 function drawFieldHaze(scene) {

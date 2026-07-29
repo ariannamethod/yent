@@ -6,6 +6,13 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-29 - interface HUD render boundary
+
+- `interfaceHud.render` no longer accepts positional HUD cells and state.
+- JANUS and WORLD now render HUD metrics through named
+  `{ hud, state, tokenTelemetry }` objects.
+- The interface contract rejects the old positional HUD render path.
+
 ## 2026-07-29 - interface canvas viewport boundary
 
 - `interfaceCanvas.pixelRatio` and `viewport` no longer accept bare viewport or

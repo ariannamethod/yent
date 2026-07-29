@@ -448,7 +448,7 @@ function drawManifestedAnswer() {
 }
 
 function updateHud() {
-  interfaceHud.render(hud, state, { tokenTelemetry });
+  interfaceHud.render({ hud, state, tokenTelemetry });
 }
 
 function tickCamera(dt) {
