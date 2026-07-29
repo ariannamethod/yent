@@ -608,11 +608,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(worldJS, "interfaceOutput.bind({ id: 'manifest-text' })") {
 		t.Fatalf("worldmodel.js does not bind manifest output through interface_output")
 	}
-	if !strings.Contains(yentJS, "interfaceOutput.setTextAndScroll(assistantBody") ||
-		!strings.Contains(yentJS, "interfaceOutput.setText(assistantBody") {
+	if !strings.Contains(yentJS, "interfaceOutput.setTextAndScroll({") ||
+		!strings.Contains(yentJS, "target: assistantBody") ||
+		!strings.Contains(yentJS, "interfaceOutput.setText({") {
 		t.Fatalf("yent.js does not route live assistant output writes through interface_output")
 	}
-	if !strings.Contains(worldJS, "interfaceOutput.setTextAndScroll(manifestText") {
+	if !strings.Contains(worldJS, "interfaceOutput.setTextAndScroll({ target: manifestText") {
 		t.Fatalf("worldmodel.js does not route manifest output writes through interface_output")
 	}
 	if !strings.Contains(yentJS, "deps.interfaceTranscript") ||
@@ -635,6 +636,14 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if strings.Contains(yentJS, directOutput) || strings.Contains(worldJS, directOutput) {
 			t.Fatalf("interface page still writes output text/scroll locally: %s", directOutput)
 		}
+	}
+	if strings.Contains(outputJS, "function setText(target") ||
+		strings.Contains(outputJS, "function scrollBottom(target") ||
+		strings.Contains(outputJS, "function setTextAndScroll(target") ||
+		strings.Contains(yentJS, "interfaceOutput.setTextAndScroll(assistantBody") ||
+		strings.Contains(yentJS, "interfaceOutput.setText(assistantBody") ||
+		strings.Contains(worldJS, "interfaceOutput.setTextAndScroll(manifestText") {
+		t.Fatalf("interface_output.js still exposes positional output writer arguments")
 	}
 	if strings.Contains(worldJS, "function textSeed") || strings.Contains(worldJS, "function hash") {
 		t.Fatalf("worldmodel.js still carries page-local topology hash/seed helpers")
@@ -752,8 +761,8 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(transcriptJS, "function labelFor") ||
 		!strings.Contains(transcriptJS, "function appendTurn") ||
 		!strings.Contains(transcriptJS, "function clear") ||
-		!strings.Contains(transcriptJS, "output.setText(body") ||
-		!strings.Contains(transcriptJS, "output.scrollBottom(container)") {
+		!strings.Contains(transcriptJS, "output.setText({ target: body") ||
+		!strings.Contains(transcriptJS, "output.scrollBottom({ target: container })") {
 		t.Fatalf("interface_transcript.js does not own transcript turn rendering")
 	}
 	if strings.Contains(transcriptJS, "function appendTurn(container") ||

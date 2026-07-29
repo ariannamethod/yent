@@ -2,6 +2,15 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-29 - output writer boundary
+
+- Output text and scroll writes now take named
+  `{ target, text, scrollTarget }` inputs.
+- JANUS assistant output, WORLD manifest text, and transcript turn rendering
+  all use the same explicit writer contract.
+- This keeps output binding and output mutation aligned before the interface
+  starts carrying richer runtime telemetry.
+
 ## 2026-07-29 - composer binding boundary
 
 - The generation-run composer hook now accepts named

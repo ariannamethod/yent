@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-29 - interface output writer boundary
+
+- `interfaceOutput.setText`, `scrollBottom`, and `setTextAndScroll` no longer
+  accept positional DOM targets.
+- JANUS, WORLD, and transcript rendering now write output through named
+  `{ target, text, scrollTarget }` objects.
+- The interface contract rejects the old positional writer path so body,
+  transcript, and manifest targets cannot be silently swapped.
+
 ## 2026-07-29 - interface composer binding boundary
 
 - `generationRun.bindComposer` no longer accepts positional form/input/submit

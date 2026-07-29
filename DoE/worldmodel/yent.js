@@ -542,7 +542,11 @@ async function generate(text) {
       assistantBody = addTurn('assistant', '');
     },
     onToken: (token, data, responseText) => {
-      interfaceOutput.setTextAndScroll(assistantBody, responseText, transcript);
+      interfaceOutput.setTextAndScroll({
+        target: assistantBody,
+        text: responseText,
+        scrollTarget: transcript
+      });
       absorbToken(token, data);
     }
   });
@@ -555,9 +559,12 @@ async function generate(text) {
     },
     fault: (turn, result) => {
       setStatus('FAULT');
-      interfaceOutput.setText(assistantBody, result.hasText
-        ? `${turn.text}\n\n[stream fault: ${result.message}]`
-        : `parliament unreachable: ${result.message}`);
+      interfaceOutput.setText({
+        target: assistantBody,
+        text: result.hasText
+          ? `${turn.text}\n\n[stream fault: ${result.message}]`
+          : `parliament unreachable: ${result.message}`
+      });
     },
     complete: (_turn, result) => {
       setStatus(result.kind === 'empty' ? 'EMPTY' : 'COMPLETE');
