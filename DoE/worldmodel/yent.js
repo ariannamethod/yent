@@ -329,7 +329,8 @@ function resize() {
 }
 
 function addTurn(role, text) {
-  return interfaceTranscript.appendTurn(transcript, {
+  return interfaceTranscript.appendTurn({
+    container: transcript,
     interfaceOutput,
     role,
     text,
@@ -346,7 +347,7 @@ function restoreInterfaceSession() {
   if (!restored) return;
 
   visibleMessages = restored.visibleMessages;
-  interfaceTranscript.clear(transcript, { interfaceOutput });
+  interfaceTranscript.clear({ container: transcript, interfaceOutput });
   for (const msg of visibleMessages) addTurn(msg.role, msg.content);
 
   const tapeText = interfaceText.tokenTapeText(restored.combinedText);

@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-29 - transcript container boundary
+
+- Transcript rendering no longer accepts a bare container argument.
+- JANUS injects the transcript target as `{ container }`, while `clear` follows
+  the same named surface.
+- This closes the remaining positional DOM target in the transcript helper.
+
 ## 2026-07-28 - replay location boundary
 
 - Replay request parsing no longer accepts a bare location string.

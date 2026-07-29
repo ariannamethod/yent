@@ -39,7 +39,8 @@ function main() {
 
   {
     const container = containerMock();
-    const body = transcript.appendTurn(container, {
+    const body = transcript.appendTurn({
+      container,
       document: documentMock(),
       interfaceOutput: output,
       role: 'assistant',
@@ -60,13 +61,14 @@ function main() {
 
   {
     const container = containerMock();
-    transcript.clear(container, { interfaceOutput: output });
+    transcript.clear({ container, interfaceOutput: output });
     assert.equal(container.textContent, '');
   }
 
   {
     const container = containerMock();
-    const body = transcript.appendTurn(container, {
+    const body = transcript.appendTurn({
+      container,
       document: documentMock(),
       role: 'user',
       text: 'global fallback',
@@ -76,12 +78,14 @@ function main() {
     assert.equal(container.children[0].children[0].textContent, 'OLEG');
   }
 
-  assert.throws(() => transcript.appendTurn(null, { document: documentMock(), interfaceOutput: output }), /transcript container missing/);
-  assert.throws(() => transcript.appendTurn(containerMock(), { interfaceOutput: output }), /document helper missing/);
+  assert.throws(() => transcript.appendTurn(containerMock()), /container must be passed as \{ container \}/);
+  assert.throws(() => transcript.clear(containerMock()), /container must be passed as \{ container \}/);
+  assert.throws(() => transcript.appendTurn({ document: documentMock(), interfaceOutput: output }), /transcript container missing/);
+  assert.throws(() => transcript.appendTurn({ container: containerMock(), interfaceOutput: output }), /document helper missing/);
   {
     const saved = globalThis.YentInterfaceOutput;
     delete globalThis.YentInterfaceOutput;
-    assert.throws(() => transcript.appendTurn(containerMock(), { document: documentMock() }), /YentInterfaceOutput helper missing/);
+    assert.throws(() => transcript.appendTurn({ container: containerMock(), document: documentMock() }), /YentInterfaceOutput helper missing/);
     globalThis.YentInterfaceOutput = saved;
   }
 }

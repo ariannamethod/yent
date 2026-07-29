@@ -755,6 +755,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(transcriptJS, "output.scrollBottom(container)") {
 		t.Fatalf("interface_transcript.js does not own transcript turn rendering")
 	}
+	if strings.Contains(transcriptJS, "function appendTurn(container") ||
+		strings.Contains(transcriptJS, "function clear(container") ||
+		strings.Contains(yentJS, "appendTurn(transcript") ||
+		strings.Contains(yentJS, "clear(transcript") {
+		t.Fatalf("interface_transcript.js still exposes positional transcript container arguments")
+	}
 	if !strings.Contains(restoreJS, "if (options.replayMode) return null") ||
 		!strings.Contains(restoreJS, "session.load()") ||
 		!strings.Contains(restoreJS, "combinedText") ||
