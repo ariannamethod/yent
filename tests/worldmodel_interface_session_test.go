@@ -294,8 +294,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if !strings.Contains(tc.src, "interfaceSubmit.run(") {
 			t.Fatalf("%s does not submit turns through the shared interface submit helper", tc.name)
 		}
-		if !strings.Contains(tc.src, "interfaceOutcome.handle(") {
+		if !strings.Contains(tc.src, "interfaceOutcome.handle({") {
 			t.Fatalf("%s does not classify stream outcomes through the shared helper", tc.name)
+		}
+		if strings.Contains(tc.src, "interfaceOutcome.handle(submit") {
+			t.Fatalf("%s still exposes positional outcome handling", tc.name)
 		}
 		if !strings.Contains(tc.src, "interfaceHud.render(") {
 			t.Fatalf("%s does not render HUD metrics through the shared helper", tc.name)
@@ -868,8 +871,17 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	}
 	if !strings.Contains(outcomeJS, "outcome.stopped") ||
 		!strings.Contains(outcomeJS, "outcome.fault") ||
-		!strings.Contains(outcomeJS, "handlers.complete") {
+		!strings.Contains(outcomeJS, "handlers.complete") ||
+		!strings.Contains(outcomeJS, "function handle(options)") ||
+		!strings.Contains(outcomeJS, "submit = options.submit") ||
+		!strings.Contains(outcomeJS, "handlers = options.handlers") {
 		t.Fatalf("interface_outcome.js does not own shared outcome dispatch")
+	}
+	if strings.Contains(outcomeJS, "function handle(submit") ||
+		strings.Contains(outcomeJS, "call(handlers.stopped,") ||
+		strings.Contains(outcomeJS, "call(handlers.fault,") ||
+		strings.Contains(outcomeJS, "call(handlers.complete,") {
+		t.Fatalf("interface_outcome.js still exposes positional outcome dispatch arguments")
 	}
 	if !strings.Contains(bootJS, "addEventListener('resize'") ||
 		!strings.Contains(bootJS, "resolveResizeTarget(options)") ||

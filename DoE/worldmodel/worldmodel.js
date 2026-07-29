@@ -579,22 +579,25 @@ async function generate(text) {
 
   messages = submit.messages;
   visibleMessages = submit.visibleMessages;
-  interfaceOutcome.handle(submit, {
-    stopped: (_turn, result) => {
-      setStatus('MANIFESTATION STOPPED.');
-      setManifestState(result.hasText ? 'STOPPED' : 'IDLE', result.hasText);
-    },
-    fault: (_turn, result) => {
-      setStatus(`FIELD FAULT: ${result.message}`);
-      setManifestState('FAULT', result.hasText);
-      if (!result.hasText) setManifestText(`FIELD FAULT: ${result.message}`);
-      fieldWords.unshift('fault', 'unreachable');
-    },
-    complete: (_turn, result) => {
-      setStatus('FIELD SETTLED.');
-      setManifestState(result.kind === 'empty' ? 'EMPTY' : 'COMPLETE', result.hasText);
-      state.consensus = clamp(state.consensus + 0.18, 0, 1);
-      state.debt = clamp(state.debt * 0.68, 0, 1);
+  interfaceOutcome.handle({
+    submit,
+    handlers: {
+      stopped: (_turn, result) => {
+        setStatus('MANIFESTATION STOPPED.');
+        setManifestState(result.hasText ? 'STOPPED' : 'IDLE', result.hasText);
+      },
+      fault: (_turn, result) => {
+        setStatus(`FIELD FAULT: ${result.message}`);
+        setManifestState('FAULT', result.hasText);
+        if (!result.hasText) setManifestText(`FIELD FAULT: ${result.message}`);
+        fieldWords.unshift('fault', 'unreachable');
+      },
+      complete: (_turn, result) => {
+        setStatus('FIELD SETTLED.');
+        setManifestState(result.kind === 'empty' ? 'EMPTY' : 'COMPLETE', result.hasText);
+        state.consensus = clamp(state.consensus + 0.18, 0, 1);
+        state.debt = clamp(state.debt * 0.68, 0, 1);
+      }
     }
   });
 }
