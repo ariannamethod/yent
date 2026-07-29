@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-29 - interface outcome dispatch boundary
+
+- `interfaceOutcome.handle` no longer accepts positional submit/handler
+  arguments.
+- JANUS and WORLD now dispatch stream outcomes through named
+  `{ submit, handlers }` inputs.
+- The outcome helper also names its internal callback dispatch object while
+  preserving the page handler callback signature.
+
 ## 2026-07-29 - interface session persistence boundary
 
 - Top-level `interfaceSession.normalize`, `load`, and `save` no longer accept

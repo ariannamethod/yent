@@ -553,23 +553,26 @@ async function generate(text) {
 
   messages = submit.messages;
   visibleMessages = submit.visibleMessages;
-  interfaceOutcome.handle(submit, {
-    stopped: (_turn, result) => {
-      setStatus(result.hasText ? 'STOPPED' : 'IDLE');
-    },
-    fault: (turn, result) => {
-      setStatus('FAULT');
-      interfaceOutput.setText({
-        target: assistantBody,
-        text: result.hasText
-          ? `${turn.text}\n\n[stream fault: ${result.message}]`
-          : `parliament unreachable: ${result.message}`
-      });
-    },
-    complete: (_turn, result) => {
-      setStatus(result.kind === 'empty' ? 'EMPTY' : 'COMPLETE');
-      state.consensus = clamp(state.consensus + 0.16, 0, 1);
-      state.debt = clamp(state.debt * 0.72, 0, 1);
+  interfaceOutcome.handle({
+    submit,
+    handlers: {
+      stopped: (_turn, result) => {
+        setStatus(result.hasText ? 'STOPPED' : 'IDLE');
+      },
+      fault: (turn, result) => {
+        setStatus('FAULT');
+        interfaceOutput.setText({
+          target: assistantBody,
+          text: result.hasText
+            ? `${turn.text}\n\n[stream fault: ${result.message}]`
+            : `parliament unreachable: ${result.message}`
+        });
+      },
+      complete: (_turn, result) => {
+        setStatus(result.kind === 'empty' ? 'EMPTY' : 'COMPLETE');
+        state.consensus = clamp(state.consensus + 0.16, 0, 1);
+        state.debt = clamp(state.debt * 0.72, 0, 1);
+      }
     }
   });
 }

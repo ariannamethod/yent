@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-29 - outcome dispatch boundary
+
+- Stream outcome dispatch now takes named `{ submit, handlers }` inputs.
+- JANUS and WORLD no longer pass submit receipts and handler tables as
+  positional arguments.
+- Handler callback signatures stay stable; this closes only the exported
+  outcome-helper call boundary.
+
 ## 2026-07-29 - session persistence boundary
 
 - Top-level session normalize/load/save now take named persistence objects.
