@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-29 - animation callback boundary
+
+- Animation scheduling now accepts named `{ callback }` inputs.
+- JANUS and WORLD no longer pass bare loop functions into
+  `interfaceAnimation`.
+- This keeps frame ownership explicit before deeper telemetry-driven rendering
+  changes resume.
+
 ## 2026-07-29 - status writer boundary
 
 - Status text, activity, and manifest writes now take named objects.

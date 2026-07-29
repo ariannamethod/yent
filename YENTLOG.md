@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-29 - interface animation callback boundary
+
+- `interfaceAnimation.requestFrame` and `start` no longer accept bare callback
+  functions.
+- JANUS and WORLD now schedule frame loops through named
+  `{ callback: animate }` inputs.
+- The interface contract rejects the old positional animation callback path.
+
 ## 2026-07-29 - interface status writer boundary
 
 - `interfaceStatus.setText`, `setActive`, and `setManifest` no longer accept

@@ -11,8 +11,8 @@ function main() {
       }
     });
     function frame() {}
-    assert.equal(helper.requestFrame(frame), 17);
-    assert.equal(helper.start(frame), 17);
+    assert.equal(helper.requestFrame({ callback: frame }), 17);
+    assert.equal(helper.start({ callback: frame }), 17);
     assert.deepEqual(calls, [frame, frame]);
   }
 
@@ -29,6 +29,8 @@ function main() {
   {
     const helper = animation.create({ requestAnimationFrame() {} });
     assert.throws(() => helper.requestFrame(null), /animation frame callback unavailable/);
+    assert.throws(() => helper.requestFrame(() => {}), /callback must be passed as \{ callback \}/);
+    assert.throws(() => helper.start(() => {}), /callback must be passed as \{ callback \}/);
   }
 }
 
