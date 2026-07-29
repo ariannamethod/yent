@@ -46,24 +46,24 @@ function main() {
 
   {
     const target = element(42);
-    output.setText(target, 'new');
+    output.setText({ target, text: 'new' });
     assert.equal(target.textContent, 'new');
-    output.setText(target, null);
+    output.setText({ target, text: null });
     assert.equal(target.textContent, '');
-    output.setText(target, 17);
+    output.setText({ target, text: 17 });
     assert.equal(target.textContent, '17');
   }
 
   {
     const target = element(91);
-    output.scrollBottom(target);
+    output.scrollBottom({ target });
     assert.equal(target.scrollTop, 91);
   }
 
   {
     const body = element(14);
     const transcript = element(188);
-    output.setTextAndScroll(body, 'answer', transcript);
+    output.setTextAndScroll({ target: body, text: 'answer', scrollTarget: transcript });
     assert.equal(body.textContent, 'answer');
     assert.equal(transcript.scrollTop, 188);
     assert.equal(body.scrollTop, 0);
@@ -71,14 +71,21 @@ function main() {
 
   {
     const target = element(77);
-    output.setTextAndScroll(target, 'manifest');
+    output.setTextAndScroll({ target, text: 'manifest' });
     assert.equal(target.textContent, 'manifest');
     assert.equal(target.scrollTop, 77);
   }
 
-  assert.doesNotThrow(() => output.setText(null, 'x'));
-  assert.doesNotThrow(() => output.scrollBottom(null));
-  assert.doesNotThrow(() => output.setTextAndScroll(null, 'x'));
+  {
+    const target = element(8);
+    assert.throws(() => output.setText(target, 'x'), /text inputs must be passed as \{ target, text \}/);
+    assert.throws(() => output.scrollBottom(target), /scroll target must be passed as \{ target \}/);
+    assert.throws(() => output.setTextAndScroll(target, 'x'), /text\/scroll inputs must be passed as \{ target, text, scrollTarget \}/);
+  }
+
+  assert.doesNotThrow(() => output.setText({ target: null, text: 'x' }));
+  assert.doesNotThrow(() => output.scrollBottom({ target: null }));
+  assert.doesNotThrow(() => output.setTextAndScroll({ target: null, text: 'x' }));
 }
 
 main();

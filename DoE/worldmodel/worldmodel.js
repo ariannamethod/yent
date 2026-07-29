@@ -504,7 +504,7 @@ function setManifestState(text, active) {
 }
 
 function setManifestText(text) {
-  interfaceOutput.setTextAndScroll(manifestText, text);
+  interfaceOutput.setTextAndScroll({ target: manifestText, text });
 }
 
 function restoreInterfaceSession() {

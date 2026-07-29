@@ -48,16 +48,16 @@
 
     const label = documentRef.createElement('div');
     label.className = 'role';
-    output.setText(label, labelFor(role, options.labels));
+    output.setText({ target: label, text: labelFor(role, options.labels) });
 
     const body = documentRef.createElement('div');
     body.className = 'text';
-    output.setText(body, options.text || '');
+    output.setText({ target: body, text: options.text || '' });
 
     node.appendChild(label);
     node.appendChild(body);
     container.appendChild(node);
-    output.scrollBottom(container);
+    output.scrollBottom({ target: container });
     return body;
   }
 
@@ -67,7 +67,7 @@
     const container = options.container;
     if (!container) return;
     const output = requireOutput((options && options.interfaceOutput) || root.YentInterfaceOutput);
-    output.setText(container, '');
+    output.setText({ target: container, text: '' });
   }
 
   const api = { labelFor, appendTurn, clear };
