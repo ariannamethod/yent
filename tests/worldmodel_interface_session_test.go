@@ -58,6 +58,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	doeC := readTextFile(t, filepath.Join(root, "DoE", "doe.c"))
 	yentJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "yent.js"))
 	worldJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "worldmodel.js"))
+	chatStreamJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "chat_stream.js"))
 	sessionJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_session.js"))
 	restoreJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_restore.js"))
 	textJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_text.js"))
@@ -868,6 +869,16 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(turnJS, "input.readParams({ document: options.paramsDocument })") ||
 		!strings.Contains(turnJS, "input.readParams()") {
 		t.Fatalf("interface_turn.js does not keep request params behind the named paramsDocument boundary")
+	}
+	if !strings.Contains(chatStreamJS, "function outcome(options)") ||
+		!strings.Contains(chatStreamJS, "const error = options.error") ||
+		!strings.Contains(chatStreamJS, "const responseText = options.responseText") {
+		t.Fatalf("chat_stream.js does not own named stream outcome inputs")
+	}
+	if strings.Contains(chatStreamJS, "function outcome(error") ||
+		strings.Contains(turnJS, "chat.outcome(null,") ||
+		strings.Contains(turnJS, "chat.outcome(err,") {
+		t.Fatalf("chat stream outcome still exposes positional error/text arguments")
 	}
 	if !strings.Contains(outcomeJS, "outcome.stopped") ||
 		!strings.Contains(outcomeJS, "outcome.fault") ||

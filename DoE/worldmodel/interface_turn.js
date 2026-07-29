@@ -51,10 +51,10 @@
           if (typeof options.onToken === 'function') options.onToken(chunk, data, text);
         }
       });
-      result = chat.outcome(null, text);
+      result = chat.outcome({ error: null, responseText: text });
     } catch (err) {
       streamError = err;
-      result = chat.outcome(err, text);
+      result = chat.outcome({ error: err, responseText: text });
     }
 
     let committed = false;

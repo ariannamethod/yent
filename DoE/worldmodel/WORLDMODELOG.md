@@ -2,6 +2,15 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-29 - chat stream outcome boundary
+
+- Chat stream outcome classification now takes named `{ error, responseText }`
+  inputs.
+- Turn streaming no longer passes error and accumulated assistant text as a
+  positional pair.
+- This keeps transport behavior unchanged while making completion/fault
+  classification explicit.
+
 ## 2026-07-29 - outcome dispatch boundary
 
 - Stream outcome dispatch now takes named `{ submit, handlers }` inputs.

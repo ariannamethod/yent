@@ -49,7 +49,7 @@ async function main() {
 }
 
 {
-  assert.deepEqual(chat.outcome(null, 'answer'), {
+  assert.deepEqual(chat.outcome({ error: null, responseText: 'answer' }), {
     kind: 'complete',
     hasText: true,
     commitAssistant: true,
@@ -57,7 +57,7 @@ async function main() {
     stopped: false,
     message: ''
   });
-  assert.deepEqual(chat.outcome(null, '   '), {
+  assert.deepEqual(chat.outcome({ error: null, responseText: '   ' }), {
     kind: 'empty',
     hasText: false,
     commitAssistant: false,
@@ -67,7 +67,7 @@ async function main() {
   });
   const abort = new Error('aborted');
   abort.name = 'AbortError';
-  assert.deepEqual(chat.outcome(abort, 'partial'), {
+  assert.deepEqual(chat.outcome({ error: abort, responseText: 'partial' }), {
     kind: 'stopped',
     hasText: true,
     commitAssistant: true,
@@ -75,7 +75,7 @@ async function main() {
     stopped: true,
     message: 'aborted'
   });
-  assert.deepEqual(chat.outcome(new Error('stream ended before done'), 'partial'), {
+  assert.deepEqual(chat.outcome({ error: new Error('stream ended before done'), responseText: 'partial' }), {
     kind: 'fault',
     hasText: true,
     commitAssistant: false,
@@ -83,6 +83,10 @@ async function main() {
     stopped: false,
     message: 'stream ended before done'
   });
+  assert.throws(
+    () => chat.outcome(new Error('old'), 'partial'),
+    /outcome inputs must be passed as \{ error, responseText \}/
+  );
 }
 
 {

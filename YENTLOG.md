@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-29 - chat stream outcome boundary
+
+- `YentChatStream.outcome` no longer accepts positional error/text arguments.
+- `interfaceTurn.streamAssistant` now classifies stream results through named
+  `{ error, responseText }` inputs.
+- The transport path is unchanged; only the outcome classification boundary was
+  tightened.
+
 ## 2026-07-29 - interface outcome dispatch boundary
 
 - `interfaceOutcome.handle` no longer accepts positional submit/handler
