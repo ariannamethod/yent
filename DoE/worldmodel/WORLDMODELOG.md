@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-29 - text tape boundary
+
+- Token tape append now takes named `{ tape, text, limit }` inputs.
+- JANUS no longer sends the tape state, token text, and cap as a positional
+  triple.
+- Pure text cleanup helpers stay stable; this closes only the mutable tape
+  append surface.
+
 ## 2026-07-29 - chat stream outcome boundary
 
 - Chat stream outcome classification now takes named `{ error, responseText }`

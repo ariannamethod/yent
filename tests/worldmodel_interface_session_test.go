@@ -789,6 +789,16 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(inputJS, "arguments.length") {
 		t.Fatalf("interface_input.js still exposes positional document arguments")
 	}
+	if !strings.Contains(textJS, "function appendTape(options)") ||
+		!strings.Contains(textJS, "options.tape") ||
+		!strings.Contains(textJS, "options.text") ||
+		!strings.Contains(textJS, "options.limit") {
+		t.Fatalf("interface_text.js does not own named tape append inputs")
+	}
+	if strings.Contains(textJS, "function appendTape(tape") ||
+		strings.Contains(yentJS, "interfaceText.appendTape(tokenTape") {
+		t.Fatalf("interface_text.js still exposes positional tape append arguments")
+	}
 	if !strings.Contains(transcriptJS, "function labelFor") ||
 		!strings.Contains(transcriptJS, "function appendTurn") ||
 		!strings.Contains(transcriptJS, "function clear") ||
