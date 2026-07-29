@@ -10,7 +10,23 @@
     return Number.isFinite(value) && value > 0 ? Math.floor(value) : fallback;
   }
 
-  function normalize(source, options) {
+  function hasOwn(value, key) {
+    return Object.prototype.hasOwnProperty.call(Object(value), key);
+  }
+
+  function looksLikeStorage(value) {
+    return !!value && !hasOwn(value, 'storage') && (
+      typeof value.getItem === 'function' ||
+      typeof value.setItem === 'function'
+    );
+  }
+
+  function normalize(options) {
+    if (Array.isArray(options)) {
+      throw new Error('session normalize inputs must be passed as { messages }');
+    }
+    options = options || {};
+    const source = options.messages;
     if (!Array.isArray(source)) return [];
     const limit = optionNumber(options, 'limit', DEFAULT_LIMIT);
     const contentLimit = optionNumber(options, 'contentLimit', DEFAULT_CONTENT_LIMIT);
@@ -35,28 +51,36 @@
     return storage || defaultStorage();
   }
 
-  function load(storage, options) {
-    const target = storageOrDefault(storage);
+  function load(options) {
+    if (looksLikeStorage(options)) {
+      throw new Error('session load inputs must be passed as { storage }');
+    }
+    options = options || {};
+    const target = storageOrDefault(options.storage);
     if (!target) return [];
     const key = (options && options.key) || DEFAULT_KEY;
     try {
       const raw = target.getItem(key);
       if (!raw) return [];
       const parsed = JSON.parse(raw);
-      return normalize(parsed && parsed.messages, options);
+      return normalize(Object.assign({}, options, { messages: parsed && parsed.messages }));
     } catch (_) {
       return [];
     }
   }
 
-  function save(storage, nextMessages, options) {
-    const target = storageOrDefault(storage);
+  function save(options) {
+    if (looksLikeStorage(options) || Array.isArray(options)) {
+      throw new Error('session save inputs must be passed as { storage, messages }');
+    }
+    options = options || {};
+    const target = storageOrDefault(options.storage);
     if (!target) return false;
     const key = (options && options.key) || DEFAULT_KEY;
     try {
       target.setItem(key, JSON.stringify({
         savedAt: Date.now(),
-        messages: normalize(nextMessages, options)
+        messages: normalize(options)
       }));
       return true;
     } catch (_) {
@@ -75,23 +99,25 @@
     let lastSaveAt = 0;
 
     return {
-      normalize: source => normalize(source, options),
+      normalize: source => normalize(Object.assign({}, options, { messages: source })),
       load() {
         if (replayMode) return [];
-        return load(storage, options);
+        return load(Object.assign({}, options, { storage }));
       },
       save(nextMessages, force = false) {
         if (replayMode) return false;
         const at = now();
         if (!force && at - lastSaveAt < saveIntervalMs) return false;
-        if (!save(storage, nextMessages, options)) return false;
+        if (!save(Object.assign({}, options, { storage, messages: nextMessages }))) return false;
         lastSaveAt = at;
         return true;
       },
       commitUser(modelMessages, visibleMessages, text) {
         const message = { role: 'user', content: typeof text === 'string' ? text : '' };
         const nextModel = Array.isArray(modelMessages) ? modelMessages.concat(message) : [message];
-        const nextVisible = normalize((Array.isArray(visibleMessages) ? visibleMessages : []).concat(message), options);
+        const nextVisible = normalize(Object.assign({}, options, {
+          messages: (Array.isArray(visibleMessages) ? visibleMessages : []).concat(message)
+        }));
         this.save(nextVisible, true);
         return { messages: nextModel, visibleMessages: nextVisible, message };
       },
@@ -109,7 +135,9 @@
         }
         const message = { role: 'assistant', content: text };
         const nextModel = Array.isArray(modelMessages) ? modelMessages.concat(message) : [message];
-        const nextVisible = normalize((Array.isArray(visibleMessages) ? visibleMessages : []).concat(message), options);
+        const nextVisible = normalize(Object.assign({}, options, {
+          messages: (Array.isArray(visibleMessages) ? visibleMessages : []).concat(message)
+        }));
         this.save(nextVisible, true);
         return { messages: nextModel, visibleMessages: nextVisible, message, committed: true };
       }

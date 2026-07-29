@@ -21,7 +21,7 @@ function storage() {
     { role: 'assistant', content: 'second' },
     { role: 'user', content: 'third' }
   ];
-  assert.deepEqual(session.normalize(source, { limit: 2 }), [
+  assert.deepEqual(session.normalize({ messages: source, limit: 2 }), [
     { role: 'assistant', content: 'second' },
     { role: 'user', content: 'third' }
   ]);
@@ -29,19 +29,19 @@ function storage() {
 
 {
   const long = 'x'.repeat(session.CONTENT_LIMIT + 9);
-  const normalized = session.normalize([{ role: 'user', content: long }]);
+  const normalized = session.normalize({ messages: [{ role: 'user', content: long }] });
   assert.equal(normalized.length, 1);
   assert.equal(normalized[0].content.length, session.CONTENT_LIMIT);
 }
 
 {
   const s = storage();
-  assert.equal(session.save(s, [
+  assert.equal(session.save({ storage: s, messages: [
     { role: 'user', content: 'visible prompt' },
     { role: 'assistant', content: 'visible answer' },
     { role: 'tool', content: 'not visible' }
-  ]), true);
-  assert.deepEqual(session.load(s), [
+  ] }), true);
+  assert.deepEqual(session.load({ storage: s }), [
     { role: 'user', content: 'visible prompt' },
     { role: 'assistant', content: 'visible answer' }
   ]);
@@ -66,7 +66,7 @@ function storage() {
 {
   const s = storage();
   s.setItem(session.KEY, '{not valid json');
-  assert.deepEqual(session.load(s), []);
+  assert.deepEqual(session.load({ storage: s }), []);
 }
 
 {
@@ -78,8 +78,8 @@ function storage() {
       throw new Error('write denied');
     }
   };
-  assert.equal(session.save(broken, [{ role: 'user', content: 'x' }]), false);
-  assert.deepEqual(session.load(broken), []);
+  assert.equal(session.save({ storage: broken, messages: [{ role: 'user', content: 'x' }] }), false);
+  assert.deepEqual(session.load({ storage: broken }), []);
 }
 
 {
@@ -90,12 +90,19 @@ function storage() {
     writes++;
     return originalSetItem.call(this, key, value);
   };
-  session.save(s, [{ role: 'assistant', content: 'real receipt' }]);
+  session.save({ storage: s, messages: [{ role: 'assistant', content: 'real receipt' }] });
 
   const receipt = session.createAdapter({ storage: s, replayMode: true });
   assert.deepEqual(receipt.load(), []);
   assert.equal(receipt.save([{ role: 'user', content: 'replay prompt' }], true), false);
   assert.equal(writes, 1);
+}
+
+{
+  const s = storage();
+  assert.throws(() => session.normalize([{ role: 'user', content: 'old' }]), /normalize inputs must be passed as \{ messages \}/);
+  assert.throws(() => session.load(s), /load inputs must be passed as \{ storage \}/);
+  assert.throws(() => session.save(s, [{ role: 'user', content: 'old' }]), /save inputs must be passed as \{ storage, messages \}/);
 }
 
 {

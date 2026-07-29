@@ -58,6 +58,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	doeC := readTextFile(t, filepath.Join(root, "DoE", "doe.c"))
 	yentJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "yent.js"))
 	worldJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "worldmodel.js"))
+	sessionJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_session.js"))
 	restoreJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_restore.js"))
 	textJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_text.js"))
 	tokenTelemetryJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "token_telemetry.js"))
@@ -139,6 +140,20 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(doeC, `"/worldmodel/interface_session.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_session.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist interface_session.js")
+	}
+	if !strings.Contains(sessionJS, "function normalize(options)") ||
+		!strings.Contains(sessionJS, "function load(options)") ||
+		!strings.Contains(sessionJS, "function save(options)") ||
+		!strings.Contains(sessionJS, "options.messages") ||
+		!strings.Contains(sessionJS, "options.storage") {
+		t.Fatalf("interface_session.js does not own named session persistence inputs")
+	}
+	if strings.Contains(sessionJS, "function normalize(source") ||
+		strings.Contains(sessionJS, "function load(storage") ||
+		strings.Contains(sessionJS, "function save(storage") ||
+		strings.Contains(sessionJS, "normalize(parsed && parsed.messages") ||
+		strings.Contains(sessionJS, "save(storage, nextMessages") {
+		t.Fatalf("interface_session.js still exposes positional session persistence arguments")
 	}
 	if !strings.Contains(doeC, `"/worldmodel/interface_restore.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_restore.js not found"`) {

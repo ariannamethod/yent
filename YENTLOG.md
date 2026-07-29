@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-29 - interface session persistence boundary
+
+- Top-level `interfaceSession.normalize`, `load`, and `save` no longer accept
+  positional message/storage arguments.
+- Shared persistence helpers now use named `{ messages }`, `{ storage }`, and
+  `{ storage, messages }` inputs.
+- Adapter turn-lifecycle methods keep their existing surface; the exported
+  persistence helpers now reject the old positional path.
+
 ## 2026-07-29 - interface animation callback boundary
 
 - `interfaceAnimation.requestFrame` and `start` no longer accept bare callback
