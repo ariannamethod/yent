@@ -6,18 +6,41 @@
     return Number.isFinite(n) ? n : fallback;
   }
 
-  function pixelRatio(windowRef, maxDpr) {
-    const max = finiteNumber(maxDpr, 2);
-    const raw = finiteNumber(windowRef && windowRef.devicePixelRatio, 1);
+  function hasOwn(value, key) {
+    return Object.prototype.hasOwnProperty.call(Object(value), key);
+  }
+
+  function looksLikeViewport(value) {
+    return !!value && (
+      hasOwn(value, 'innerWidth') ||
+      hasOwn(value, 'innerHeight') ||
+      hasOwn(value, 'devicePixelRatio')
+    );
+  }
+
+  function rejectBareViewport(value) {
+    if (looksLikeViewport(value)) {
+      throw new Error('interface canvas viewport must be passed as { viewport }');
+    }
+  }
+
+  function pixelRatio(options) {
+    rejectBareViewport(options);
+    options = options || {};
+    const max = finiteNumber(options.maxDpr, 2);
+    const viewportRef = options.viewport || root;
+    const raw = finiteNumber(viewportRef && viewportRef.devicePixelRatio, 1);
     return Math.max(1, Math.min(max > 0 ? max : 2, raw > 0 ? raw : 1));
   }
 
-  function viewport(windowRef, maxDpr) {
-    const win = windowRef || root;
+  function viewport(options) {
+    rejectBareViewport(options);
+    options = options || {};
+    const win = options.viewport || root;
     return {
       width: Math.max(0, finiteNumber(win && win.innerWidth, 0)),
       height: Math.max(0, finiteNumber(win && win.innerHeight, 0)),
-      dpr: pixelRatio(win, maxDpr)
+      dpr: pixelRatio({ viewport: win, maxDpr: options.maxDpr })
     };
   }
 
@@ -41,7 +64,7 @@
 
   function resize(options) {
     options = options || {};
-    const base = viewport(options.viewport, options.maxDpr);
+    const base = viewport({ viewport: options.viewport, maxDpr: options.maxDpr });
     const surfaces = Array.isArray(options.surfaces)
       ? options.surfaces
       : [{ canvas: options.canvas, context: options.context }];

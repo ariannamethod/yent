@@ -786,6 +786,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(canvasJS, "canvas.getContext(contextType") {
 		t.Fatalf("interface_canvas.js does not own shared canvas binding and backing-store sizing")
 	}
+	if strings.Contains(canvasJS, "function pixelRatio(windowRef") ||
+		strings.Contains(canvasJS, "function viewport(windowRef") ||
+		strings.Contains(canvasJS, "pixelRatio(win, maxDpr)") {
+		t.Fatalf("interface_canvas.js still exposes positional viewport/window arguments")
+	}
 	if !strings.Contains(styleJS, "function create") ||
 		!strings.Contains(styleJS, "getComputedStyle") ||
 		!strings.Contains(styleJS, "FALLBACKS") {

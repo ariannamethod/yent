@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-29 - interface canvas viewport boundary
+
+- `interfaceCanvas.pixelRatio` and `viewport` no longer accept bare viewport or
+  window-like objects.
+- Test viewport injection now uses named `{ viewport, maxDpr }`, while live
+  resize calls still use helper-owned browser defaults or the existing named
+  `resize({ viewport })` path.
+- The interface contract rejects the old positional viewport/window path.
+
 ## 2026-07-29 - interface transcript container boundary
 
 - `interfaceTranscript.appendTurn` and `clear` no longer accept positional
