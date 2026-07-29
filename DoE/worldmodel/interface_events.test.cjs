@@ -3,13 +3,16 @@ const events = require('./interface_events.js');
 
 function target() {
   const listeners = {};
+  const removed = [];
   return {
     listeners,
+    removed,
     addEventListener(type, handler, options) {
       if (!listeners[type]) listeners[type] = [];
       listeners[type].push({ handler, options });
     },
-    removeEventListener(type, handler) {
+    removeEventListener(type, handler, options) {
+      removed.push({ type, handler, options });
       listeners[type] = (listeners[type] || []).filter(entry => entry.handler !== handler);
     }
   };
@@ -23,11 +26,15 @@ function main() {
   {
     const t = target();
     const keys = {};
+    const listenerOptions = { capture: true };
     const cleanup = events.bindKeyState({
       target: t,
       keys,
+      listenerOptions,
       ignore: event => event && event.ignore
     });
+    assert.equal(t.listeners.keydown[0].options, listenerOptions);
+    assert.equal(t.listeners.keyup[0].options, listenerOptions);
 
     fire(t, 'keydown', { key: 'W' });
     assert.equal(keys.w, true);
@@ -37,6 +44,9 @@ function main() {
     assert.equal(keys.w, false);
 
     cleanup();
+    assert.equal(t.removed.length, 2);
+    assert.equal(t.removed[0].options, listenerOptions);
+    assert.equal(t.removed[1].options, listenerOptions);
     fire(t, 'keydown', { key: 'S' });
     assert.equal(keys.s, undefined);
   }
@@ -44,12 +54,17 @@ function main() {
   {
     const t = target();
     const seen = [];
+    const listenerOptions = { passive: true };
     const cleanup = events.bindPointer({
       target: t,
+      listenerOptions,
       onMove: point => seen.push(['move', point.x, point.y]),
       onLeave: () => seen.push(['leave']),
       onDown: point => seen.push(['down', point.x, point.y])
     });
+    assert.equal(t.listeners.mousemove[0].options, listenerOptions);
+    assert.equal(t.listeners.mouseout[0].options, listenerOptions);
+    assert.equal(t.listeners.mousedown[0].options, listenerOptions);
 
     fire(t, 'mousemove', { clientX: 12, clientY: 34 });
     fire(t, 'mousedown', { clientX: 21, clientY: 43 });
@@ -61,6 +76,10 @@ function main() {
     ]);
 
     cleanup();
+    assert.equal(t.removed.length, 3);
+    assert.equal(t.removed[0].options, listenerOptions);
+    assert.equal(t.removed[1].options, listenerOptions);
+    assert.equal(t.removed[2].options, listenerOptions);
     fire(t, 'mousemove', { clientX: 99, clientY: 88 });
     assert.equal(seen.length, 3);
   }

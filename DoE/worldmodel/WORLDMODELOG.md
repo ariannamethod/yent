@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-29 - event listener boundary
+
+- Shared browser listener binding now uses named internal inputs instead of a
+  positional target/type/handler/options tuple.
+- Key and pointer bindings preserve `listenerOptions` through both add and
+  remove, keeping cleanup symmetric.
+- Page surfaces keep the same `bindKeyState` and `bindPointer` API.
+
 ## 2026-07-29 - text tape boundary
 
 - Token tape append now takes named `{ tape, text, limit }` inputs.

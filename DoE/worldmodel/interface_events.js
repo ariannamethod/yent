@@ -12,17 +12,26 @@
     return target;
   }
 
-  function cleanupFor(target, type, handler, options) {
+  function cleanupFor(options) {
+    const target = options.target;
+    const type = options.type;
+    const handler = options.handler;
+    const listenerOptions = options.listenerOptions;
     return function cleanup() {
       if (target && typeof target.removeEventListener === 'function') {
-        target.removeEventListener(type, handler, options);
+        target.removeEventListener(type, handler, listenerOptions);
       }
     };
   }
 
-  function bind(target, type, handler, options, cleanups) {
-    target.addEventListener(type, handler, options);
-    cleanups.push(cleanupFor(target, type, handler, options));
+  function bindListener(options) {
+    const target = options.target;
+    const type = options.type;
+    const handler = options.handler;
+    const listenerOptions = options.listenerOptions;
+    const cleanups = options.cleanups;
+    target.addEventListener(type, handler, listenerOptions);
+    cleanups.push(cleanupFor({ target, type, handler, listenerOptions }));
   }
 
   function makeCleanup(cleanups) {
@@ -44,18 +53,31 @@
     if (!keys) throw new Error('interface key state target missing');
     const target = requireTarget(resolveTarget(options));
     const ignore = typeof options.ignore === 'function' ? options.ignore : () => false;
+    const listenerOptions = options.listenerOptions;
     const cleanups = [];
 
-    bind(target, 'keydown', event => {
-      if (ignore(event)) return;
-      const key = keyName(event);
-      if (key) keys[key] = true;
-    }, undefined, cleanups);
+    bindListener({
+      target,
+      type: 'keydown',
+      handler: event => {
+        if (ignore(event)) return;
+        const key = keyName(event);
+        if (key) keys[key] = true;
+      },
+      listenerOptions,
+      cleanups
+    });
 
-    bind(target, 'keyup', event => {
-      const key = keyName(event);
-      if (key) keys[key] = false;
-    }, undefined, cleanups);
+    bindListener({
+      target,
+      type: 'keyup',
+      handler: event => {
+        const key = keyName(event);
+        if (key) keys[key] = false;
+      },
+      listenerOptions,
+      cleanups
+    });
 
     return makeCleanup(cleanups);
   }
@@ -69,16 +91,35 @@
   function bindPointer(options) {
     options = options || {};
     const target = requireTarget(resolveTarget(options));
+    const listenerOptions = options.listenerOptions;
     const cleanups = [];
 
     if (typeof options.onMove === 'function') {
-      bind(target, 'mousemove', event => options.onMove(pointerPoint(event), event), undefined, cleanups);
+      bindListener({
+        target,
+        type: 'mousemove',
+        handler: event => options.onMove(pointerPoint(event), event),
+        listenerOptions,
+        cleanups
+      });
     }
     if (typeof options.onLeave === 'function') {
-      bind(target, 'mouseout', event => options.onLeave(event), undefined, cleanups);
+      bindListener({
+        target,
+        type: 'mouseout',
+        handler: event => options.onLeave(event),
+        listenerOptions,
+        cleanups
+      });
     }
     if (typeof options.onDown === 'function') {
-      bind(target, 'mousedown', event => options.onDown(pointerPoint(event), event), undefined, cleanups);
+      bindListener({
+        target,
+        type: 'mousedown',
+        handler: event => options.onDown(pointerPoint(event), event),
+        listenerOptions,
+        cleanups
+      });
     }
 
     return makeCleanup(cleanups);
