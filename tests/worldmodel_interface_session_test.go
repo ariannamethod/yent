@@ -855,8 +855,16 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(eventsJS, "function bindKeyState") ||
 		!strings.Contains(eventsJS, "function bindPointer") ||
 		!strings.Contains(eventsJS, "resolveTarget(options)") ||
-		!strings.Contains(eventsJS, "addEventListener") {
+		!strings.Contains(eventsJS, "addEventListener") ||
+		!strings.Contains(eventsJS, "function bindListener(options)") ||
+		!strings.Contains(eventsJS, "listenerOptions") {
 		t.Fatalf("interface_events.js does not own shared browser input event binding")
+	}
+	if strings.Contains(eventsJS, "function cleanupFor(target") ||
+		strings.Contains(eventsJS, "function bind(target") ||
+		strings.Contains(eventsJS, "bind(target, 'keydown'") ||
+		strings.Contains(eventsJS, "bind(target, 'mousemove'") {
+		t.Fatalf("interface_events.js still exposes positional listener binding arguments")
 	}
 	if strings.Contains(canvasJS, "options.window") ||
 		strings.Contains(eventsJS, "options.window") ||

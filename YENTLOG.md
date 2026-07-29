@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-29 - interface event listener boundary
+
+- `interface_events.js` now binds and removes browser listeners through named
+  `{ target, type, handler, listenerOptions, cleanups }` inputs internally.
+- `bindKeyState` and `bindPointer` preserve listener options through cleanup,
+  so capture/passive wiring cannot silently drift between add/remove.
+- The public page contract stays unchanged; this only tightens the shared event
+  helper's internal resource boundary.
+
 ## 2026-07-29 - interface text tape boundary
 
 - `interfaceText.appendTape` no longer accepts positional tape/text/limit
