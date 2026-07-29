@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-29 - interface composer binding boundary
+
+- `generationRun.bindComposer` no longer accepts positional form/input/submit
+  handler arguments.
+- `interfaceBoot` now binds composer submission through named
+  `{ form, input, onSubmit }` inputs.
+- The interface contract rejects the old positional composer binding path.
+
 ## 2026-07-29 - interface HUD render boundary
 
 - `interfaceHud.render` no longer accepts positional HUD cells and state.

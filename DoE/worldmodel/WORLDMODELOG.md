@@ -2,6 +2,15 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-29 - composer binding boundary
+
+- The generation-run composer hook now accepts named
+  `{ form, input, onSubmit }` inputs.
+- Boot remains the single shared place that binds submit events; the page
+  surfaces do not regain local generation-run state.
+- This closes another positional UI resource path before deeper worldmodel
+  wiring resumes.
+
 ## 2026-07-29 - HUD render boundary
 
 - HUD rendering no longer accepts positional cells/state arguments.

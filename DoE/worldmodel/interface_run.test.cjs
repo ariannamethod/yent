@@ -76,7 +76,7 @@ function form() {
   const submitted = [];
   let prevented = 0;
 
-  run.bindComposer(f, input, text => submitted.push(text));
+  run.bindComposer({ form: f, input, onSubmit: text => submitted.push(text) });
   f.handler({ preventDefault: () => { prevented++; } });
   assert.strictEqual(prevented, 1);
   assert.deepStrictEqual(submitted, ['hello Yent']);
@@ -96,7 +96,7 @@ function form() {
   const submitted = [];
   let prevented = 0;
 
-  run.bindComposer(f, input, text => submitted.push(text));
+  run.bindComposer({ form: f, input, onSubmit: text => submitted.push(text) });
   const current = run.begin();
   f.handler({ preventDefault: () => { prevented++; } });
   assert.strictEqual(prevented, 1);
@@ -104,4 +104,12 @@ function form() {
   assert.strictEqual(input.value, 'do not submit');
   assert.strictEqual(current.controller.aborted, 1);
   run.finish(current);
+}
+
+{
+  const run = runHelper.create({ button: button(), AbortController: FakeAbortController });
+  assert.throws(() => run.bindComposer(form(), { value: '' }, () => {}), /must be passed as \{ form, input, onSubmit \}/);
+  assert.throws(() => run.bindComposer({ input: { value: '' }, onSubmit() {} }), /composer form unavailable/);
+  assert.throws(() => run.bindComposer({ form: form(), onSubmit() {} }), /composer input unavailable/);
+  assert.throws(() => run.bindComposer({ form: form(), input: { value: '' } }), /composer submit handler unavailable/);
 }

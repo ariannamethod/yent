@@ -10,11 +10,11 @@ function main() {
     const generate = () => {};
     const generationRun = {
       isRunning: () => false,
-      bindComposer(form, input, handler) {
+      bindComposer(options) {
         calls.push('composer');
-        assert.equal(form, composer);
-        assert.equal(input, promptInput);
-        assert.equal(handler, generate);
+        assert.equal(options.form, composer);
+        assert.equal(options.input, promptInput);
+        assert.equal(options.onSubmit, generate);
       }
     };
     const timer = () => {};
