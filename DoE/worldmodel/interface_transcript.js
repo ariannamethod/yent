@@ -15,6 +15,16 @@
     return output;
   }
 
+  function hasContainer(value) {
+    return !!value && typeof value.appendChild === 'function';
+  }
+
+  function rejectBareContainer(value) {
+    if (hasContainer(value)) {
+      throw new Error('transcript container must be passed as { container }');
+    }
+  }
+
   function labelFor(role, labels) {
     const table = labels || {};
     if (Object.prototype.hasOwnProperty.call(table, role)) return String(table[role]);
@@ -22,11 +32,13 @@
     return text.toUpperCase();
   }
 
-  function appendTurn(container, options) {
+  function appendTurn(options) {
+    rejectBareContainer(options);
     options = options || {};
+    const container = options.container;
     const documentRef = requireDocument(options.document || root.document);
     const output = requireOutput(options.interfaceOutput || root.YentInterfaceOutput);
-    if (!container || typeof container.appendChild !== 'function') {
+    if (!hasContainer(container)) {
       throw new Error('transcript container missing');
     }
 
@@ -49,7 +61,10 @@
     return body;
   }
 
-  function clear(container, options) {
+  function clear(options) {
+    rejectBareContainer(options);
+    options = options || {};
+    const container = options.container;
     if (!container) return;
     const output = requireOutput((options && options.interfaceOutput) || root.YentInterfaceOutput);
     output.setText(container, '');
