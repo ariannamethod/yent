@@ -43,7 +43,13 @@
     });
   }
 
-  function outcome(error, responseText) {
+  function outcome(options) {
+    if (options instanceof Error || typeof options === 'string') {
+      throw new Error('chat outcome inputs must be passed as { error, responseText }');
+    }
+    options = options || {};
+    const error = options.error || null;
+    const responseText = options.responseText;
     const text = typeof responseText === 'string' ? responseText : '';
     const hasText = text.trim().length > 0;
     if (!error) {
