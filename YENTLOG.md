@@ -6,6 +6,16 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-30 - interface boot resize boundary
+
+- `interfaceBoot` no longer binds resize listeners through positional
+  `options, resize` plumbing.
+- Resize binding now uses named `{ resizeTarget, resize, listenerOptions }`
+  inputs and preserves optional listener options through the browser listener
+  call.
+- Startup order is unchanged: restore, resize, bind resize, bind composer,
+  start animation, then replay autostart.
+
 ## 2026-07-29 - interface event listener boundary
 
 - `interface_events.js` now binds and removes browser listeners through named
