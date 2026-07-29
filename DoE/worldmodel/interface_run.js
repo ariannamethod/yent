@@ -50,7 +50,18 @@
       return true;
     }
 
-    function bindComposer(form, input, onSubmit) {
+    function looksLikeForm(value) {
+      return !!value && typeof value.addEventListener === 'function';
+    }
+
+    function bindComposer(options) {
+      if (looksLikeForm(options)) {
+        throw new Error('composer binding inputs must be passed as { form, input, onSubmit }');
+      }
+      options = options || {};
+      const form = options.form;
+      const input = options.input;
+      const onSubmit = options.onSubmit;
       if (!form || typeof form.addEventListener !== 'function') {
         throw new Error('composer form unavailable');
       }

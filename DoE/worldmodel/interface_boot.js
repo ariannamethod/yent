@@ -31,11 +31,11 @@
     if (!generationRun || typeof generationRun.bindComposer !== 'function') {
       throw new Error('YentInterfaceRun composer binding unavailable');
     }
-    generationRun.bindComposer(
-      options.composer,
-      options.promptInput,
-      requireFunction(options.generate, 'interface generate')
-    );
+    generationRun.bindComposer({
+      form: options.composer,
+      input: options.promptInput,
+      onSubmit: requireFunction(options.generate, 'interface generate')
+    });
   }
 
   function start(options) {

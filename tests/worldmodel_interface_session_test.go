@@ -73,6 +73,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	turnJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_turn.js"))
 	submitJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_submit.js"))
 	outcomeJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_outcome.js"))
+	runJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_run.js"))
 	bootJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_boot.js"))
 	animationJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_animation.js"))
 	canvasJS := readTextFile(t, filepath.Join(root, "DoE", "worldmodel", "interface_canvas.js"))
@@ -841,8 +842,15 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	}
 	if !strings.Contains(bootJS, "function bindComposer") ||
 		!strings.Contains(bootJS, "generationRun.bindComposer(") ||
+		!strings.Contains(bootJS, "form: options.composer") ||
+		!strings.Contains(bootJS, "input: options.promptInput") ||
+		!strings.Contains(bootJS, "onSubmit: requireFunction(options.generate") ||
 		!strings.Contains(bootJS, "bindComposer(options)") {
 		t.Fatalf("interface_boot.js does not own shared composer listener binding")
+	}
+	if strings.Contains(runJS, "function bindComposer(form") ||
+		strings.Contains(bootJS, "generationRun.bindComposer(\n      options.composer") {
+		t.Fatalf("interface_run.js still exposes positional composer binding arguments")
 	}
 	if !strings.Contains(animationJS, "function create") ||
 		!strings.Contains(animationJS, "requestAnimationFrame") ||
