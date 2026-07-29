@@ -15,14 +15,16 @@ function makeSurface() {
 }
 
 {
-  assert.equal(canvas.pixelRatio({ devicePixelRatio: 3 }, 2), 2);
-  assert.equal(canvas.pixelRatio({ devicePixelRatio: 0 }, 2), 1);
-  assert.equal(canvas.pixelRatio({}, 2), 1);
+  assert.equal(canvas.pixelRatio({ viewport: { devicePixelRatio: 3 }, maxDpr: 2 }), 2);
+  assert.equal(canvas.pixelRatio({ viewport: { devicePixelRatio: 0 }, maxDpr: 2 }), 1);
+  assert.equal(canvas.pixelRatio({ viewport: {}, maxDpr: 2 }), 1);
+  assert.throws(() => canvas.pixelRatio({ devicePixelRatio: 3 }, 2), /viewport must be passed as \{ viewport \}/);
 }
 
 {
-  const vp = canvas.viewport({ innerWidth: 1200, innerHeight: 800, devicePixelRatio: 1.5 });
+  const vp = canvas.viewport({ viewport: { innerWidth: 1200, innerHeight: 800, devicePixelRatio: 1.5 } });
   assert.deepEqual(vp, { width: 1200, height: 800, dpr: 1.5 });
+  assert.throws(() => canvas.viewport({ innerWidth: 1200, innerHeight: 800 }), /viewport must be passed as \{ viewport \}/);
 }
 
 {

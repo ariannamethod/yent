@@ -2,6 +2,15 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-29 - canvas viewport boundary
+
+- Canvas viewport and DPR helpers no longer accept bare viewport/window
+  objects.
+- Tests name viewport injection as `{ viewport, maxDpr }`; page resize still
+  uses the shared helper's default browser state.
+- This removes another old positional browser-target seam from the interface
+  helpers.
+
 ## 2026-07-29 - transcript container boundary
 
 - Transcript rendering no longer accepts a bare container argument.
