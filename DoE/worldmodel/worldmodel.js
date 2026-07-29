@@ -496,11 +496,11 @@ function animate(frameNow) {
 }
 
 function setStatus(text) {
-  interfaceStatus.setText(statusLabels.note, text);
+  interfaceStatus.setText({ target: statusLabels.note, text });
 }
 
 function setManifestState(text, active) {
-  interfaceStatus.setManifest(statusLabels, text, active);
+  interfaceStatus.setManifest({ labels: statusLabels, text, active });
 }
 
 function setManifestText(text) {

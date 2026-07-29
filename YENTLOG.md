@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-29 - interface status writer boundary
+
+- `interfaceStatus.setText`, `setActive`, and `setManifest` no longer accept
+  positional target/label arguments.
+- JANUS and WORLD now write status state through named
+  `{ target, text }`, `{ target, active }`, and `{ labels, text, active }`
+  objects.
+- The interface contract rejects the old positional status writer path.
+
 ## 2026-07-29 - interface output writer boundary
 
 - `interfaceOutput.setText`, `scrollBottom`, and `setTextAndScroll` no longer

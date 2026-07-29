@@ -29,19 +29,49 @@
     };
   }
 
-  function setText(target, text) {
+  function looksLikeStatusTarget(value) {
+    return !!value && (
+      typeof value.textContent === 'string' ||
+      !!value.dataset
+    );
+  }
+
+  function looksLikeStatusLabels(value) {
+    return !!value && (
+      Object.prototype.hasOwnProperty.call(value, 'manifest') ||
+      Object.prototype.hasOwnProperty.call(value, 'shell')
+    ) && !Object.prototype.hasOwnProperty.call(value, 'labels');
+  }
+
+  function setText(options) {
+    if (looksLikeStatusTarget(options)) {
+      throw new Error('YentInterfaceStatus text inputs must be passed as { target, text }');
+    }
+    options = options || {};
+    const target = options.target;
+    const text = options.text;
     if (target) target.textContent = text == null ? '' : String(text);
   }
 
-  function setActive(target, active) {
+  function setActive(options) {
+    if (looksLikeStatusTarget(options)) {
+      throw new Error('YentInterfaceStatus active inputs must be passed as { target, active }');
+    }
+    options = options || {};
+    const target = options.target;
+    const active = options.active;
     if (!target || !target.dataset || typeof active !== 'boolean') return;
     target.dataset.active = active ? 'true' : 'false';
   }
 
-  function setManifest(labels, text, active) {
-    labels = labels || {};
-    setText(labels.manifest, text);
-    setActive(labels.shell, active);
+  function setManifest(options) {
+    if (looksLikeStatusLabels(options)) {
+      throw new Error('YentInterfaceStatus manifest inputs must be passed as { labels, text, active }');
+    }
+    options = options || {};
+    const labels = options.labels || {};
+    setText({ target: labels.manifest, text: options.text });
+    setActive({ target: labels.shell, active: options.active });
   }
 
   const api = { bind, setText, setActive, setManifest };
