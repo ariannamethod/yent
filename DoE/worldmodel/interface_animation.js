@@ -10,7 +10,12 @@
   function create(options) {
     const frameRequest = frameRequestFor(options);
 
-    function requestFrame(callback) {
+    function requestFrame(options) {
+      if (typeof options === 'function') {
+        throw new Error('animation frame callback must be passed as { callback }');
+      }
+      options = options || {};
+      const callback = options.callback;
       if (typeof callback !== 'function') throw new Error('animation frame callback unavailable');
       return frameRequest(callback);
     }

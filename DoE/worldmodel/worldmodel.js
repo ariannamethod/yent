@@ -469,7 +469,7 @@ function tickCamera(dt) {
 }
 
 function animate(frameNow) {
-  animationFrame.requestFrame(animate);
+  animationFrame.requestFrame({ callback: animate });
   const now = tokenClock.now(frameNow);
   const dt = Math.min(0.05, (now - lastFrame) / 1000);
   lastFrame = now;
@@ -608,7 +608,7 @@ interfaceBoot.start({
   restore: restoreInterfaceSession,
   resize,
   composer,
-  startAnimation: () => animationFrame.start(animate),
+  startAnimation: () => animationFrame.start({ callback: animate }),
   interfaceReplay,
   replayMode,
   replayRequest,

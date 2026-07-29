@@ -291,9 +291,13 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		assertInterfaceBootStartOptions(t, tc.name, tc.src)
 		if !strings.Contains(tc.src, "deps.interfaceAnimation") ||
 			!strings.Contains(tc.src, "interfaceAnimation.create(") ||
-			!strings.Contains(tc.src, "animationFrame.requestFrame(") ||
-			!strings.Contains(tc.src, "animationFrame.start(") {
+			!strings.Contains(tc.src, "animationFrame.requestFrame({ callback: animate })") ||
+			!strings.Contains(tc.src, "animationFrame.start({ callback: animate })") {
 			t.Fatalf("%s does not schedule animation frames through interface_animation", tc.name)
+		}
+		if strings.Contains(tc.src, "animationFrame.requestFrame(animate)") ||
+			strings.Contains(tc.src, "animationFrame.start(animate)") {
+			t.Fatalf("%s still exposes positional animation callback scheduling", tc.name)
 		}
 		if strings.Contains(tc.src, "requestAnimationFrame(") {
 			t.Fatalf("%s still schedules animation frames locally", tc.name)

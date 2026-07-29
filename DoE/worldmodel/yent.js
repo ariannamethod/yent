@@ -466,7 +466,7 @@ function drawFieldHaze(scene) {
 }
 
 function animate() {
-  animationFrame.requestFrame(animate);
+  animationFrame.requestFrame({ callback: animate });
   time += 0.016;
   state.sidePulse *= 0.96;
   if (!generationRun.isRunning()) {
@@ -592,7 +592,7 @@ interfaceBoot.start({
   restore: restoreInterfaceSession,
   resize,
   composer,
-  startAnimation: () => animationFrame.start(animate),
+  startAnimation: () => animationFrame.start({ callback: animate }),
   interfaceReplay,
   replayMode,
   replayRequest,
