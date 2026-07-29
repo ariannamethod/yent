@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-29 - status writer boundary
+
+- Status text, activity, and manifest writes now take named objects.
+- JANUS run-state and WORLD note/manifest-state updates no longer pass raw
+  positional DOM targets into `interfaceStatus`.
+- This keeps status mutation aligned with the named output writer contract.
+
 ## 2026-07-29 - output writer boundary
 
 - Output text and scroll writes now take named

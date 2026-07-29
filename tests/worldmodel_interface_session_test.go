@@ -429,7 +429,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		}
 		if !strings.Contains(tc.src, "deps.interfaceStatus") ||
 			!strings.Contains(tc.src, "interfaceStatus.bind(") ||
-			!strings.Contains(tc.src, "interfaceStatus.setText(") {
+			!strings.Contains(tc.src, "interfaceStatus.setText({") {
 			t.Fatalf("%s does not write status labels through interface_status", tc.name)
 		}
 		if !strings.Contains(tc.src, "deps.interfaceOutput") {
@@ -599,7 +599,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(yentJS, "interfaceDeps.load({ transcript: true })") {
 		t.Fatalf("yent.js does not request transcript rendering through interface_deps")
 	}
-	if !strings.Contains(worldJS, "interfaceStatus.setManifest(") {
+	if !strings.Contains(worldJS, "interfaceStatus.setManifest({ labels: statusLabels") {
 		t.Fatalf("worldmodel.js does not write manifest state through interface_status")
 	}
 	if !strings.Contains(yentJS, "interfaceOutput.bind({ id: 'transcript' })") {
@@ -723,6 +723,14 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(statusJS, "function setActive") ||
 		!strings.Contains(statusJS, "function setManifest") {
 		t.Fatalf("interface_status.js does not own shared status label writes")
+	}
+	if strings.Contains(statusJS, "function setText(target") ||
+		strings.Contains(statusJS, "function setActive(target") ||
+		strings.Contains(statusJS, "function setManifest(labels") ||
+		strings.Contains(yentJS, "interfaceStatus.setText(statusLabels.run") ||
+		strings.Contains(worldJS, "interfaceStatus.setText(statusLabels.note") ||
+		strings.Contains(worldJS, "interfaceStatus.setManifest(statusLabels") {
+		t.Fatalf("interface_status.js still exposes positional status writer arguments")
 	}
 	if !strings.Contains(hudJS, "function bind") ||
 		!strings.Contains(hudJS, "function render") {

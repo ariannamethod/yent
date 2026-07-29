@@ -339,7 +339,7 @@ function addTurn(role, text) {
 }
 
 function setStatus(text) {
-  interfaceStatus.setText(statusLabels.run, text);
+  interfaceStatus.setText({ target: statusLabels.run, text });
 }
 
 function restoreInterfaceSession() {
