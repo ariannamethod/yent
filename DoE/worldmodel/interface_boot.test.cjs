@@ -8,6 +8,7 @@ function main() {
     const composer = { id: 'composer' };
     const promptInput = { value: '' };
     const generate = () => {};
+    const resizeListenerOptions = { passive: true };
     const generationRun = {
       isRunning: () => false,
       bindComposer(options) {
@@ -20,10 +21,11 @@ function main() {
     const timer = () => {};
     const hadAdd = Object.prototype.hasOwnProperty.call(globalThis, 'addEventListener');
     const previousAdd = globalThis.addEventListener;
-    globalThis.addEventListener = (type, handler) => {
+    globalThis.addEventListener = (type, handler, options) => {
       calls.push(`listen:${type}`);
       assert.equal(type, 'resize');
       assert.equal(handler, resize);
+      assert.equal(options, resizeListenerOptions);
     };
     function resize() {
       calls.push('resize');
@@ -56,7 +58,8 @@ function main() {
         generationRun,
         generate,
         startDelayMs: 5,
-        setTimeout: timer
+        setTimeout: timer,
+        resizeListenerOptions
       });
     } finally {
       if (hadAdd) globalThis.addEventListener = previousAdd;

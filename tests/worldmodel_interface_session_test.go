@@ -914,8 +914,13 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	}
 	if !strings.Contains(bootJS, "addEventListener('resize'") ||
 		!strings.Contains(bootJS, "resolveResizeTarget(options)") ||
-		!strings.Contains(bootJS, "bindResize(options, resize)") {
+		!strings.Contains(bootJS, "function bindResize(options)") ||
+		!strings.Contains(bootJS, "listenerOptions: options.resizeListenerOptions") {
 		t.Fatalf("interface_boot.js does not own shared resize target lookup and listener binding")
+	}
+	if strings.Contains(bootJS, "function bindResize(options, resize)") ||
+		strings.Contains(bootJS, "bindResize(options, resize)") {
+		t.Fatalf("interface_boot.js still exposes positional resize binding arguments")
 	}
 	if !strings.Contains(bootJS, "function bindComposer") ||
 		!strings.Contains(bootJS, "generationRun.bindComposer(") ||

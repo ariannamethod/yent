@@ -18,10 +18,13 @@
     return (options && options.resizeTarget) || root;
   }
 
-  function bindResize(options, resize) {
+  function bindResize(options) {
+    options = options || {};
     const target = resolveResizeTarget(options);
+    const resize = options.resize;
+    const listenerOptions = options.listenerOptions;
     if (target && typeof target.addEventListener === 'function') {
-      target.addEventListener('resize', resize);
+      target.addEventListener('resize', resize, listenerOptions);
     }
   }
 
@@ -43,7 +46,11 @@
     requireFunction(options.restore, 'interface restore')();
     const resize = requireFunction(options.resize, 'interface resize');
     resize();
-    bindResize(options, resize);
+    bindResize({
+      resizeTarget: options.resizeTarget,
+      resize,
+      listenerOptions: options.resizeListenerOptions
+    });
     bindComposer(options);
     requireFunction(options.startAnimation, 'interface animation start')();
 

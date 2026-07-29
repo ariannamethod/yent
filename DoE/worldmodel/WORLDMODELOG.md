@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-30 - boot resize boundary
+
+- Boot resize listener binding now uses named
+  `{ resizeTarget, resize, listenerOptions }` inputs.
+- Optional resize listener options are carried into `addEventListener` without
+  reopening page-local window plumbing.
+- Boot startup order and replay behavior are unchanged.
+
 ## 2026-07-29 - event listener boundary
 
 - Shared browser listener binding now uses named internal inputs instead of a
