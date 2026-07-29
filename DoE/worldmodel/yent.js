@@ -368,7 +368,7 @@ function pushBurst(power) {
 function absorbToken(token, data) {
   if (!token) return;
   const telemetry = tokenTelemetry.normalize(data);
-  tokenTape = interfaceText.appendTape(tokenTape, token, 900);
+  tokenTape = interfaceText.appendTape({ tape: tokenTape, text: token, limit: 900 });
   const latent = candidateTapeText(telemetry);
   if (latent) latentTape = (latentTape + latent + ' ').slice(-900);
   state.tokps = tokenClock.tick();

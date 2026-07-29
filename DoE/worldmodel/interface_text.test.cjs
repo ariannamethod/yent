@@ -14,6 +14,10 @@ assert.equal(
 );
 
 assert.equal(text.tokenTapeText(null), '');
-assert.equal(text.appendTape('seed ', ' new word ', 32), 'seed _new_word_ ');
-assert.equal(text.appendTape('abcdefghijklmnopqrstuvwxyz', '', 8), 'stuvwxyz');
-assert.equal(text.appendTape('abcdefghijklmnopqrstuvwxyz', ' +tail', 12), 'vwxyz_+tail ');
+assert.equal(text.appendTape({ tape: 'seed ', text: ' new word ', limit: 32 }), 'seed _new_word_ ');
+assert.equal(text.appendTape({ tape: 'abcdefghijklmnopqrstuvwxyz', text: '', limit: 8 }), 'stuvwxyz');
+assert.equal(text.appendTape({ tape: 'abcdefghijklmnopqrstuvwxyz', text: ' +tail', limit: 12 }), 'vwxyz_+tail ');
+assert.throws(
+  () => text.appendTape('seed ', ' new word ', 32),
+  /appendTape inputs must be passed as \{ tape, text, limit \}/
+);

@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-29 - interface text tape boundary
+
+- `interfaceText.appendTape` no longer accepts positional tape/text/limit
+  arguments.
+- JANUS now appends token tape text through named `{ tape, text, limit }`
+  inputs.
+- The simple string sanitizers remain unchanged; only the stateful tape append
+  boundary was tightened.
+
 ## 2026-07-29 - chat stream outcome boundary
 
 - `YentChatStream.outcome` no longer accepts positional error/text arguments.
