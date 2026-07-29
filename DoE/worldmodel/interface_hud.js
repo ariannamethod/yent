@@ -39,6 +39,16 @@
     if (target) target.textContent = value;
   }
 
+  function hasOwn(value, key) {
+    return Object.prototype.hasOwnProperty.call(Object(value), key);
+  }
+
+  function looksLikeHud(value) {
+    if (!value || hasOwn(value, 'hud') || hasOwn(value, 'state')) return false;
+    return ['tok', 'exp', 'step', 'ent', 'debt', 'cons', 'field', 'prob', 'rank', 'tail']
+      .some(key => hasOwn(value, key));
+  }
+
   function finiteNumber(value, fallback) {
     return Number.isFinite(value) ? value : fallback;
   }
@@ -59,9 +69,13 @@
     return telemetry.metricProb(value);
   }
 
-  function render(hud, state, options) {
-    hud = hud || {};
-    state = state || {};
+  function render(options) {
+    if (looksLikeHud(options)) {
+      throw new Error('YentInterfaceHud render inputs must be passed as { hud, state }');
+    }
+    options = options || {};
+    const hud = options.hud || {};
+    const state = options.state || {};
     const hasCandidates = !!state.hasCandidateTelemetry;
     write(hud.tok, fixed(state.tokps, 1, 0));
     write(hud.exp, positiveIntegerText(state.experts));

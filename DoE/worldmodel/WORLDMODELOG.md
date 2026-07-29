@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-29 - HUD render boundary
+
+- HUD rendering no longer accepts positional cells/state arguments.
+- JANUS and WORLD pass `{ hud, state, tokenTelemetry }`, keeping selected-token
+  metrics explicit without changing their displayed values.
+- This matches the named boundary style now used by input, output, transcript,
+  replay, and canvas helpers.
+
 ## 2026-07-29 - canvas viewport boundary
 
 - Canvas viewport and DPR helpers no longer accept bare viewport/window
