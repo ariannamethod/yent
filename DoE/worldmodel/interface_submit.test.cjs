@@ -98,6 +98,23 @@ async function main() {
   {
     await assert.rejects(() => submit.run({}), /YentInterfaceRun controller helper missing/);
     await assert.rejects(
+      () => submit.run({ run: generationRun(), sessionReceipt: session(), interfaceTurn: { streamAssistant() {} } }),
+      /generation run must be passed as \{ generationRun \}/
+    );
+    await assert.rejects(
+      () => submit.run({ generationRun: generationRun(), session: session(), interfaceTurn: { streamAssistant() {} } }),
+      /session adapter must be passed as \{ sessionReceipt \}/
+    );
+    await assert.rejects(
+      () => submit.run({
+        generationRun: generationRun(),
+        sessionReceipt: session(),
+        request: { name: 'old request' },
+        interfaceTurn: { streamAssistant() {} }
+      }),
+      /replay request must be passed as \{ replayRequest \}/
+    );
+    await assert.rejects(
       () => submit.run({ generationRun: generationRun(), sessionReceipt: {}, interfaceTurn: { streamAssistant() {} } }),
       /YentInterfaceSession adapter helper missing/
     );

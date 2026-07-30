@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-30 - submit turn boundary
+
+- Submit startup now rejects the old generic `run`, `session`, and `request`
+  aliases.
+- Turn streaming now rejects the old generic `session` and `request` aliases.
+- JANUS and WORLD keep the same stream lifecycle; only the cross-helper input
+  names are tightened.
+
 ## 2026-07-30 - replay autostart boundary
 
 - Replay autostart now uses explicit `replayRequest`, `promptInput`, and
