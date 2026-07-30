@@ -864,6 +864,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(replayJS, "options.search } : root.location") {
 		t.Fatalf("interface_replay.js still accepts top-level search instead of named location")
 	}
+	if !strings.Contains(replayJS, "replay scenario name must be passed as { scenario }") ||
+		strings.Contains(replayJS, "options.scenario || options.name") {
+		t.Fatalf("interface_replay.js still accepts the generic scenario name alias")
+	}
 	if !strings.Contains(canvasJS, "devicePixelRatio") ||
 		!strings.Contains(canvasJS, "setTransform(base.dpr") ||
 		!strings.Contains(canvasJS, "canvas.width = Math.max") ||

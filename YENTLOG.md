@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-30 - interface replay scenario boundary
+
+- `interfaceReplay.play` no longer accepts the generic `name` shortcut.
+- Replay fixtures now pass their selected replay case only through explicit
+  `scenario`.
+- Replay-mode page playback is unchanged because `streamFor` already forwards
+  request names as `scenario`.
+
 ## 2026-07-30 - interface replay location boundary
 
 - `interfaceReplay.request` no longer accepts the top-level `search` shortcut.

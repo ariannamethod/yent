@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-30 - replay scenario boundary
+
+- Replay playback now rejects the old generic `name` alias.
+- Scenario selection passes only through explicit `scenario`.
+- Demo playback keeps the same selected fixture because the page bridge already
+  performs that naming step.
+
 ## 2026-07-30 - replay location boundary
 
 - Replay request parsing now rejects the old top-level `search` shortcut.
