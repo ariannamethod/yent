@@ -616,6 +616,16 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			}
 		}
 	}
+	if !strings.Contains(replayJS, "const req = options.replayRequest || {}") ||
+		strings.Contains(replayJS, "options.request ||") ||
+		strings.Contains(replayJS, "options.promptInput || options.input") ||
+		strings.Contains(replayJS, "options.generationRun || options.run") {
+		t.Fatalf("interface_replay.js still accepts generic replay autostart aliases")
+	}
+	if !strings.Contains(bootJS, "replayRequest: options.replayRequest") ||
+		strings.Contains(bootJS, "request: options.replayRequest || options.request") {
+		t.Fatalf("interface_boot.js still remaps replay autostart through a generic request alias")
+	}
 	if !strings.Contains(worldJS, "interfaceDeps.load({ worldGeometry: true })") {
 		t.Fatalf("worldmodel.js does not request worldmodel geometry through interface_deps")
 	}

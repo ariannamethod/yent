@@ -56,7 +56,7 @@
 
     return requireReplay(options).startIfRequested({
       replayMode: !!options.replayMode,
-      request: options.replayRequest || options.request,
+      replayRequest: options.replayRequest,
       promptInput: options.promptInput,
       generationRun: options.generationRun,
       generate: options.generate,

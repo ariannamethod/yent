@@ -33,7 +33,8 @@ function main() {
     const replay = {
       startIfRequested(options) {
         calls.push('replay');
-        assert.deepEqual(options.request, replayRequest);
+        assert.deepEqual(options.replayRequest, replayRequest);
+        assert.equal(Object.prototype.hasOwnProperty.call(options, 'request'), false);
         assert.equal(options.replayMode, true);
         assert.equal(options.promptInput, promptInput);
         assert.equal(options.generationRun, generationRun);

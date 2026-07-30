@@ -2,6 +2,15 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-30 - replay autostart boundary
+
+- Replay autostart now uses explicit `replayRequest`, `promptInput`, and
+  `generationRun` inputs.
+- Generic `request`, `input`, and `run` aliases are no longer accepted by the
+  replay helper.
+- JANUS and WORLD keep the same boot order; this only tightens the startup
+  handoff surface.
+
 ## 2026-07-30 - boot resize boundary
 
 - Boot resize listener binding now uses named

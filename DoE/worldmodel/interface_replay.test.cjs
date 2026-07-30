@@ -106,7 +106,7 @@ async function main() {
   const run = { isRunning: () => false };
   const started = replay.startIfRequested({
     replayMode: true,
-    request: { prompt: 'manifest boundary' },
+    replayRequest: { prompt: 'manifest boundary' },
     promptInput: input,
     generationRun: run,
     generate: text => generated.push(text),
@@ -131,7 +131,7 @@ async function main() {
   const run = { isRunning: () => true };
   replay.startIfRequested({
     replayMode: true,
-    request: { prompt: 'do not start yet' },
+    replayRequest: { prompt: 'do not start yet' },
     promptInput: input,
     generationRun: run,
     generate: text => generated.push(text),
@@ -146,6 +146,36 @@ async function main() {
 
 {
   assert.equal(replay.startIfRequested({ replayMode: false }), false);
+  assert.throws(
+    () => replay.startIfRequested({
+      replayMode: true,
+      request: { prompt: 'old generic alias' },
+      promptInput: { value: '' },
+      generationRun: { isRunning: () => false },
+      generate() {}
+    }),
+    /replay request must be passed as \{ replayRequest \}/
+  );
+  assert.throws(
+    () => replay.startIfRequested({
+      replayMode: true,
+      replayRequest: { prompt: 'old input alias' },
+      input: { value: '' },
+      generationRun: { isRunning: () => false },
+      generate() {}
+    }),
+    /replay prompt input must be passed as \{ promptInput \}/
+  );
+  assert.throws(
+    () => replay.startIfRequested({
+      replayMode: true,
+      replayRequest: { prompt: 'old run alias' },
+      promptInput: { value: '' },
+      run: { isRunning: () => false },
+      generate() {}
+    }),
+    /generation run must be passed as \{ generationRun \}/
+  );
   assert.throws(() => replay.startIfRequested({ replayMode: true }), /replay prompt input unavailable/);
   assert.throws(
     () => replay.startIfRequested({ replayMode: true, promptInput: { value: '' } }),
