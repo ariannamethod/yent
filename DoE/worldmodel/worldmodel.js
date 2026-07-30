@@ -47,9 +47,11 @@ const replayMode = replayRequest.enabled;
 const sessionReceipt = interfaceSession.createAdapter({ replayMode });
 const hud = interfaceHud.bind();
 const statusLabels = interfaceStatus.bind({
-  note: 'status-note',
-  manifest: 'manifest-state',
-  shell: 'manifest-shell'
+  ids: {
+    note: 'status-note',
+    manifest: 'manifest-state',
+    shell: 'manifest-shell'
+  }
 });
 const fonts = interfaceStyle.create();
 const animationFrame = interfaceAnimation.create();

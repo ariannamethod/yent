@@ -79,7 +79,7 @@ function main() {
     const doc = documentWith(['custom-tok']);
     globalThis.document = doc;
     try {
-      const cells = hud.bind({ tok: 'custom-tok' });
+      const cells = hud.bind({ ids: { tok: 'custom-tok' } });
       hud.render({ hud: cells, state: { tokps: 2.25 } });
       assert.equal(doc.nodes['custom-tok'].textContent, '2.3');
     } finally {
@@ -90,6 +90,8 @@ function main() {
 
   {
     assert.throws(() => hud.bind(documentWith(['hud-prob'])), /document must be passed as \{ document \}/);
+    assert.throws(() => hud.bind({ tok: 'custom-tok' }), /ids must be passed as \{ ids \}/);
+    assert.throws(() => hud.bind({ exp: 'custom-exp' }), /ids must be passed as \{ ids \}/);
     assert.throws(() => hud.render(hud.bind({ document: documentWith(['hud-prob']) }), { hasCandidateTelemetry: false }), /render inputs must be passed as \{ hud, state \}/);
     assert.doesNotThrow(() => hud.render({ hud: {}, state: { hasCandidateTelemetry: false } }));
     assert.throws(

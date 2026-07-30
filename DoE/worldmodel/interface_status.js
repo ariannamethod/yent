@@ -14,13 +14,24 @@
     return documentRef.getElementById(id);
   }
 
+  function hasOwn(value, key) {
+    return Object.prototype.hasOwnProperty.call(Object(value), key);
+  }
+
+  function rejectsDirectIds(options) {
+    return ['run', 'note', 'manifest', 'shell'].some(key => hasOwn(options, key));
+  }
+
   function bind(options) {
     if (hasDocument(options)) {
       throw new Error('YentInterfaceStatus document must be passed as { document }');
     }
     options = options || {};
     const documentRef = options.document || defaultDocument();
-    const ids = options.ids || options;
+    if (rejectsDirectIds(options)) {
+      throw new Error('YentInterfaceStatus ids must be passed as { ids }');
+    }
+    const ids = options.ids || {};
     return {
       run: element(documentRef, ids.run),
       note: element(documentRef, ids.note),

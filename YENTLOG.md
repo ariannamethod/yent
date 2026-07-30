@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-30 - interface visual ids boundary
+
+- `interfaceHud.bind` and `interfaceStatus.bind` no longer accept direct id
+  aliases on the options object.
+- Custom HUD/status ids now pass only through explicit `ids`.
+- JANUS and WORLD status bindings use the named id contract; default HUD ids
+  remain unchanged.
+
 ## 2026-07-30 - interface input control boundary
 
 - `interfaceInput.bindControls` no longer accepts direct `composer`, `prompt`,

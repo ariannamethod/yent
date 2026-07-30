@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-30 - visual ids boundary
+
+- HUD and status binding helpers now accept custom element ids only through
+  `ids`.
+- Direct id aliases on helper options are rejected.
+- Default HUD binding and page behavior stay unchanged; status labels now use
+  the same named id contract as input controls.
+
 ## 2026-07-30 - input control boundary
 
 - Input control binding now accepts custom element ids only through `ids`.

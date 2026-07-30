@@ -54,8 +54,10 @@ function main() {
     globalThis.document = defaultDocument;
     try {
       const defaultLabels = status.bind({
-        run: 'run-state',
-        shell: 'manifest-shell'
+        ids: {
+          run: 'run-state',
+          shell: 'manifest-shell'
+        }
       });
       status.setText({ target: defaultLabels.run, text: 'DEFAULT' });
       status.setActive({ target: defaultLabels.shell, active: true });
@@ -66,6 +68,9 @@ function main() {
       else delete globalThis.document;
     }
   }
+
+  assert.throws(() => status.bind({ run: 'run-state' }), /ids must be passed as \{ ids \}/);
+  assert.throws(() => status.bind({ manifest: 'manifest-state' }), /ids must be passed as \{ ids \}/);
 }
 
 main();
