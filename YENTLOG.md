@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-30 - interface replay location boundary
+
+- `interfaceReplay.request` no longer accepts the top-level `search` shortcut.
+- Replay query injection now passes only through explicit `location`; the page
+  default still reads `root.location`.
+- Demo/replay behavior is unchanged for real page URLs and explicit test
+  locations.
+
 ## 2026-07-30 - interface visual ids boundary
 
 - `interfaceHud.bind` and `interfaceStatus.bind` no longer accept direct id

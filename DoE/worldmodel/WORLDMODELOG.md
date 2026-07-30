@@ -2,6 +2,12 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-30 - replay location boundary
+
+- Replay request parsing now rejects the old top-level `search` shortcut.
+- Explicit `location` is the only supported injected URL/search source.
+- Browser default replay detection still comes from `root.location`.
+
 ## 2026-07-30 - visual ids boundary
 
 - HUD and status binding helpers now accept custom element ids only through

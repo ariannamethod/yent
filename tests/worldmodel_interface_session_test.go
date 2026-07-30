@@ -859,6 +859,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if strings.Contains(replayJS, "function request(location)") {
 		t.Fatalf("interface_replay.js still exposes positional replay request location")
 	}
+	if !strings.Contains(replayJS, "replay request search must be passed as { location }") ||
+		strings.Contains(replayJS, "hasOwn(options, 'search') ?") ||
+		strings.Contains(replayJS, "options.search } : root.location") {
+		t.Fatalf("interface_replay.js still accepts top-level search instead of named location")
+	}
 	if !strings.Contains(canvasJS, "devicePixelRatio") ||
 		!strings.Contains(canvasJS, "setTransform(base.dpr") ||
 		!strings.Contains(canvasJS, "canvas.width = Math.max") ||
