@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-30 - interface input control boundary
+
+- `interfaceInput.bindControls` no longer accepts direct `composer`, `prompt`,
+  or `send` aliases.
+- Custom DOM ids now pass only through explicit `ids`.
+- Focus checks now pass the active control through explicit `control`; the
+  WORLD key listener no longer calls the helper positionally.
+
 ## 2026-07-30 - interface session replay mode boundary
 
 - `interfaceSession.createAdapter` no longer accepts the generic `replay`

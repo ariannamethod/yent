@@ -81,9 +81,11 @@ function docElements(elements) {
   globalThis.document = docElements({ ask: composer, words: promptInput, go: sendButton });
   try {
     assert.deepEqual(input.bindControls({
-      composer: 'ask',
-      prompt: 'words',
-      send: 'go'
+      ids: {
+        composer: 'ask',
+        prompt: 'words',
+        send: 'go'
+      }
     }), { composer, promptInput, sendButton });
   } finally {
     if (hadDocument) globalThis.document = previousDocument;
@@ -94,6 +96,9 @@ function docElements(elements) {
 {
   assert.throws(() => input.bindControls(null), /document unavailable/);
   assert.throws(() => input.bindControls(docElements({})), /document must be passed as \{ document \}/);
+  assert.throws(() => input.bindControls({ composer: 'ask' }), /control ids must be passed as \{ ids \}/);
+  assert.throws(() => input.bindControls({ prompt: 'words' }), /control ids must be passed as \{ ids \}/);
+  assert.throws(() => input.bindControls({ send: 'go' }), /control ids must be passed as \{ ids \}/);
   assert.throws(() => input.bindControls({ document: docElements({}) }), /composer control unavailable: composer/);
   assert.throws(() => input.bindControls({ document: docElements({
     composer: {},
@@ -203,8 +208,9 @@ function docElements(elements) {
   const promptInput = { value: '' };
   globalThis.document = { activeElement: promptInput };
   try {
-    assert.equal(input.isFocused(promptInput), true);
-    assert.equal(input.isFocused({ value: '' }), false);
+    assert.equal(input.isFocused({ control: promptInput }), true);
+    assert.equal(input.isFocused({ control: { value: '' } }), false);
+    assert.throws(() => input.isFocused(promptInput), /focus control must be passed as \{ control \}/);
   } finally {
     if (hadDocument) globalThis.document = previousDocument;
     else delete globalThis.document;

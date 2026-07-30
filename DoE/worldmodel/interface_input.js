@@ -36,11 +36,10 @@
 
   function bindIds(options) {
     if (!options || typeof options !== 'object') return {};
-    return options.ids || {
-      composer: options.composer,
-      prompt: options.prompt,
-      send: options.send
-    };
+    if (hasOwn(options, 'composer') || hasOwn(options, 'prompt') || hasOwn(options, 'send')) {
+      throw new Error('YentInterfaceInput control ids must be passed as { ids }');
+    }
+    return options.ids || {};
   }
 
   function elementValue(documentRef, id) {
@@ -85,9 +84,11 @@
 
   function isFocused(options) {
     requireNamedDocument(options);
-    const named = options && typeof options === 'object' && hasOwn(options, 'control');
-    const doc = named ? optionDocument(options) : defaultDocument();
-    const target = named ? options.control : options;
+    if (options && typeof options === 'object' && !hasOwn(options, 'control') && !hasOwn(options, 'document')) {
+      throw new Error('YentInterfaceInput focus control must be passed as { control }');
+    }
+    const doc = optionDocument(options || {});
+    const target = options && typeof options === 'object' ? options.control : null;
     return !!doc && !!target && doc.activeElement === target;
   }
 

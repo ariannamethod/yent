@@ -366,7 +366,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if !strings.Contains(tc.src, "interfaceInput.bindControls()") {
 			t.Fatalf("%s does not bind shared prompt controls through interface_input", tc.name)
 		}
-		if tc.name == "worldmodel.js" && !strings.Contains(tc.src, "interfaceInput.isFocused(promptInput)") {
+		if tc.name == "worldmodel.js" && !strings.Contains(tc.src, "interfaceInput.isFocused({ control: promptInput })") {
 			t.Fatalf("worldmodel.js does not test prompt focus through interface_input")
 		}
 		if strings.Contains(tc.src, "document.activeElement") {
@@ -800,8 +800,15 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if strings.Contains(inputJS, "function bindControls(documentRef") ||
 		strings.Contains(inputJS, "function readParams(documentRef") ||
 		strings.Contains(inputJS, "function isFocused(documentRef") ||
-		strings.Contains(inputJS, "arguments.length") {
-		t.Fatalf("interface_input.js still exposes positional document arguments")
+		strings.Contains(inputJS, "arguments.length") ||
+		strings.Contains(inputJS, "composer: options.composer") ||
+		strings.Contains(inputJS, "prompt: options.prompt") ||
+		strings.Contains(inputJS, "send: options.send") ||
+		strings.Contains(worldJS, "interfaceInput.isFocused(promptInput)") {
+		t.Fatalf("interface_input.js still exposes positional or generic control arguments")
+	}
+	if !strings.Contains(worldJS, "interfaceInput.isFocused({ control: promptInput })") {
+		t.Fatalf("worldmodel.js does not pass focus control through the named input helper contract")
 	}
 	if !strings.Contains(textJS, "function appendTape(options)") ||
 		!strings.Contains(textJS, "options.tape") ||
