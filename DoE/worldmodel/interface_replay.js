@@ -121,9 +121,10 @@
       throw new Error('replay request location must be passed as { location }');
     }
     options = options || {};
-    const location = hasOwn(options, 'location')
-      ? options.location
-      : (hasOwn(options, 'search') ? { search: options.search } : root.location);
+    if (hasOwn(options, 'search')) {
+      throw new Error('replay request search must be passed as { location }');
+    }
+    const location = hasOwn(options, 'location') ? options.location : root.location;
     const params = paramsFor(location);
     const enabled = enabledFlag(params, 'replay') || enabledFlag(params, 'demo');
     const name = scenarioName(params.get('fixture') || params.get('scenario'));

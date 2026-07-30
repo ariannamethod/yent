@@ -25,7 +25,11 @@ async function main() {
 }
 
 {
-  const req = replay.request({ search: '?demo=1&delay=0' });
+  assert.throws(
+    () => replay.request({ search: '?demo=1&delay=0' }),
+    /replay request search must be passed as \{ location \}/
+  );
+  const req = replay.request({ location: { search: '?demo=1&delay=0' } });
   assert.equal(req.enabled, true);
   assert.equal(req.delayMs, 0);
 }
