@@ -42,4 +42,12 @@ const restore = require('./interface_restore.js');
   assert.equal(result.combinedText, 'only user');
 }
 
+assert.throws(
+  () => restore.load({ session: { load: () => [] } }),
+  /session adapter must be passed as \{ sessionReceipt \}/
+);
+assert.throws(
+  () => restore.load({ replayMode: true, session: { load: () => [] } }),
+  /session adapter must be passed as \{ sessionReceipt \}/
+);
 assert.throws(() => restore.load({}), /YentInterfaceSession adapter missing/);
