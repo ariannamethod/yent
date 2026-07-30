@@ -198,12 +198,21 @@
 
   function startIfRequested(options) {
     options = options || {};
-    const req = options.request || options.replayRequest || {};
+    if (hasOwn(options, 'request')) {
+      throw new Error('replay request must be passed as { replayRequest }');
+    }
+    if (hasOwn(options, 'input')) {
+      throw new Error('replay prompt input must be passed as { promptInput }');
+    }
+    if (hasOwn(options, 'run')) {
+      throw new Error('generation run must be passed as { generationRun }');
+    }
+    const req = options.replayRequest || {};
     const active = typeof options.replayMode === 'boolean' ? options.replayMode : !!req.enabled;
     if (!active) return false;
 
-    const input = options.promptInput || options.input;
-    const run = options.generationRun || options.run;
+    const input = options.promptInput;
+    const run = options.generationRun;
     const generate = options.generate;
     const timer = options.setTimeout || root.setTimeout;
     if (!input || typeof input.value !== 'string') {

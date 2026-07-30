@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-30 - interface replay autostart boundary
+
+- `interfaceReplay.startIfRequested` no longer accepts generic `request`,
+  `input`, or `run` aliases for replay startup.
+- `interfaceBoot` now forwards only the explicit `replayRequest`,
+  `promptInput`, and `generationRun` names into replay autostart.
+- Replay fixture behavior and page startup order are unchanged.
+
 ## 2026-07-30 - interface boot resize boundary
 
 - `interfaceBoot` no longer binds resize listeners through positional
