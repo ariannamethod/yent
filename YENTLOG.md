@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-31 - interface canvas resize surface boundary
+
+- `interfaceCanvas.resize` no longer accepts split top-level `canvas/context`
+  inputs.
+- Single-canvas resize now passes through explicit `surface`; multi-canvas
+  resize continues to use explicit `surfaces`.
+- WORLD now resizes the bound field surface directly, matching the JANUS
+  multi-surface path.
+
 ## 2026-07-30 - interface replay scenario boundary
 
 - `interfaceReplay.play` no longer accepts the generic `name` shortcut.

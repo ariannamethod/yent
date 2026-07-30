@@ -2,6 +2,12 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-31 - canvas resize surface boundary
+
+- Resize no longer accepts split top-level `canvas/context` inputs.
+- WORLD now passes its bound field surface through explicit `surface`.
+- JANUS keeps the existing explicit `surfaces` path for field plus trace.
+
 ## 2026-07-30 - replay scenario boundary
 
 - Replay playback now rejects the old generic `name` alias.

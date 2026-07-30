@@ -64,10 +64,16 @@
 
   function resize(options) {
     options = options || {};
+    if (hasOwn(options, 'canvas') || hasOwn(options, 'context')) {
+      throw new Error('interface canvas resize surface must be passed as { surface } or { surfaces }');
+    }
     const base = viewport({ viewport: options.viewport, maxDpr: options.maxDpr });
     const surfaces = Array.isArray(options.surfaces)
       ? options.surfaces
-      : [{ canvas: options.canvas, context: options.context }];
+      : (hasOwn(options, 'surface') ? [options.surface] : []);
+    if (surfaces.length === 0) {
+      throw new Error('interface canvas resize surface must be passed as { surface } or { surfaces }');
+    }
     return {
       width: base.width,
       height: base.height,
