@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-30 - input control boundary
+
+- Input control binding now accepts custom element ids only through `ids`.
+- Direct `composer`, `prompt`, and `send` aliases are rejected.
+- Focus checks now name the observed `control`; WORLD keeps the same key
+  behavior without a positional helper call.
+
 ## 2026-07-30 - session replay mode boundary
 
 - Session adapter replay behavior now uses only explicit `replayMode`.

@@ -604,7 +604,7 @@ async function generate(text) {
 
 interfaceEvents.bindKeyState({
   keys,
-  ignore: () => interfaceInput.isFocused(promptInput)
+  ignore: () => interfaceInput.isFocused({ control: promptInput })
 });
 
 interfaceBoot.start({
