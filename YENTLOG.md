@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-31 - interface run prompt input boundary
+
+- `interfaceRun.bindComposer` no longer accepts the generic `input` field.
+- Composer submit binding now receives the prompt element as explicit
+  `promptInput`, matching the boot and replay contracts.
+- JANUS and WORLD submit behavior is unchanged; only the helper handoff name is
+  tightened.
+
 ## 2026-07-31 - interface canvas resize surface boundary
 
 - `interfaceCanvas.resize` no longer accepts split top-level `canvas/context`

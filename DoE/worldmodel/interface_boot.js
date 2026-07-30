@@ -36,7 +36,7 @@
     }
     generationRun.bindComposer({
       form: options.composer,
-      input: options.promptInput,
+      promptInput: options.promptInput,
       onSubmit: requireFunction(options.generate, 'interface generate')
     });
   }

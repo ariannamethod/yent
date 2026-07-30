@@ -2,6 +2,12 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-31 - run prompt input boundary
+
+- Composer submit binding now names the prompt control as `promptInput`.
+- The old generic `input` field is rejected at the run helper boundary.
+- Page submit behavior stays unchanged.
+
 ## 2026-07-31 - canvas resize surface boundary
 
 - Resize no longer accepts split top-level `canvas/context` inputs.

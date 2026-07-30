@@ -14,7 +14,7 @@ function main() {
       bindComposer(options) {
         calls.push('composer');
         assert.equal(options.form, composer);
-        assert.equal(options.input, promptInput);
+        assert.equal(options.promptInput, promptInput);
         assert.equal(options.onSubmit, generate);
       }
     };

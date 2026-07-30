@@ -13,6 +13,10 @@
     if ('disabled' in button) button.disabled = false;
   }
 
+  function hasOwn(value, key) {
+    return !!value && Object.prototype.hasOwnProperty.call(value, key);
+  }
+
   function create(options) {
     options = options || {};
     const button = options.button || null;
@@ -56,11 +60,14 @@
 
     function bindComposer(options) {
       if (looksLikeForm(options)) {
-        throw new Error('composer binding inputs must be passed as { form, input, onSubmit }');
+        throw new Error('composer binding inputs must be passed as { form, promptInput, onSubmit }');
       }
       options = options || {};
+      if (hasOwn(options, 'input')) {
+        throw new Error('composer prompt input must be passed as { promptInput }');
+      }
       const form = options.form;
-      const input = options.input;
+      const input = options.promptInput;
       const onSubmit = options.onSubmit;
       if (!form || typeof form.addEventListener !== 'function') {
         throw new Error('composer form unavailable');

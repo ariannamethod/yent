@@ -988,14 +988,19 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(bootJS, "function bindComposer") ||
 		!strings.Contains(bootJS, "generationRun.bindComposer(") ||
 		!strings.Contains(bootJS, "form: options.composer") ||
-		!strings.Contains(bootJS, "input: options.promptInput") ||
+		!strings.Contains(bootJS, "promptInput: options.promptInput") ||
 		!strings.Contains(bootJS, "onSubmit: requireFunction(options.generate") ||
 		!strings.Contains(bootJS, "bindComposer(options)") {
 		t.Fatalf("interface_boot.js does not own shared composer listener binding")
 	}
 	if strings.Contains(runJS, "function bindComposer(form") ||
-		strings.Contains(bootJS, "generationRun.bindComposer(\n      options.composer") {
+		strings.Contains(bootJS, "generationRun.bindComposer(\n      options.composer") ||
+		strings.Contains(runJS, "const input = options.input") ||
+		strings.Contains(bootJS, "input: options.promptInput") {
 		t.Fatalf("interface_run.js still exposes positional composer binding arguments")
+	}
+	if !strings.Contains(runJS, "composer prompt input must be passed as { promptInput }") {
+		t.Fatalf("interface_run.js does not reject generic composer input alias")
 	}
 	if !strings.Contains(animationJS, "function create") ||
 		!strings.Contains(animationJS, "requestAnimationFrame") ||
