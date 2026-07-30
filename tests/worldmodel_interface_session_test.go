@@ -334,6 +334,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			strings.Contains(tc.src, "interfaceCanvas.resize({\n  window") {
 			t.Fatalf("%s still passes browser window into interface_canvas resize", tc.name)
 		}
+		if strings.Contains(tc.src, "interfaceCanvas.resize({ canvas") ||
+			strings.Contains(tc.src, "interfaceCanvas.resize({\n    canvas") ||
+			strings.Contains(tc.src, "interfaceCanvas.resize({\n  canvas") {
+			t.Fatalf("%s still passes split canvas/context into interface_canvas resize", tc.name)
+		}
 		if !strings.Contains(tc.src, "interfaceCanvas.bind(") {
 			t.Fatalf("%s does not bind canvas elements through interface_canvas", tc.name)
 		}
@@ -872,6 +877,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(canvasJS, "setTransform(base.dpr") ||
 		!strings.Contains(canvasJS, "canvas.width = Math.max") ||
 		!strings.Contains(canvasJS, "canvas.style.width") ||
+		!strings.Contains(canvasJS, "resize surface must be passed as { surface } or { surfaces }") ||
 		!strings.Contains(canvasJS, "function bind") ||
 		!strings.Contains(canvasJS, "documentRef.getElementById(id)") ||
 		!strings.Contains(canvasJS, "function createScratch") ||
@@ -881,7 +887,8 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	}
 	if strings.Contains(canvasJS, "function pixelRatio(windowRef") ||
 		strings.Contains(canvasJS, "function viewport(windowRef") ||
-		strings.Contains(canvasJS, "pixelRatio(win, maxDpr)") {
+		strings.Contains(canvasJS, "pixelRatio(win, maxDpr)") ||
+		strings.Contains(canvasJS, "{ canvas: options.canvas, context: options.context }") {
 		t.Fatalf("interface_canvas.js still exposes positional viewport/window arguments")
 	}
 	if strings.Contains(hudJS, "function render(hud") ||

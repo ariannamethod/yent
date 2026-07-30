@@ -64,7 +64,7 @@ function makeSurface() {
   globalThis.devicePixelRatio = 1.25;
   try {
     const main = makeSurface();
-    const result = canvas.resize({ canvas: main.canvas, context: main.context });
+    const result = canvas.resize({ surface: { canvas: main.canvas, context: main.context } });
     assert.equal(result.width, 640);
     assert.equal(result.height, 480);
     assert.equal(result.dpr, 1.25);
@@ -127,7 +127,15 @@ function makeSurface() {
 }
 
 {
-  assert.throws(() => canvas.resize({ canvas: {}, context: {} }), /interface canvas surface unavailable/);
+  assert.throws(
+    () => canvas.resize({ canvas: {}, context: {} }),
+    /resize surface must be passed as \{ surface \} or \{ surfaces \}/
+  );
+  assert.throws(
+    () => canvas.resize({}),
+    /resize surface must be passed as \{ surface \} or \{ surfaces \}/
+  );
+  assert.throws(() => canvas.resize({ surface: { canvas: {}, context: {} } }), /interface canvas surface unavailable/);
   assert.throws(() => canvas.bind({ document: {} }), /interface canvas document unavailable/);
   assert.throws(() => canvas.bind({ document: { getElementById: () => null }, id: 'missing' }), /interface canvas element unavailable: missing/);
   assert.throws(() => canvas.bind({
