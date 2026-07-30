@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-31 - replay fixture boundary
+
+- Fixture selection now names the requested replay case as `{ scenario }`.
+- The exported `scenario` helper rejects both bare strings and the generic
+  `name` alias.
+- Replay URL parsing and playback keep the same behavior after the selected
+  fixture name is normalized.
+
 ## 2026-07-31 - run prompt input boundary
 
 - Composer submit binding now names the prompt control as `promptInput`.

@@ -108,8 +108,15 @@
     return next;
   }
 
-  function scenario(name) {
-    const selected = SCENARIOS[scenarioName(name)];
+  function scenario(options) {
+    if (typeof options === 'string') {
+      throw new Error('replay fixture scenario must be passed as { scenario }');
+    }
+    options = options || {};
+    if (hasOwn(options, 'name')) {
+      throw new Error('replay fixture scenario name must be passed as { scenario }');
+    }
+    const selected = SCENARIOS[scenarioName(options.scenario)];
     return {
       prompt: selected.prompt,
       events: selected.events.map(cloneEvent)
@@ -128,7 +135,7 @@
     const params = paramsFor(location);
     const enabled = enabledFlag(params, 'replay') || enabledFlag(params, 'demo');
     const name = scenarioName(params.get('fixture') || params.get('scenario'));
-    const selected = scenario(name);
+    const selected = scenario({ scenario: name });
     return {
       enabled,
       name,
@@ -173,7 +180,7 @@
     }
     const selected = typeof options.scenario === 'object' && options.scenario
       ? { prompt: options.scenario.prompt || '', events: (options.scenario.events || []).map(cloneEvent) }
-      : scenario(options.scenario);
+      : scenario({ scenario: options.scenario });
     const delayMs = clampInteger(Number(options.delayMs), DEFAULT_DELAY_MS, 0, 2000);
     let events = 0;
     let tokens = 0;
