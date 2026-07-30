@@ -90,8 +90,11 @@
 
   function createAdapter(options) {
     options = options || {};
+    if (hasOwn(options, 'replay')) {
+      throw new Error('session replay mode must be passed as { replayMode }');
+    }
     const storage = storageOrDefault(options.storage);
-    const replayMode = !!(options.replayMode || options.replay);
+    const replayMode = !!options.replayMode;
     const now = typeof options.now === 'function' ? options.now : () => Date.now();
     const saveIntervalMs = Number.isFinite(options.saveIntervalMs)
       ? Math.max(0, Math.floor(options.saveIntervalMs))

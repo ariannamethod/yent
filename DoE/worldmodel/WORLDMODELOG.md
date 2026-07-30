@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-30 - session replay mode boundary
+
+- Session adapter replay behavior now uses only explicit `replayMode`.
+- The old generic `replay` alias is rejected.
+- Restore and replay smoke behavior are unchanged; this only tightens the
+  persistence-mode input name.
+
 ## 2026-07-30 - restore session boundary
 
 - Restore startup now rejects the old generic `session` alias.

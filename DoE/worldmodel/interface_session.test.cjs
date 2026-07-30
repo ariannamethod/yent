@@ -103,6 +103,7 @@ function storage() {
   assert.throws(() => session.normalize([{ role: 'user', content: 'old' }]), /normalize inputs must be passed as \{ messages \}/);
   assert.throws(() => session.load(s), /load inputs must be passed as \{ storage \}/);
   assert.throws(() => session.save(s, [{ role: 'user', content: 'old' }]), /save inputs must be passed as \{ storage, messages \}/);
+  assert.throws(() => session.createAdapter({ replay: true }), /session replay mode must be passed as \{ replayMode \}/);
 }
 
 {
