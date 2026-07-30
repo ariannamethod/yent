@@ -59,6 +59,10 @@ async function main() {
 }
 
 {
+  await assert.rejects(
+    () => replay.play({ name: 'boundary', delayMs: 0 }),
+    /replay scenario name must be passed as \{ scenario \}/
+  );
   const seen = [];
   let done = false;
   const result = await replay.play({

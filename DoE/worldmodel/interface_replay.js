@@ -168,9 +168,12 @@
 
   async function play(options) {
     options = options || {};
+    if (hasOwn(options, 'name')) {
+      throw new Error('replay scenario name must be passed as { scenario }');
+    }
     const selected = typeof options.scenario === 'object' && options.scenario
       ? { prompt: options.scenario.prompt || '', events: (options.scenario.events || []).map(cloneEvent) }
-      : scenario(options.scenario || options.name);
+      : scenario(options.scenario);
     const delayMs = clampInteger(Number(options.delayMs), DEFAULT_DELAY_MS, 0, 2000);
     let events = 0;
     let tokens = 0;
