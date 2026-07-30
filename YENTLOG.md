@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-30 - interface session replay mode boundary
+
+- `interfaceSession.createAdapter` no longer accepts the generic `replay`
+  alias.
+- Session persistence now switches replay behavior only through explicit
+  `replayMode`.
+- JANUS and WORLD already pass `replayMode`; page behavior is unchanged.
+
 ## 2026-07-30 - interface restore session boundary
 
 - `interfaceRestore.load` no longer accepts the generic `session` alias.

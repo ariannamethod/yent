@@ -156,6 +156,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(sessionJS, "save(storage, nextMessages") {
 		t.Fatalf("interface_session.js still exposes positional session persistence arguments")
 	}
+	if !strings.Contains(sessionJS, "const replayMode = !!options.replayMode") ||
+		strings.Contains(sessionJS, "options.replayMode || options.replay") {
+		t.Fatalf("interface_session.js still accepts a generic replay alias")
+	}
 	if !strings.Contains(doeC, `"/worldmodel/interface_restore.js"`) ||
 		!strings.Contains(doeC, `"worldmodel/interface_restore.js not found"`) {
 		t.Fatalf("DoE server does not explicitly whitelist interface_restore.js")
