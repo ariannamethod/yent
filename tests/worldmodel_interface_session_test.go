@@ -823,10 +823,14 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		t.Fatalf("interface_transcript.js still exposes positional transcript container arguments")
 	}
 	if !strings.Contains(restoreJS, "if (options.replayMode) return null") ||
+		!strings.Contains(restoreJS, "const session = options.sessionReceipt") ||
 		!strings.Contains(restoreJS, "session.load()") ||
 		!strings.Contains(restoreJS, "combinedText") ||
 		!strings.Contains(restoreJS, "lastAssistant") {
 		t.Fatalf("interface_restore.js does not own shared replay-aware receipt restore")
+	}
+	if strings.Contains(restoreJS, "options.sessionReceipt || options.session") {
+		t.Fatalf("interface_restore.js still accepts a generic session alias")
 	}
 	if !strings.Contains(replayJS, "function request") ||
 		!strings.Contains(replayJS, "root.location") ||

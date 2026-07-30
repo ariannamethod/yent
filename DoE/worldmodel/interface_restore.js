@@ -17,10 +17,17 @@
     return null;
   }
 
+  function hasOwn(value, key) {
+    return value && Object.prototype.hasOwnProperty.call(value, key);
+  }
+
   function load(options) {
     options = options || {};
+    if (hasOwn(options, 'session')) {
+      throw new Error('session adapter must be passed as { sessionReceipt }');
+    }
     if (options.replayMode) return null;
-    const session = options.sessionReceipt || options.session;
+    const session = options.sessionReceipt;
     if (!session || typeof session.load !== 'function') {
       throw new Error('YentInterfaceSession adapter missing');
     }

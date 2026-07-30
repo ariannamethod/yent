@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-30 - interface restore session boundary
+
+- `interfaceRestore.load` no longer accepts the generic `session` alias.
+- Restore now reads receipt state only through explicit `sessionReceipt`, even
+  when replay mode would otherwise skip restore work.
+- JANUS and WORLD restore behavior is unchanged; the old helper input name is
+  now rejected.
+
 ## 2026-07-30 - interface submit turn boundary
 
 - `interfaceSubmit.run` no longer accepts generic `run`, `session`, or

@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-30 - restore session boundary
+
+- Restore startup now rejects the old generic `session` alias.
+- Receipt restore uses only explicit `sessionReceipt`.
+- Replay mode still skips restore work; invalid helper input names no longer
+  hide behind that no-op path.
+
 ## 2026-07-30 - submit turn boundary
 
 - Submit startup now rejects the old generic `run`, `session`, and `request`
