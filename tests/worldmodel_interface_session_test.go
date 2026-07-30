@@ -764,10 +764,17 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if strings.Contains(statusJS, "function setText(target") ||
 		strings.Contains(statusJS, "function setActive(target") ||
 		strings.Contains(statusJS, "function setManifest(labels") ||
+		strings.Contains(statusJS, "const ids = options.ids || options") ||
+		strings.Contains(yentJS, "interfaceStatus.bind({ run:") ||
+		strings.Contains(worldJS, "interfaceStatus.bind({\n  note:") ||
 		strings.Contains(yentJS, "interfaceStatus.setText(statusLabels.run") ||
 		strings.Contains(worldJS, "interfaceStatus.setText(statusLabels.note") ||
 		strings.Contains(worldJS, "interfaceStatus.setManifest(statusLabels") {
 		t.Fatalf("interface_status.js still exposes positional status writer arguments")
+	}
+	if !strings.Contains(yentJS, "interfaceStatus.bind({ ids: { run: 'run-state' } })") ||
+		!strings.Contains(worldJS, "interfaceStatus.bind({\n  ids: {") {
+		t.Fatalf("page status labels are not bound through explicit ids")
 	}
 	if !strings.Contains(hudJS, "function bind") ||
 		!strings.Contains(hudJS, "function render") {
@@ -793,6 +800,7 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(outputJS, "typeof options === 'string' ?") ||
 		strings.Contains(hudJS, "function bind(documentRef") ||
 		strings.Contains(statusJS, "function bind(documentRef") ||
+		strings.Contains(hudJS, "const ids = options.ids || options") ||
 		strings.Contains(hudJS, "arguments.length") ||
 		strings.Contains(statusJS, "arguments.length") {
 		t.Fatalf("visual binding helpers still expose positional document arguments")

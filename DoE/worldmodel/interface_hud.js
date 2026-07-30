@@ -14,13 +14,25 @@
     return documentRef.getElementById(id);
   }
 
+  function hasOwn(value, key) {
+    return Object.prototype.hasOwnProperty.call(Object(value), key);
+  }
+
+  function rejectsDirectIds(options) {
+    return ['tok', 'exp', 'step', 'ent', 'debt', 'cons', 'field', 'prob', 'rank', 'tail']
+      .some(key => hasOwn(options, key));
+  }
+
   function bind(options) {
     if (hasDocument(options)) {
       throw new Error('YentInterfaceHud document must be passed as { document }');
     }
     options = options || {};
     const documentRef = options.document || defaultDocument();
-    const ids = options.ids || options;
+    if (rejectsDirectIds(options)) {
+      throw new Error('YentInterfaceHud ids must be passed as { ids }');
+    }
+    const ids = options.ids || {};
     return {
       tok: element(documentRef, ids.tok || 'hud-tok'),
       exp: element(documentRef, ids.exp || 'hud-exp'),
@@ -37,10 +49,6 @@
 
   function write(target, value) {
     if (target) target.textContent = value;
-  }
-
-  function hasOwn(value, key) {
-    return Object.prototype.hasOwnProperty.call(Object(value), key);
   }
 
   function looksLikeHud(value) {
