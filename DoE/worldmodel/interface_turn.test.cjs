@@ -126,6 +126,23 @@ async function main() {
       () => turn.streamAssistant({
         interfaceInput: { readParams() { return {}; }, streamFor() {} },
         chatStream,
+        session: session()
+      }),
+      /session adapter must be passed as \{ sessionReceipt \}/
+    );
+    await assert.rejects(
+      () => turn.streamAssistant({
+        interfaceInput: { readParams() { return {}; }, streamFor() {} },
+        chatStream,
+        sessionReceipt: session(),
+        request: { name: 'old request' }
+      }),
+      /replay request must be passed as \{ replayRequest \}/
+    );
+    await assert.rejects(
+      () => turn.streamAssistant({
+        interfaceInput: { readParams() { return {}; }, streamFor() {} },
+        chatStream,
         sessionReceipt: {}
       }),
       /YentInterfaceSession adapter helper missing/

@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-30 - interface submit turn boundary
+
+- `interfaceSubmit.run` no longer accepts generic `run`, `session`, or
+  `request` aliases.
+- `interfaceTurn.streamAssistant` no longer accepts generic `session` or
+  `request` aliases.
+- Submit and turn orchestration now carry only explicit `generationRun`,
+  `sessionReceipt`, and `replayRequest` names through the live stream path.
+
 ## 2026-07-30 - interface replay autostart boundary
 
 - `interfaceReplay.startIfRequested` no longer accepts generic `request`,

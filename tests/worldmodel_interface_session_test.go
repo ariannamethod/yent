@@ -887,6 +887,20 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(turnJS, "root.document") {
 		t.Fatalf("submit/turn helpers still expose generic document plumbing")
 	}
+	if !strings.Contains(submitJS, "const generationRun = options.generationRun") ||
+		!strings.Contains(submitJS, "const session = options.sessionReceipt") ||
+		!strings.Contains(submitJS, "replayRequest: options.replayRequest") ||
+		strings.Contains(submitJS, "options.generationRun || options.run") ||
+		strings.Contains(submitJS, "options.sessionReceipt || options.session") ||
+		strings.Contains(submitJS, "options.replayRequest || options.request") {
+		t.Fatalf("interface_submit.js still accepts generic run/session/request aliases")
+	}
+	if !strings.Contains(turnJS, "const session = options.sessionReceipt") ||
+		!strings.Contains(turnJS, "replayRequest: options.replayRequest") ||
+		strings.Contains(turnJS, "options.sessionReceipt || options.session") ||
+		strings.Contains(turnJS, "options.replayRequest || options.request") {
+		t.Fatalf("interface_turn.js still accepts generic session/request aliases")
+	}
 	if !strings.Contains(submitJS, "generationRun.begin(") ||
 		!strings.Contains(submitJS, "session.commitUser(") ||
 		!strings.Contains(submitJS, "turnHelper.streamAssistant(") ||

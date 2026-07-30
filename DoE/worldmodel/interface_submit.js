@@ -16,13 +16,26 @@
     if (typeof callback === 'function') callback(...args);
   }
 
+  function hasOwn(value, key) {
+    return value && Object.prototype.hasOwnProperty.call(value, key);
+  }
+
   async function run(options) {
     options = options || {};
-    const generationRun = options.generationRun || options.run;
+    if (hasOwn(options, 'run')) {
+      throw new Error('generation run must be passed as { generationRun }');
+    }
+    if (hasOwn(options, 'session')) {
+      throw new Error('session adapter must be passed as { sessionReceipt }');
+    }
+    if (hasOwn(options, 'request')) {
+      throw new Error('replay request must be passed as { replayRequest }');
+    }
+    const generationRun = options.generationRun;
     requireMethod(generationRun, 'YentInterfaceRun controller', 'begin');
     requireMethod(generationRun, 'YentInterfaceRun controller', 'finish');
 
-    const session = options.sessionReceipt || options.session;
+    const session = options.sessionReceipt;
     requireMethod(session, 'YentInterfaceSession adapter', 'commitUser');
 
     const turnHelper = options.interfaceTurn || root.YentInterfaceTurn;
@@ -47,7 +60,7 @@
         chatStream: options.chatStream || root.YentChatStream,
         interfaceReplay: options.interfaceReplay || root.YentInterfaceReplay,
         replayMode: !!options.replayMode,
-        replayRequest: options.replayRequest || options.request,
+        replayRequest: options.replayRequest,
         sessionReceipt: session,
         messages,
         visibleMessages,
