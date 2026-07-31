@@ -6,6 +6,10 @@
     return value;
   }
 
+  function hasOwn(value, key) {
+    return Object.prototype.hasOwnProperty.call(Object(value), key);
+  }
+
   function requireReplay(options) {
     const replay = (options && options.interfaceReplay) || root.YentInterfaceReplay;
     if (!replay || typeof replay.startIfRequested !== 'function') {
@@ -15,7 +19,7 @@
   }
 
   function resolveResizeTarget(options) {
-    return (options && options.resizeTarget) || root;
+    return hasOwn(options, 'resizeTarget') ? options.resizeTarget : root;
   }
 
   function bindResize(options) {
@@ -46,11 +50,12 @@
     requireFunction(options.restore, 'interface restore')();
     const resize = requireFunction(options.resize, 'interface resize');
     resize();
-    bindResize({
-      resizeTarget: options.resizeTarget,
+    const resizeOptions = {
       resize,
       listenerOptions: options.resizeListenerOptions
-    });
+    };
+    if (hasOwn(options, 'resizeTarget')) resizeOptions.resizeTarget = options.resizeTarget;
+    bindResize(resizeOptions);
     bindComposer(options);
     requireFunction(options.startAnimation, 'interface animation start')();
 

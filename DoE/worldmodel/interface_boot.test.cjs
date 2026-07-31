@@ -81,6 +81,27 @@ function main() {
       /YentInterfaceRun composer binding unavailable/
     );
   }
+
+  {
+    const calls = [];
+    const hadAdd = Object.prototype.hasOwnProperty.call(globalThis, 'addEventListener');
+    const previousAdd = globalThis.addEventListener;
+    globalThis.addEventListener = () => calls.push('global-listen');
+    try {
+      const started = boot.start({
+        restore: () => calls.push('restore'),
+        resize: () => calls.push('resize'),
+        resizeTarget: null,
+        startAnimation: () => calls.push('animation'),
+        interfaceReplay: { startIfRequested: () => false }
+      });
+      assert.equal(started, false);
+      assert.deepEqual(calls, ['restore', 'resize', 'animation']);
+    } finally {
+      if (hadAdd) globalThis.addEventListener = previousAdd;
+      else delete globalThis.addEventListener;
+    }
+  }
 }
 
 main();
