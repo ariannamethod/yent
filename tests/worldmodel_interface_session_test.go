@@ -885,6 +885,8 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(canvasJS, "canvas.width = Math.max") ||
 		!strings.Contains(canvasJS, "canvas.style.width") ||
 		!strings.Contains(canvasJS, "resize surface must be passed as { surface } or { surfaces }") ||
+		!strings.Contains(canvasJS, "interface canvas id must be passed as { id }") ||
+		!strings.Contains(canvasJS, "interface canvas document must be passed as { document }") ||
 		!strings.Contains(canvasJS, "function bind") ||
 		!strings.Contains(canvasJS, "documentRef.getElementById(id)") ||
 		!strings.Contains(canvasJS, "function createScratch") ||
@@ -895,6 +897,8 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if strings.Contains(canvasJS, "function pixelRatio(windowRef") ||
 		strings.Contains(canvasJS, "function viewport(windowRef") ||
 		strings.Contains(canvasJS, "pixelRatio(win, maxDpr)") ||
+		strings.Contains(canvasJS, "function bind(documentRef") ||
+		strings.Contains(canvasJS, "function createScratch(documentRef") ||
 		strings.Contains(canvasJS, "{ canvas: options.canvas, context: options.context }") {
 		t.Fatalf("interface_canvas.js still exposes positional viewport/window arguments")
 	}
