@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-31 - dependency root boundary
+
+- Shared dependency loading now rejects a direct host/root object.
+- Test injection must use named `{ root }`, matching the rest of the interface
+  helper contracts.
+- Null roots no longer fall back to globals.
+
 ## 2026-07-31 - canvas binding id boundary
 
 - Canvas binding now rejects bare id strings.

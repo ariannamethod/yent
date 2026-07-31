@@ -721,6 +721,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			t.Fatalf("interface_deps.js does not guard dependency %s", required)
 		}
 	}
+	if !strings.Contains(depsJS, "function looksLikeDependencyHost") ||
+		!strings.Contains(depsJS, "interface dependency root must be passed as { root }") ||
+		!strings.Contains(depsJS, "const host = hasOwn(options, 'root') ? options.root : root") {
+		t.Fatalf("interface_deps.js still permits implicit dependency root shortcuts")
+	}
 	for _, required := range []string{
 		"`GET /yent`",
 		"Janus parliament face",

@@ -33,9 +33,23 @@
     return value;
   }
 
+  function hasOwn(value, key) {
+    return !!value && Object.prototype.hasOwnProperty.call(value, key);
+  }
+
+  function looksLikeDependencyHost(value) {
+    if (!value || typeof value !== 'object') return false;
+    if (hasOwn(value, 'YentWorldmodelGeometry') ||
+        hasOwn(value, 'YentInterfaceTranscript')) return true;
+    return COMMON.some(([, globalName]) => hasOwn(value, globalName));
+  }
+
   function load(options) {
+    if (looksLikeDependencyHost(options)) {
+      throw new Error('interface dependency root must be passed as { root }');
+    }
     options = options || {};
-    const host = options.root || root;
+    const host = hasOwn(options, 'root') ? options.root : root;
     const deps = {};
     for (const [key, globalName] of COMMON) {
       deps[key] = requireHelper(host, globalName);
