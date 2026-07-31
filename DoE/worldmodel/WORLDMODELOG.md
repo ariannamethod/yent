@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-31 - canvas binding id boundary
+
+- Canvas binding now rejects bare id strings.
+- Bound and scratch canvas helpers both require explicit `{ document }` for
+  document injection.
+- Page behavior is unchanged; browser defaults remain helper-owned.
+
 ## 2026-07-31 - replay fixture boundary
 
 - Fixture selection now names the requested replay case as `{ scenario }`.

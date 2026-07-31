@@ -136,13 +136,16 @@ function makeSurface() {
     /resize surface must be passed as \{ surface \} or \{ surfaces \}/
   );
   assert.throws(() => canvas.resize({ surface: { canvas: {}, context: {} } }), /interface canvas surface unavailable/);
+  assert.throws(() => canvas.bind('field'), /interface canvas id must be passed as \{ id \}/);
   assert.throws(() => canvas.bind({ document: {} }), /interface canvas document unavailable/);
+  assert.throws(() => canvas.bind({ getElementById: () => null }), /interface canvas document must be passed as \{ document \}/);
   assert.throws(() => canvas.bind({ document: { getElementById: () => null }, id: 'missing' }), /interface canvas element unavailable: missing/);
   assert.throws(() => canvas.bind({
     document: { getElementById: () => ({ getContext: () => null }) },
     id: 'field'
   }), /interface canvas context unavailable: field/);
   assert.throws(() => canvas.createScratch({ document: {} }), /interface canvas document unavailable/);
+  assert.throws(() => canvas.createScratch({ createElement: () => ({}) }), /interface canvas document must be passed as \{ document \}/);
   assert.throws(() => canvas.createScratch({ document: { createElement: () => ({}) } }), /interface canvas scratch surface unavailable/);
   assert.throws(() => canvas.createScratch({
     document: { createElement: () => ({ getContext: () => null }) }

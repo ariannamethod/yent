@@ -10,6 +10,13 @@
     return Object.prototype.hasOwnProperty.call(Object(value), key);
   }
 
+  function looksLikeDocument(value) {
+    return !!value && (
+      typeof value.getElementById === 'function' ||
+      typeof value.createElement === 'function'
+    );
+  }
+
   function looksLikeViewport(value) {
     return !!value && (
       hasOwn(value, 'innerWidth') ||
@@ -83,6 +90,12 @@
   }
 
   function bind(options) {
+    if (typeof options === 'string') {
+      throw new Error('interface canvas id must be passed as { id }');
+    }
+    if (looksLikeDocument(options)) {
+      throw new Error('interface canvas document must be passed as { document }');
+    }
     options = options || {};
     const documentRef = options.document || root.document;
     if (!documentRef || typeof documentRef.getElementById !== 'function') {
@@ -101,6 +114,9 @@
   }
 
   function createScratch(options) {
+    if (looksLikeDocument(options)) {
+      throw new Error('interface canvas document must be passed as { document }');
+    }
     options = options || {};
     const documentRef = options.document || root.document;
     if (!documentRef || typeof documentRef.createElement !== 'function') {

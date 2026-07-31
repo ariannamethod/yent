@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-31 - interface canvas binding id boundary
+
+- `interfaceCanvas.bind` no longer accepts a bare canvas id string.
+- Canvas document injection is now rejected when passed as the direct helper
+  input; callers must use explicit `{ document }`.
+- `createScratch` follows the same document boundary so scratch surfaces cannot
+  regain positional document plumbing.
+
 ## 2026-07-31 - interface replay fixture boundary
 
 - `interfaceReplay.scenario` no longer accepts a bare scenario string.
