@@ -923,6 +923,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(canvasJS, "{ canvas: options.canvas, context: options.context }") {
 		t.Fatalf("interface_canvas.js still exposes positional viewport/window arguments")
 	}
+	if strings.Contains(canvasJS, "options.viewport || root") ||
+		strings.Contains(canvasJS, "viewport: options.viewport, maxDpr") {
+		t.Fatalf("interface_canvas.js still lets explicit null viewport fall back to browser globals")
+	}
 	if strings.Contains(hudJS, "function render(hud") ||
 		strings.Contains(yentJS, "interfaceHud.render(hud") ||
 		strings.Contains(worldJS, "interfaceHud.render(hud") {

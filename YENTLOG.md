@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-31 - interface viewport null boundary
+
+- Canvas viewport helpers no longer treat explicit `viewport: null` as a
+  request to fall back to browser globals.
+- Omitted viewport still uses the page default; named null viewport now yields
+  deterministic zero geometry and DPR 1 for injected/replay tests.
+- The interface contract rejects the old `options.viewport || root` path.
+
 ## 2026-07-31 - interface document null boundary
 
 - Browser visual helpers no longer treat explicit `document: null` as a request

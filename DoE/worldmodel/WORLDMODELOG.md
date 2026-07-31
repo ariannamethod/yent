@@ -2,6 +2,15 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-31 - viewport null boundary
+
+- Explicit `viewport: null` no longer falls back to browser globals in canvas
+  viewport, DPR, or resize helpers.
+- Omitted viewport keeps the live page default, while named null produces
+  deterministic zero geometry for injected/replay callers.
+- The Go interface contract now rejects `options.viewport || root` and the
+  resize wrapper pattern that reintroduced implicit viewport presence.
+
 ## 2026-07-31 - document null boundary
 
 - Explicit `document: null` no longer falls back to browser globals in visual
