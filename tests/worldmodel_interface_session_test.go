@@ -765,6 +765,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(clockJS, "minElapsedSeconds") {
 		t.Fatalf("interface_clock.js does not own shared generation throughput timing")
 	}
+	if strings.Contains(clockJS, "options && options.performance ? options.performance : root.performance") ||
+		strings.Contains(clockJS, "options.performance || root.performance") {
+		t.Fatalf("interface_clock.js still lets explicit null performance fall back to browser globals")
+	}
 	if !strings.Contains(statusJS, "function bind") ||
 		!strings.Contains(statusJS, "function setText") ||
 		!strings.Contains(statusJS, "function setActive") ||
@@ -1051,6 +1055,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(animationJS, "requestAnimationFrame") ||
 		!strings.Contains(animationJS, "function requestFrame") {
 		t.Fatalf("interface_animation.js does not own shared animation frame scheduling")
+	}
+	if strings.Contains(animationJS, "options && options.requestAnimationFrame) || root.requestAnimationFrame") ||
+		strings.Contains(animationJS, "options.requestAnimationFrame || root.requestAnimationFrame") {
+		t.Fatalf("interface_animation.js still lets explicit null frame sources fall back to browser globals")
 	}
 }
 

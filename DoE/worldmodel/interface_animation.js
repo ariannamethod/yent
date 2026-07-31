@@ -1,8 +1,14 @@
 (function (root) {
   'use strict';
 
+  function hasOwn(value, key) {
+    return Object.prototype.hasOwnProperty.call(Object(value), key);
+  }
+
   function frameRequestFor(options) {
-    const requestFrame = (options && options.requestAnimationFrame) || root.requestAnimationFrame;
+    const requestFrame = hasOwn(options, 'requestAnimationFrame')
+      ? options.requestAnimationFrame
+      : root.requestAnimationFrame;
     if (typeof requestFrame !== 'function') throw new Error('requestAnimationFrame unavailable');
     return requestFrame;
   }

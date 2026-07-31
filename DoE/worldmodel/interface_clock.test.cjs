@@ -43,6 +43,30 @@ function main() {
       else delete globalThis.performance;
     }
   }
+
+  {
+    const hadPerformance = Object.prototype.hasOwnProperty.call(globalThis, 'performance');
+    const previousPerformance = globalThis.performance;
+    const previousDateNow = Date.now;
+    let perfTouched = false;
+    globalThis.performance = {
+      now() {
+        perfTouched = true;
+        return 9000;
+      }
+    };
+    Date.now = () => 1234;
+    try {
+      const c = clock.create({ performance: null, minElapsedSeconds: 0.1 });
+      assert.equal(c.started(), 1234);
+      assert.equal(c.now(), 1234);
+      assert.equal(perfTouched, false);
+    } finally {
+      Date.now = previousDateNow;
+      if (hadPerformance) globalThis.performance = previousPerformance;
+      else delete globalThis.performance;
+    }
+  }
 }
 
 main();
