@@ -72,6 +72,8 @@ function main() {
   }
 
   assert.throws(() => deps.load({ root: {} }), /YentInterfaceSession helper missing/);
+  assert.throws(() => deps.load(makeRoot()), /interface dependency root must be passed as \{ root \}/);
+  assert.throws(() => deps.load({ root: null }), /YentInterfaceSession helper missing/);
 
   {
     const root = makeRoot();

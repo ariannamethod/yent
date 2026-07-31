@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-31 - interface dependency root boundary
+
+- `interfaceDeps.load` no longer accepts a dependency host object as the direct
+  argument.
+- Tests now require injected globals to pass through explicit `{ root }`.
+- `{ root: null }` is no longer treated as "use the browser global"; it fails
+  at the missing-helper boundary instead.
+
 ## 2026-07-31 - interface canvas binding id boundary
 
 - `interfaceCanvas.bind` no longer accepts a bare canvas id string.
