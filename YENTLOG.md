@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-31 - interface document null boundary
+
+- Browser visual helpers no longer treat explicit `document: null` as a request
+  to fall back to the page global.
+- Output, status, HUD, canvas, style, and transcript helpers now distinguish a
+  missing `document` option from a named null document.
+- Tests install adversarial global documents to prove injected nulls cannot
+  silently reacquire browser DOM state.
+
 ## 2026-07-31 - interface dependency root boundary
 
 - `interfaceDeps.load` no longer accepts a dependency host object as the direct

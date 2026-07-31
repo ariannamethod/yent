@@ -78,6 +78,21 @@ function main() {
     assert.equal(container.children[0].children[0].textContent, 'OLEG');
   }
 
+  {
+    const hadDocument = Object.prototype.hasOwnProperty.call(globalThis, 'document');
+    const previousDocument = globalThis.document;
+    globalThis.document = documentMock();
+    try {
+      assert.throws(
+        () => transcript.appendTurn({ container: containerMock(), document: null, interfaceOutput: output }),
+        /document helper missing/
+      );
+    } finally {
+      if (hadDocument) globalThis.document = previousDocument;
+      else delete globalThis.document;
+    }
+  }
+
   assert.throws(() => transcript.appendTurn(containerMock()), /container must be passed as \{ container \}/);
   assert.throws(() => transcript.clear(containerMock()), /container must be passed as \{ container \}/);
   assert.throws(() => transcript.appendTurn({ document: documentMock(), interfaceOutput: output }), /transcript container missing/);

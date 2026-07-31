@@ -11,11 +11,15 @@
     return String(name || '').replace(/^--/, '').trim();
   }
 
+  function hasOwn(value, key) {
+    return !!value && Object.prototype.hasOwnProperty.call(value, key);
+  }
+
   function create(options) {
     options = options || {};
-    const documentRef = options.document || root.document;
-    const getComputedStyleRef = options.getComputedStyle || root.getComputedStyle;
-    const host = options.host || (documentRef && documentRef.documentElement) || null;
+    const documentRef = hasOwn(options, 'document') ? options.document : root.document;
+    const getComputedStyleRef = hasOwn(options, 'getComputedStyle') ? options.getComputedStyle : root.getComputedStyle;
+    const host = hasOwn(options, 'host') ? options.host : (documentRef && documentRef.documentElement) || null;
     const cache = Object.create(null);
 
     function family(name, fallback) {

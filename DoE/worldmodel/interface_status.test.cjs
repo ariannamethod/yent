@@ -63,6 +63,8 @@ function main() {
       status.setActive({ target: defaultLabels.shell, active: true });
       assert.equal(defaultDocument.elements.get('run-state').textContent, 'DEFAULT');
       assert.equal(defaultDocument.elements.get('manifest-shell').dataset.active, 'true');
+      const nullLabels = status.bind({ document: null, ids: { run: 'run-state' } });
+      assert.equal(nullLabels.run, null);
     } finally {
       if (hadDocument) globalThis.document = previousDocument;
       else delete globalThis.document;

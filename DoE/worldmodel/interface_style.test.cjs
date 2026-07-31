@@ -57,6 +57,9 @@ function main() {
       assert.equal(fonts.serif(), 'Root Serif');
       assert.equal(hostSeen, globalThis.document.documentElement);
       assert.match(fonts.mono(), /monospace/);
+      const isolated = style.create({ document: null, getComputedStyle: null });
+      assert.notEqual(isolated.serif(), 'Root Serif');
+      assert.match(isolated.serif(), /serif/);
     } finally {
       if (hadDocument) globalThis.document = previousDocument;
       else delete globalThis.document;

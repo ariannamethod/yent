@@ -2,6 +2,15 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-31 - document null boundary
+
+- Explicit `document: null` no longer falls back to browser globals in visual
+  helpers.
+- Output, status, HUD, canvas, style, and transcript now preserve the
+  difference between omitted document and named null document.
+- Adversarial tests set global DOM state before passing null to keep the
+  boundary observable.
+
 ## 2026-07-31 - dependency root boundary
 
 - Shared dependency loading now rejects a direct host/root object.

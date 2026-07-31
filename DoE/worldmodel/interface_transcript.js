@@ -25,6 +25,10 @@
     }
   }
 
+  function hasOwn(value, key) {
+    return !!value && Object.prototype.hasOwnProperty.call(value, key);
+  }
+
   function labelFor(role, labels) {
     const table = labels || {};
     if (Object.prototype.hasOwnProperty.call(table, role)) return String(table[role]);
@@ -36,7 +40,7 @@
     rejectBareContainer(options);
     options = options || {};
     const container = options.container;
-    const documentRef = requireDocument(options.document || root.document);
+    const documentRef = requireDocument(hasOwn(options, 'document') ? options.document : root.document);
     const output = requireOutput(options.interfaceOutput || root.YentInterfaceOutput);
     if (!hasContainer(container)) {
       throw new Error('transcript container missing');

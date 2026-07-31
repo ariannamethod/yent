@@ -127,6 +127,26 @@ function makeSurface() {
 }
 
 {
+  const hadDocument = Object.prototype.hasOwnProperty.call(globalThis, 'document');
+  const previousDocument = globalThis.document;
+  globalThis.document = {
+    getElementById() {
+      return { getContext: () => ({}) };
+    },
+    createElement() {
+      return { getContext: () => ({}) };
+    }
+  };
+  try {
+    assert.throws(() => canvas.bind({ document: null, id: 'field' }), /interface canvas document unavailable/);
+    assert.throws(() => canvas.createScratch({ document: null }), /interface canvas document unavailable/);
+  } finally {
+    if (hadDocument) globalThis.document = previousDocument;
+    else delete globalThis.document;
+  }
+}
+
+{
   assert.throws(
     () => canvas.resize({ canvas: {}, context: {} }),
     /resize surface must be passed as \{ surface \} or \{ surfaces \}/

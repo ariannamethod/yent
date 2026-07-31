@@ -28,7 +28,7 @@
       throw new Error('YentInterfaceHud document must be passed as { document }');
     }
     options = options || {};
-    const documentRef = options.document || defaultDocument();
+    const documentRef = hasOwn(options, 'document') ? options.document : defaultDocument();
     if (rejectsDirectIds(options)) {
       throw new Error('YentInterfaceHud ids must be passed as { ids }');
     }
