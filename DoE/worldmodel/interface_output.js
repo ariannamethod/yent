@@ -9,6 +9,10 @@
     return !!value && typeof value.getElementById === 'function';
   }
 
+  function hasOwn(value, key) {
+    return !!value && Object.prototype.hasOwnProperty.call(value, key);
+  }
+
   function bind(options) {
     if (hasDocument(options)) {
       throw new Error('YentInterfaceOutput document must be passed as { document }');
@@ -17,7 +21,7 @@
       throw new Error('YentInterfaceOutput target id must be passed as { id }');
     }
     const id = options && options.id;
-    const documentRef = (options && options.document) || defaultDocument();
+    const documentRef = hasOwn(options, 'document') ? options.document : defaultDocument();
     if (!documentRef || typeof documentRef.getElementById !== 'function') {
       throw new Error('YentInterfaceOutput document unavailable');
     }

@@ -30,6 +30,7 @@ function main() {
     globalThis.document = doc({ transcript: target });
     try {
       assert.equal(output.bind({ id: 'transcript' }), target);
+      assert.throws(() => output.bind({ document: null, id: 'transcript' }), /document unavailable/);
     } finally {
       if (hadDocument) globalThis.document = previousDocument;
       else delete globalThis.document;

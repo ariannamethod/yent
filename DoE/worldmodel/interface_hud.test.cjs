@@ -82,6 +82,8 @@ function main() {
       const cells = hud.bind({ ids: { tok: 'custom-tok' } });
       hud.render({ hud: cells, state: { tokps: 2.25 } });
       assert.equal(doc.nodes['custom-tok'].textContent, '2.3');
+      const nullCells = hud.bind({ document: null, ids: { tok: 'custom-tok' } });
+      assert.equal(nullCells.tok, null);
     } finally {
       if (hadDocument) globalThis.document = previousDocument;
       else delete globalThis.document;

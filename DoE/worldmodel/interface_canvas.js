@@ -97,7 +97,7 @@
       throw new Error('interface canvas document must be passed as { document }');
     }
     options = options || {};
-    const documentRef = options.document || root.document;
+    const documentRef = hasOwn(options, 'document') ? options.document : root.document;
     if (!documentRef || typeof documentRef.getElementById !== 'function') {
       throw new Error('interface canvas document unavailable');
     }
@@ -118,7 +118,7 @@
       throw new Error('interface canvas document must be passed as { document }');
     }
     options = options || {};
-    const documentRef = options.document || root.document;
+    const documentRef = hasOwn(options, 'document') ? options.document : root.document;
     if (!documentRef || typeof documentRef.createElement !== 'function') {
       throw new Error('interface canvas document unavailable');
     }

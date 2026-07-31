@@ -815,6 +815,22 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(statusJS, "arguments.length") {
 		t.Fatalf("visual binding helpers still expose positional document arguments")
 	}
+	for _, tc := range []struct {
+		name string
+		src  string
+	}{
+		{"interface_canvas.js", canvasJS},
+		{"interface_hud.js", hudJS},
+		{"interface_output.js", outputJS},
+		{"interface_status.js", statusJS},
+		{"interface_style.js", styleJS},
+		{"interface_transcript.js", transcriptJS},
+	} {
+		if strings.Contains(tc.src, "options.document ||") ||
+			strings.Contains(tc.src, "(options && options.document) ||") {
+			t.Fatalf("%s still lets explicit null document fall back to browser globals", tc.name)
+		}
+	}
 	if strings.Contains(inputJS, "function bindControls(documentRef") ||
 		strings.Contains(inputJS, "function readParams(documentRef") ||
 		strings.Contains(inputJS, "function isFocused(documentRef") ||
