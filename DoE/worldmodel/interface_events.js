@@ -1,8 +1,12 @@
 (function (root) {
   'use strict';
 
+  function hasOwn(value, key) {
+    return Object.prototype.hasOwnProperty.call(Object(value), key);
+  }
+
   function resolveTarget(options) {
-    return (options && options.target) || root;
+    return hasOwn(options, 'target') ? options.target : root;
   }
 
   function requireTarget(target) {

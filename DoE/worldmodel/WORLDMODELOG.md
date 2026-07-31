@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-31 - target null boundary
+
+- Explicit `target: null` in shared event binding no longer falls back to the
+  browser global target.
+- Explicit `resizeTarget: null` in boot resize binding now means no resize
+  listener is bound, instead of silently binding `globalThis`.
+- Omitted targets still use browser defaults for the live pages.
+
 ## 2026-07-31 - viewport null boundary
 
 - Explicit `viewport: null` no longer falls back to browser globals in canvas

@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-31 - interface target null boundary
+
+- Event binding and boot resize binding no longer treat explicit target nulls
+  as a request to fall back to browser globals.
+- Omitted event target and resize target still use the page default.
+- Tests now prove `target: null` fails closed and `resizeTarget: null` does
+  not bind the live global resize listener.
+
 ## 2026-07-31 - interface viewport null boundary
 
 - Canvas viewport helpers no longer treat explicit `viewport: null` as a

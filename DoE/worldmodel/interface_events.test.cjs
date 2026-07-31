@@ -113,6 +113,29 @@ function main() {
     }
   }
 
+  {
+    const hadAdd = Object.prototype.hasOwnProperty.call(globalThis, 'addEventListener');
+    const previousAdd = globalThis.addEventListener;
+    let touched = false;
+    globalThis.addEventListener = () => {
+      touched = true;
+    };
+    try {
+      assert.throws(
+        () => events.bindKeyState({ target: null, keys: {} }),
+        /interface event target unavailable/
+      );
+      assert.throws(
+        () => events.bindPointer({ target: null, onMove: () => {} }),
+        /interface event target unavailable/
+      );
+      assert.equal(touched, false);
+    } finally {
+      if (hadAdd) globalThis.addEventListener = previousAdd;
+      else delete globalThis.addEventListener;
+    }
+  }
+
   assert.throws(() => events.bindKeyState({ target: target() }), /interface key state target missing/);
   assert.throws(() => events.bindPointer({ target: {} }), /interface event target unavailable/);
 }

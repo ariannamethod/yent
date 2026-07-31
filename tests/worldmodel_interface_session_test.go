@@ -951,6 +951,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(eventsJS, "bind(target, 'mousemove'") {
 		t.Fatalf("interface_events.js still exposes positional listener binding arguments")
 	}
+	if strings.Contains(eventsJS, "options && options.target) || root") ||
+		strings.Contains(eventsJS, "options.target || root") {
+		t.Fatalf("interface_events.js still lets explicit null targets fall back to browser globals")
+	}
 	if strings.Contains(canvasJS, "options.window") ||
 		strings.Contains(eventsJS, "options.window") ||
 		strings.Contains(bootJS, "options.window") {
@@ -1020,6 +1024,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if strings.Contains(bootJS, "function bindResize(options, resize)") ||
 		strings.Contains(bootJS, "bindResize(options, resize)") {
 		t.Fatalf("interface_boot.js still exposes positional resize binding arguments")
+	}
+	if strings.Contains(bootJS, "options && options.resizeTarget) || root") ||
+		strings.Contains(bootJS, "options.resizeTarget || root") ||
+		strings.Contains(bootJS, "resizeTarget: options.resizeTarget") {
+		t.Fatalf("interface_boot.js still lets explicit null resize targets fall back to browser globals")
 	}
 	if !strings.Contains(bootJS, "function bindComposer") ||
 		!strings.Contains(bootJS, "generationRun.bindComposer(") ||
