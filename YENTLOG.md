@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-31 - interface replay fixture boundary
+
+- `interfaceReplay.scenario` no longer accepts a bare scenario string.
+- Replay fixtures are selected through explicit `{ scenario }`, matching the
+  `play` helper contract.
+- URL replay and live page playback are unchanged; only direct fixture helper
+  selection was tightened.
+
 ## 2026-07-31 - interface run prompt input boundary
 
 - `interfaceRun.bindComposer` no longer accepts the generic `input` field.

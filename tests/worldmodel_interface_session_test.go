@@ -873,6 +873,13 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(replayJS, "options.scenario || options.name") {
 		t.Fatalf("interface_replay.js still accepts the generic scenario name alias")
 	}
+	if !strings.Contains(replayJS, "replay fixture scenario must be passed as { scenario }") ||
+		!strings.Contains(replayJS, "replay fixture scenario name must be passed as { scenario }") ||
+		strings.Contains(replayJS, "function scenario(name)") ||
+		strings.Contains(replayJS, "scenario(options.scenario)") ||
+		strings.Contains(replayJS, "scenario(name);") {
+		t.Fatalf("interface_replay.js still exposes positional replay fixture selection")
+	}
 	if !strings.Contains(canvasJS, "devicePixelRatio") ||
 		!strings.Contains(canvasJS, "setTransform(base.dpr") ||
 		!strings.Contains(canvasJS, "canvas.width = Math.max") ||

@@ -49,8 +49,16 @@ async function main() {
 }
 
 {
-  const one = replay.scenario('boundary');
-  const two = replay.scenario('boundary');
+  assert.throws(
+    () => replay.scenario('boundary'),
+    /replay fixture scenario must be passed as \{ scenario \}/
+  );
+  assert.throws(
+    () => replay.scenario({ name: 'boundary' }),
+    /replay fixture scenario name must be passed as \{ scenario \}/
+  );
+  const one = replay.scenario({ scenario: 'boundary' });
+  const two = replay.scenario({ scenario: 'boundary' });
   assert.notEqual(one.events, two.events);
   assert.notEqual(one.events[0], two.events[0]);
   assert.notEqual(one.events[0].top_tokens, two.events[0].top_tokens);
@@ -72,7 +80,7 @@ async function main() {
     onDone: event => { done = event.done === true; }
   });
   assert.equal(done, true);
-  assert.equal(seen.length, replay.scenario('boundary').events.length);
+  assert.equal(seen.length, replay.scenario({ scenario: 'boundary' }).events.length);
   assert.equal(seen[0].token, 'The');
   assert.equal(seen.at(-1).token, '.');
   assert.equal(seen[0].step, 1);
