@@ -82,6 +82,38 @@ function makeSurface() {
 }
 
 {
+  const hadInnerWidth = Object.prototype.hasOwnProperty.call(globalThis, 'innerWidth');
+  const hadInnerHeight = Object.prototype.hasOwnProperty.call(globalThis, 'innerHeight');
+  const hadDevicePixelRatio = Object.prototype.hasOwnProperty.call(globalThis, 'devicePixelRatio');
+  const previousInnerWidth = globalThis.innerWidth;
+  const previousInnerHeight = globalThis.innerHeight;
+  const previousDevicePixelRatio = globalThis.devicePixelRatio;
+  globalThis.innerWidth = 777;
+  globalThis.innerHeight = 555;
+  globalThis.devicePixelRatio = 1.75;
+  try {
+    assert.equal(canvas.pixelRatio({ viewport: null, maxDpr: 2 }), 1);
+    assert.deepEqual(canvas.viewport({ viewport: null }), { width: 0, height: 0, dpr: 1 });
+    const main = makeSurface();
+    const result = canvas.resize({ viewport: null, surface: { canvas: main.canvas, context: main.context } });
+    assert.equal(result.width, 0);
+    assert.equal(result.height, 0);
+    assert.equal(result.dpr, 1);
+    assert.equal(main.canvas.style.width, '0px');
+    assert.equal(main.canvas.style.height, '0px');
+    assert.equal(main.canvas.width, 1);
+    assert.equal(main.canvas.height, 1);
+  } finally {
+    if (hadInnerWidth) globalThis.innerWidth = previousInnerWidth;
+    else delete globalThis.innerWidth;
+    if (hadInnerHeight) globalThis.innerHeight = previousInnerHeight;
+    else delete globalThis.innerHeight;
+    if (hadDevicePixelRatio) globalThis.devicePixelRatio = previousDevicePixelRatio;
+    else delete globalThis.devicePixelRatio;
+  }
+}
+
+{
   const calls = [];
   const documentRef = {
     createElement(tag) {

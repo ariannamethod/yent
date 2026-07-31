@@ -35,7 +35,7 @@
     rejectBareViewport(options);
     options = options || {};
     const max = finiteNumber(options.maxDpr, 2);
-    const viewportRef = options.viewport || root;
+    const viewportRef = hasOwn(options, 'viewport') ? options.viewport : root;
     const raw = finiteNumber(viewportRef && viewportRef.devicePixelRatio, 1);
     return Math.max(1, Math.min(max > 0 ? max : 2, raw > 0 ? raw : 1));
   }
@@ -43,7 +43,7 @@
   function viewport(options) {
     rejectBareViewport(options);
     options = options || {};
-    const win = options.viewport || root;
+    const win = hasOwn(options, 'viewport') ? options.viewport : root;
     return {
       width: Math.max(0, finiteNumber(win && win.innerWidth, 0)),
       height: Math.max(0, finiteNumber(win && win.innerHeight, 0)),
@@ -74,7 +74,9 @@
     if (hasOwn(options, 'canvas') || hasOwn(options, 'context')) {
       throw new Error('interface canvas resize surface must be passed as { surface } or { surfaces }');
     }
-    const base = viewport({ viewport: options.viewport, maxDpr: options.maxDpr });
+    const viewportOptions = { maxDpr: options.maxDpr };
+    if (hasOwn(options, 'viewport')) viewportOptions.viewport = options.viewport;
+    const base = viewport(viewportOptions);
     const surfaces = Array.isArray(options.surfaces)
       ? options.surfaces
       : (hasOwn(options, 'surface') ? [options.surface] : []);
