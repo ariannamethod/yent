@@ -2,6 +2,15 @@
 
 Yent worldmodel interface log.
 
+## 2026-07-31 - clock source null boundary
+
+- Explicit `requestAnimationFrame: null` no longer falls back to the browser
+  animation frame source.
+- Explicit `performance: null` no longer reads `globalThis.performance`; the
+  generation clock uses its Date fallback instead.
+- Omitted timing sources still use browser defaults for live page animation and
+  throughput timing.
+
 ## 2026-07-31 - target null boundary
 
 - Explicit `target: null` in shared event binding no longer falls back to the

@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-07-31 - interface clock source null boundary
+
+- Animation and generation clock helpers no longer treat explicit null timing
+  sources as a request to fall back to browser globals.
+- Omitted `requestAnimationFrame` and `performance` still use page defaults.
+- Named null timing sources now fail closed for animation or use the clock's
+  Date fallback without reading `globalThis.performance`.
+
 ## 2026-07-31 - interface target null boundary
 
 - Event binding and boot resize binding no longer treat explicit target nulls

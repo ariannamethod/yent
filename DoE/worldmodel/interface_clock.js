@@ -1,8 +1,12 @@
 (function (root) {
   'use strict';
 
+  function hasOwn(value, key) {
+    return Object.prototype.hasOwnProperty.call(Object(value), key);
+  }
+
   function nowFrom(options) {
-    const perf = options && options.performance ? options.performance : root.performance;
+    const perf = hasOwn(options, 'performance') ? options.performance : root.performance;
     if (perf && typeof perf.now === 'function') return perf.now();
     return Date.now();
   }

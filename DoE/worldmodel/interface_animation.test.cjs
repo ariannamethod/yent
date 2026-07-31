@@ -27,6 +27,24 @@ function main() {
   }
 
   {
+    const prior = globalThis.requestAnimationFrame;
+    let touched = false;
+    globalThis.requestAnimationFrame = () => {
+      touched = true;
+      return 99;
+    };
+    try {
+      assert.throws(
+        () => animation.create({ requestAnimationFrame: null }),
+        /requestAnimationFrame unavailable/
+      );
+      assert.equal(touched, false);
+    } finally {
+      globalThis.requestAnimationFrame = prior;
+    }
+  }
+
+  {
     const helper = animation.create({ requestAnimationFrame() {} });
     assert.throws(() => helper.requestFrame(null), /animation frame callback unavailable/);
     assert.throws(() => helper.requestFrame(() => {}), /callback must be passed as \{ callback \}/);
