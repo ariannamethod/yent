@@ -3,8 +3,12 @@
 
   const DEFAULT_ENDPOINT = '/chat/completions';
 
+  function hasOwn(value, key) {
+    return !!value && Object.prototype.hasOwnProperty.call(value, key);
+  }
+
   function dependency(options) {
-    const eventStream = (options && options.eventStream) || root.YentEventStream;
+    const eventStream = hasOwn(options, 'eventStream') ? options.eventStream : root.YentEventStream;
     if (!eventStream || typeof eventStream.createParser !== 'function') {
       throw new Error('YentEventStream helper missing');
     }
@@ -12,15 +16,26 @@
   }
 
   function fetchImpl(options) {
-    if (options && typeof options.fetch === 'function') return options.fetch;
+    if (hasOwn(options, 'fetch')) {
+      if (typeof options.fetch === 'function') return options.fetch;
+      throw new Error('fetch unavailable');
+    }
     if (typeof root.fetch === 'function') return root.fetch.bind(root);
     throw new Error('fetch unavailable');
   }
 
   function decoderImpl(options) {
-    const Decoder = (options && options.TextDecoder) || root.TextDecoder;
+    const Decoder = hasOwn(options, 'TextDecoder') ? options.TextDecoder : root.TextDecoder;
     if (typeof Decoder !== 'function') throw new Error('TextDecoder unavailable');
     return new Decoder();
+  }
+
+  function endpointFor(options) {
+    const endpoint = hasOwn(options, 'endpoint') ? options.endpoint : DEFAULT_ENDPOINT;
+    if (typeof endpoint !== 'string' || endpoint.length === 0) {
+      throw new Error('chat endpoint unavailable');
+    }
+    return endpoint;
   }
 
   function clampNumber(value, fallback, min, max) {
@@ -77,7 +92,8 @@
   async function stream(options) {
     options = options || {};
     const eventStream = dependency(options);
-    const response = await fetchImpl(options)(options.endpoint || DEFAULT_ENDPOINT, {
+    const endpoint = endpointFor(options);
+    const response = await fetchImpl(options)(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: options.signal,

@@ -2,6 +2,15 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-02 - chat transport null boundary
+
+- Explicit null chat stream transport dependencies no longer fall back to
+  browser globals.
+- `eventStream`, `fetch`, `TextDecoder`, and `endpoint` now preserve the
+  difference between omitted defaults and named null inputs.
+- Omitted chat transport still uses the live page parser/fetch/decoder defaults
+  and `/chat/completions` endpoint.
+
 ## 2026-08-01 - replay timer null boundary
 
 - Explicit `setTimeout: null` no longer falls back to the browser timer in
