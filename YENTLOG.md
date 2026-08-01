@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-08-02 - interface helper dependency null boundary
+
+- Boot replay helper resolution no longer treats explicit `interfaceReplay:
+  null` as a request to use `globalThis.YentInterfaceReplay`.
+- Input stream helper resolution preserves explicit null `interfaceReplay` and
+  `chatStream` instead of borrowing ambient replay/chat helpers.
+- Omitted helper dependencies still use live page defaults; named null
+  dependencies now fail closed under adversarial globals.
+
 ## 2026-08-02 - interface chat transport null boundary
 
 - Chat stream transport now distinguishes omitted browser defaults from named

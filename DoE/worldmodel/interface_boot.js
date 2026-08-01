@@ -11,7 +11,7 @@
   }
 
   function requireReplay(options) {
-    const replay = (options && options.interfaceReplay) || root.YentInterfaceReplay;
+    const replay = hasOwn(options, 'interfaceReplay') ? options.interfaceReplay : root.YentInterfaceReplay;
     if (!replay || typeof replay.startIfRequested !== 'function') {
       throw new Error('YentInterfaceReplay helper missing');
     }

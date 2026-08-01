@@ -96,8 +96,8 @@
     options = options || {};
     const replayMode = !!options.replayMode;
     const replayRequest = options.replayRequest || {};
-    const replay = options.interfaceReplay || root.YentInterfaceReplay;
-    const chat = options.chatStream || root.YentChatStream;
+    const replay = hasOwn(options, 'interfaceReplay') ? options.interfaceReplay : root.YentInterfaceReplay;
+    const chat = hasOwn(options, 'chatStream') ? options.chatStream : root.YentChatStream;
 
     if (replayMode) {
       if (!replay || typeof replay.play !== 'function') {

@@ -83,6 +83,33 @@ function main() {
   }
 
   {
+    let touched = false;
+    const hadReplay = Object.prototype.hasOwnProperty.call(globalThis, 'YentInterfaceReplay');
+    const previousReplay = globalThis.YentInterfaceReplay;
+    globalThis.YentInterfaceReplay = {
+      startIfRequested() {
+        touched = true;
+        return true;
+      }
+    };
+    try {
+      assert.throws(
+        () => boot.start({
+          restore() {},
+          resize() {},
+          startAnimation() {},
+          interfaceReplay: null
+        }),
+        /YentInterfaceReplay helper missing/
+      );
+      assert.equal(touched, false);
+    } finally {
+      if (hadReplay) globalThis.YentInterfaceReplay = previousReplay;
+      else delete globalThis.YentInterfaceReplay;
+    }
+  }
+
+  {
     const calls = [];
     const hadAdd = Object.prototype.hasOwnProperty.call(globalThis, 'addEventListener');
     const previousAdd = globalThis.addEventListener;
