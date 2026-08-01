@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-02 - helper dependency null boundary
+
+- Explicit null replay/chat helper dependencies no longer fall back to global
+  worldmodel helpers.
+- Boot preserves `interfaceReplay: null`; input preserves `interfaceReplay:
+  null` and `chatStream: null`.
+- Omitted helpers still use page defaults for live replay and chat.
+
 ## 2026-08-02 - chat transport null boundary
 
 - Explicit null chat stream transport dependencies no longer fall back to

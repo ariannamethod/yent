@@ -912,6 +912,17 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if strings.Contains(bootJS, "setTimeout: options.setTimeout") {
 		t.Fatalf("interface_boot.js still turns omitted replay timers into named undefined timers")
 	}
+	if !strings.Contains(bootJS, "hasOwn(options, 'interfaceReplay') ? options.interfaceReplay : root.YentInterfaceReplay") ||
+		strings.Contains(bootJS, "(options && options.interfaceReplay) || root.YentInterfaceReplay") ||
+		strings.Contains(bootJS, "options.interfaceReplay || root.YentInterfaceReplay") {
+		t.Fatalf("interface_boot.js does not preserve explicit null replay helper dependencies")
+	}
+	if !strings.Contains(inputJS, "hasOwn(options, 'interfaceReplay') ? options.interfaceReplay : root.YentInterfaceReplay") ||
+		!strings.Contains(inputJS, "hasOwn(options, 'chatStream') ? options.chatStream : root.YentChatStream") ||
+		strings.Contains(inputJS, "options.interfaceReplay || root.YentInterfaceReplay") ||
+		strings.Contains(inputJS, "options.chatStream || root.YentChatStream") {
+		t.Fatalf("interface_input.js does not preserve explicit null stream helper dependencies")
+	}
 	if !strings.Contains(canvasJS, "devicePixelRatio") ||
 		!strings.Contains(canvasJS, "setTransform(base.dpr") ||
 		!strings.Contains(canvasJS, "canvas.width = Math.max") ||

@@ -258,6 +258,50 @@ async function main() {
 
   assert.throws(() => input.streamFor({ replayMode: false }), /YentChatStream helper missing/);
   assert.throws(() => input.streamFor({ replayMode: true }), /YentInterfaceReplay helper missing/);
+
+  {
+    let touched = false;
+    const hadReplay = Object.prototype.hasOwnProperty.call(globalThis, 'YentInterfaceReplay');
+    const previousReplay = globalThis.YentInterfaceReplay;
+    globalThis.YentInterfaceReplay = {
+      play() {
+        touched = true;
+        return { done: true };
+      }
+    };
+    try {
+      assert.throws(
+        () => input.streamFor({ replayMode: true, interfaceReplay: null }),
+        /YentInterfaceReplay helper missing/
+      );
+      assert.equal(touched, false);
+    } finally {
+      if (hadReplay) globalThis.YentInterfaceReplay = previousReplay;
+      else delete globalThis.YentInterfaceReplay;
+    }
+  }
+
+  {
+    let touched = false;
+    const hadChat = Object.prototype.hasOwnProperty.call(globalThis, 'YentChatStream');
+    const previousChat = globalThis.YentChatStream;
+    globalThis.YentChatStream = {
+      stream() {
+        touched = true;
+        return { done: true };
+      }
+    };
+    try {
+      assert.throws(
+        () => input.streamFor({ replayMode: false, chatStream: null }),
+        /YentChatStream helper missing/
+      );
+      assert.equal(touched, false);
+    } finally {
+      if (hadChat) globalThis.YentChatStream = previousChat;
+      else delete globalThis.YentChatStream;
+    }
+  }
 }
 
 main().catch(err => {
