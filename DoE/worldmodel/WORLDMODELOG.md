@@ -2,6 +2,16 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-01 - replay timer null boundary
+
+- Explicit `setTimeout: null` no longer falls back to the browser timer in
+  replay autostart.
+- Boot now forwards the replay timer only when the startup caller actually
+  names it.
+- Omitted replay timers keep the live page default.
+- The replay helper now preserves injected null scheduling state the same way
+  the clock and animation helpers preserve named null timing sources.
+
 ## 2026-07-31 - clock source null boundary
 
 - Explicit `requestAnimationFrame: null` no longer falls back to the browser

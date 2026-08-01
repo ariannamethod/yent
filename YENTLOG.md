@@ -6,6 +6,16 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-08-01 - interface replay timer null boundary
+
+- Replay autostart no longer treats explicit `setTimeout: null` as a request
+  to fall back to browser globals.
+- Boot no longer turns an omitted replay timer into a named undefined timer
+  while forwarding startup options.
+- Omitted replay timers still use the page default for live demo startup.
+- Tests now install an adversarial global timer and prove named null timers
+  fail closed instead of borrowing ambient scheduling state.
+
 ## 2026-07-31 - interface clock source null boundary
 
 - Animation and generation clock helpers no longer treat explicit null timing

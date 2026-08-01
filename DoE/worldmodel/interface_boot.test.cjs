@@ -93,7 +93,12 @@ function main() {
         resize: () => calls.push('resize'),
         resizeTarget: null,
         startAnimation: () => calls.push('animation'),
-        interfaceReplay: { startIfRequested: () => false }
+        interfaceReplay: {
+          startIfRequested(options) {
+            assert.equal(Object.prototype.hasOwnProperty.call(options, 'setTimeout'), false);
+            return false;
+          }
+        }
       });
       assert.equal(started, false);
       assert.deepEqual(calls, ['restore', 'resize', 'animation']);
