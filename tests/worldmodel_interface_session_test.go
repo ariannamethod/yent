@@ -1002,6 +1002,24 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(turnJS, "options.replayRequest || options.request") {
 		t.Fatalf("interface_turn.js still accepts generic session/request aliases")
 	}
+	if !strings.Contains(turnJS, "hasOwn(options, 'interfaceInput') ? options.interfaceInput : root.YentInterfaceInput") ||
+		!strings.Contains(turnJS, "hasOwn(options, 'chatStream') ? options.chatStream : root.YentChatStream") ||
+		!strings.Contains(turnJS, "hasOwn(options, 'interfaceReplay') ? options.interfaceReplay : root.YentInterfaceReplay") ||
+		strings.Contains(turnJS, "options.interfaceInput || root.YentInterfaceInput") ||
+		strings.Contains(turnJS, "options.chatStream || root.YentChatStream") ||
+		strings.Contains(turnJS, "options.interfaceReplay || root.YentInterfaceReplay") {
+		t.Fatalf("interface_turn.js does not preserve explicit null helper dependencies")
+	}
+	if !strings.Contains(submitJS, "hasOwn(options, 'interfaceTurn') ? options.interfaceTurn : root.YentInterfaceTurn") ||
+		!strings.Contains(submitJS, "hasOwn(options, 'interfaceInput') ? options.interfaceInput : root.YentInterfaceInput") ||
+		!strings.Contains(submitJS, "hasOwn(options, 'chatStream') ? options.chatStream : root.YentChatStream") ||
+		!strings.Contains(submitJS, "hasOwn(options, 'interfaceReplay') ? options.interfaceReplay : root.YentInterfaceReplay") ||
+		strings.Contains(submitJS, "options.interfaceTurn || root.YentInterfaceTurn") ||
+		strings.Contains(submitJS, "options.interfaceInput || root.YentInterfaceInput") ||
+		strings.Contains(submitJS, "options.chatStream || root.YentChatStream") ||
+		strings.Contains(submitJS, "options.interfaceReplay || root.YentInterfaceReplay") {
+		t.Fatalf("interface_submit.js does not preserve explicit null helper dependencies")
+	}
 	if !strings.Contains(submitJS, "generationRun.begin(") ||
 		!strings.Contains(submitJS, "session.commitUser(") ||
 		!strings.Contains(submitJS, "turnHelper.streamAssistant(") ||

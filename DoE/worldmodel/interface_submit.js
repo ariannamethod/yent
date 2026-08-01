@@ -38,7 +38,7 @@
     const session = options.sessionReceipt;
     requireMethod(session, 'YentInterfaceSession adapter', 'commitUser');
 
-    const turnHelper = options.interfaceTurn || root.YentInterfaceTurn;
+    const turnHelper = hasOwn(options, 'interfaceTurn') ? options.interfaceTurn : root.YentInterfaceTurn;
     requireMethod(turnHelper, 'YentInterfaceTurn', 'streamAssistant');
 
     let messages = arrayOrEmpty(options.messages);
@@ -56,9 +56,9 @@
 
       const turn = await turnHelper.streamAssistant({
         paramsDocument: options.paramsDocument,
-        interfaceInput: options.interfaceInput || root.YentInterfaceInput,
-        chatStream: options.chatStream || root.YentChatStream,
-        interfaceReplay: options.interfaceReplay || root.YentInterfaceReplay,
+        interfaceInput: hasOwn(options, 'interfaceInput') ? options.interfaceInput : root.YentInterfaceInput,
+        chatStream: hasOwn(options, 'chatStream') ? options.chatStream : root.YentChatStream,
+        interfaceReplay: hasOwn(options, 'interfaceReplay') ? options.interfaceReplay : root.YentInterfaceReplay,
         replayMode: !!options.replayMode,
         replayRequest: options.replayRequest,
         sessionReceipt: session,
