@@ -123,6 +123,64 @@ async function main() {
       /YentInterfaceTurn helper missing/
     );
   }
+
+  {
+    let touched = false;
+    const hadTurn = Object.prototype.hasOwnProperty.call(globalThis, 'YentInterfaceTurn');
+    const previousTurn = globalThis.YentInterfaceTurn;
+    globalThis.YentInterfaceTurn = {
+      streamAssistant() {
+        touched = true;
+        return {};
+      }
+    };
+    try {
+      await assert.rejects(
+        () => submit.run({
+          generationRun: generationRun(),
+          sessionReceipt: session(),
+          interfaceTurn: null,
+          text: 'hello'
+        }),
+        /YentInterfaceTurn helper missing/
+      );
+      assert.equal(touched, false);
+    } finally {
+      if (hadTurn) globalThis.YentInterfaceTurn = previousTurn;
+      else delete globalThis.YentInterfaceTurn;
+    }
+  }
+
+  {
+    const run = generationRun();
+    const seen = {};
+    const result = await submit.run({
+      generationRun: run,
+      sessionReceipt: session(),
+      interfaceTurn: {
+        async streamAssistant(options) {
+          seen.interfaceInput = options.interfaceInput;
+          seen.chatStream = options.chatStream;
+          seen.interfaceReplay = options.interfaceReplay;
+          return {
+            text: '',
+            outcome: { kind: 'complete' },
+            messages: options.messages,
+            visibleMessages: options.visibleMessages
+          };
+        }
+      },
+      interfaceInput: null,
+      chatStream: null,
+      interfaceReplay: null,
+      text: 'hello'
+    });
+    assert.equal(seen.interfaceInput, null);
+    assert.equal(seen.chatStream, null);
+    assert.equal(seen.interfaceReplay, null);
+    assert.equal(result.outcome.kind, 'complete');
+    assert.deepEqual(run.calls, ['begin', 'finish:1']);
+  }
 }
 
 main().catch(err => {

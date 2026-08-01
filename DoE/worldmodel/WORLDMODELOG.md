@@ -2,6 +2,14 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-02 - turn dependency null boundary
+
+- Submit and turn dependency plumbing now preserves explicit null helper
+  inputs instead of reacquiring globals.
+- `interfaceTurn`, `interfaceInput`, `chatStream`, and `interfaceReplay` stay
+  named across submit-to-turn forwarding.
+- Omitted helper dependencies still use live page defaults.
+
 ## 2026-08-02 - helper dependency null boundary
 
 - Explicit null replay/chat helper dependencies no longer fall back to global

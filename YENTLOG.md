@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-08-02 - interface turn dependency null boundary
+
+- Submit and turn helpers no longer treat explicit null injected helpers as a
+  request to borrow root interface helpers.
+- `interfaceTurn`, `interfaceInput`, `chatStream`, and `interfaceReplay`
+  boundaries now preserve named null from submit through assistant streaming.
+- Adversarial tests prove root helper globals are not touched when the caller
+  explicitly denies those dependencies.
+
 ## 2026-08-02 - interface helper dependency null boundary
 
 - Boot replay helper resolution no longer treats explicit `interfaceReplay:

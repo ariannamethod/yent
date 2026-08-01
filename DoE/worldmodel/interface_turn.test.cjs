@@ -148,6 +148,100 @@ async function main() {
       /YentInterfaceSession adapter helper missing/
     );
   }
+
+  {
+    let touched = false;
+    const hadInput = Object.prototype.hasOwnProperty.call(globalThis, 'YentInterfaceInput');
+    const previousInput = globalThis.YentInterfaceInput;
+    globalThis.YentInterfaceInput = {
+      readParams() {
+        touched = true;
+        return {};
+      },
+      streamFor() {
+        touched = true;
+        return async () => {};
+      }
+    };
+    try {
+      await assert.rejects(
+        () => turn.streamAssistant({
+          interfaceInput: null,
+          chatStream,
+          sessionReceipt: session()
+        }),
+        /YentInterfaceInput helper missing/
+      );
+      assert.equal(touched, false);
+    } finally {
+      if (hadInput) globalThis.YentInterfaceInput = previousInput;
+      else delete globalThis.YentInterfaceInput;
+    }
+  }
+
+  {
+    let touched = false;
+    const hadChat = Object.prototype.hasOwnProperty.call(globalThis, 'YentChatStream');
+    const previousChat = globalThis.YentChatStream;
+    globalThis.YentChatStream = {
+      outcome() {
+        touched = true;
+        return { kind: 'complete' };
+      }
+    };
+    try {
+      await assert.rejects(
+        () => turn.streamAssistant({
+          interfaceInput: { readParams() { return {}; }, streamFor() { return async () => {}; } },
+          chatStream: null,
+          sessionReceipt: session()
+        }),
+        /YentChatStream helper missing/
+      );
+      assert.equal(touched, false);
+    } finally {
+      if (hadChat) globalThis.YentChatStream = previousChat;
+      else delete globalThis.YentChatStream;
+    }
+  }
+
+  {
+    let touched = false;
+    const hadReplay = Object.prototype.hasOwnProperty.call(globalThis, 'YentInterfaceReplay');
+    const previousReplay = globalThis.YentInterfaceReplay;
+    globalThis.YentInterfaceReplay = {
+      play() {
+        touched = true;
+        return { done: true };
+      }
+    };
+    try {
+      const interfaceInput = require('./interface_input.js');
+      const sess = session();
+      const result = await turn.streamAssistant({
+        paramsDocument: {
+          getElementById(id) {
+            return { value: id === 'temp' ? '0.8' : '8' };
+          }
+        },
+        interfaceInput,
+        interfaceReplay: null,
+        chatStream,
+        sessionReceipt: sess,
+        replayMode: true,
+        replayRequest: { name: 'boundary' },
+        messages: [{ role: 'user', content: 'hi' }],
+        visibleMessages: []
+      });
+      assert.match(result.error && result.error.message, /YentInterfaceReplay helper missing/);
+      assert.equal(result.outcome.kind, 'fault');
+      assert.equal(result.committed, false);
+      assert.equal(touched, false);
+    } finally {
+      if (hadReplay) globalThis.YentInterfaceReplay = previousReplay;
+      else delete globalThis.YentInterfaceReplay;
+    }
+  }
 }
 
 main().catch(err => {

@@ -24,9 +24,17 @@
     if (hasOwn(options, 'request')) {
       throw new Error('replay request must be passed as { replayRequest }');
     }
-    const input = requireMethod(options.interfaceInput || root.YentInterfaceInput, 'YentInterfaceInput', 'readParams');
+    const input = requireMethod(
+      hasOwn(options, 'interfaceInput') ? options.interfaceInput : root.YentInterfaceInput,
+      'YentInterfaceInput',
+      'readParams'
+    );
     requireMethod(input, 'YentInterfaceInput', 'streamFor');
-    const chat = requireMethod(options.chatStream || root.YentChatStream, 'YentChatStream', 'outcome');
+    const chat = requireMethod(
+      hasOwn(options, 'chatStream') ? options.chatStream : root.YentChatStream,
+      'YentChatStream',
+      'outcome'
+    );
     const session = options.sessionReceipt;
     requireMethod(session, 'YentInterfaceSession adapter', 'previewAssistant');
     requireMethod(session, 'YentInterfaceSession adapter', 'commitAssistant');
@@ -42,7 +50,7 @@
       const stream = input.streamFor({
         replayMode: !!options.replayMode,
         replayRequest: options.replayRequest,
-        interfaceReplay: options.interfaceReplay || root.YentInterfaceReplay,
+        interfaceReplay: hasOwn(options, 'interfaceReplay') ? options.interfaceReplay : root.YentInterfaceReplay,
         chatStream: chat
       });
 
