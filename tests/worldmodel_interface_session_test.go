@@ -1007,6 +1007,17 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(chatStreamJS, "const responseText = options.responseText") {
 		t.Fatalf("chat_stream.js does not own named stream outcome inputs")
 	}
+	if !strings.Contains(chatStreamJS, "const eventStream = hasOwn(options, 'eventStream') ? options.eventStream : root.YentEventStream") ||
+		!strings.Contains(chatStreamJS, "if (hasOwn(options, 'fetch'))") ||
+		!strings.Contains(chatStreamJS, "const Decoder = hasOwn(options, 'TextDecoder') ? options.TextDecoder : root.TextDecoder") ||
+		!strings.Contains(chatStreamJS, "function endpointFor(options)") {
+		t.Fatalf("chat_stream.js does not preserve named transport/decode dependency boundaries")
+	}
+	if strings.Contains(chatStreamJS, "(options && options.eventStream) || root.YentEventStream") ||
+		strings.Contains(chatStreamJS, "(options && options.TextDecoder) || root.TextDecoder") ||
+		strings.Contains(chatStreamJS, "options.endpoint || DEFAULT_ENDPOINT") {
+		t.Fatalf("chat_stream.js still lets explicit null transport inputs fall back to defaults")
+	}
 	if strings.Contains(chatStreamJS, "function outcome(error") ||
 		strings.Contains(turnJS, "chat.outcome(null,") ||
 		strings.Contains(turnJS, "chat.outcome(err,") {

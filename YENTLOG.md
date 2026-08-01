@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-08-02 - interface chat transport null boundary
+
+- Chat stream transport now distinguishes omitted browser defaults from named
+  null dependencies.
+- Explicit null `eventStream`, `fetch`, `TextDecoder`, or `endpoint` no longer
+  fall back to page globals or the default `/chat/completions` endpoint.
+- Adversarial tests install global parser/fetch/decoder hooks and prove named
+  null transport inputs fail closed before borrowing ambient state.
+
 ## 2026-08-01 - interface replay timer null boundary
 
 - Replay autostart no longer treats explicit `setTimeout: null` as a request

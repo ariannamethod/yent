@@ -120,6 +120,91 @@ async function main() {
 }
 
 {
+  const prior = globalThis.YentEventStream;
+  let touched = false;
+  globalThis.YentEventStream = {
+    createParser() {
+      touched = true;
+      return eventStream.createParser(() => {});
+    }
+  };
+  try {
+    await assert.rejects(
+      () => chat.stream({
+        eventStream: null,
+        fetch: async () => makeResponse(['data: {"done":true}\n\n'])
+      }),
+      /YentEventStream helper missing/
+    );
+    assert.equal(touched, false);
+  } finally {
+    if (prior === undefined) delete globalThis.YentEventStream;
+    else globalThis.YentEventStream = prior;
+  }
+}
+
+{
+  const prior = globalThis.fetch;
+  let touched = false;
+  globalThis.fetch = async () => {
+    touched = true;
+    return makeResponse(['data: {"done":true}\n\n']);
+  };
+  try {
+    await assert.rejects(
+      () => chat.stream({
+        eventStream,
+        fetch: null
+      }),
+      /fetch unavailable/
+    );
+    assert.equal(touched, false);
+  } finally {
+    if (prior === undefined) delete globalThis.fetch;
+    else globalThis.fetch = prior;
+  }
+}
+
+{
+  const prior = globalThis.TextDecoder;
+  let touched = false;
+  globalThis.TextDecoder = function TouchingDecoder() {
+    touched = true;
+    return new prior();
+  };
+  try {
+    await assert.rejects(
+      () => chat.stream({
+        eventStream,
+        TextDecoder: null,
+        fetch: async () => makeResponse(['data: {"done":true}\n\n'])
+      }),
+      /TextDecoder unavailable/
+    );
+    assert.equal(touched, false);
+  } finally {
+    if (prior === undefined) delete globalThis.TextDecoder;
+    else globalThis.TextDecoder = prior;
+  }
+}
+
+{
+  let touched = false;
+  await assert.rejects(
+    () => chat.stream({
+      eventStream,
+      endpoint: null,
+      fetch: async () => {
+        touched = true;
+        return makeResponse(['data: {"done":true}\n\n']);
+      }
+    }),
+    /chat endpoint unavailable/
+  );
+  assert.equal(touched, false);
+}
+
+{
   const seen = [];
   await assert.rejects(
     () => chat.stream({
