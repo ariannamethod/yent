@@ -116,6 +116,31 @@ async function main() {
 }
 
 {
+  const priorSetTimeout = globalThis.setTimeout;
+  let touched = false;
+  globalThis.setTimeout = () => {
+    touched = true;
+    return 1;
+  };
+  try {
+    assert.throws(
+      () => replay.startIfRequested({
+        replayMode: true,
+        replayRequest: { prompt: 'do not borrow timer' },
+        promptInput: { value: '' },
+        generationRun: { isRunning: () => false },
+        generate() {},
+        setTimeout: null
+      }),
+      /setTimeout unavailable/
+    );
+    assert.equal(touched, false);
+  } finally {
+    globalThis.setTimeout = priorSetTimeout;
+  }
+}
+
+{
   const input = { value: '' };
   const timers = [];
   const generated = [];

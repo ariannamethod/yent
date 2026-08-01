@@ -905,6 +905,13 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(replayJS, "scenario(name);") {
 		t.Fatalf("interface_replay.js still exposes positional replay fixture selection")
 	}
+	if strings.Contains(replayJS, "options.setTimeout || root.setTimeout") ||
+		strings.Contains(replayJS, "(options && options.setTimeout) || root.setTimeout") {
+		t.Fatalf("interface_replay.js still lets explicit null timers fall back to browser globals")
+	}
+	if strings.Contains(bootJS, "setTimeout: options.setTimeout") {
+		t.Fatalf("interface_boot.js still turns omitted replay timers into named undefined timers")
+	}
 	if !strings.Contains(canvasJS, "devicePixelRatio") ||
 		!strings.Contains(canvasJS, "setTransform(base.dpr") ||
 		!strings.Contains(canvasJS, "canvas.width = Math.max") ||

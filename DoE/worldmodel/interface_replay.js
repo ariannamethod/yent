@@ -225,7 +225,7 @@
     const input = options.promptInput;
     const run = options.generationRun;
     const generate = options.generate;
-    const timer = options.setTimeout || root.setTimeout;
+    const timer = hasOwn(options, 'setTimeout') ? options.setTimeout : root.setTimeout;
     if (!input || typeof input.value !== 'string') {
       throw new Error('replay prompt input unavailable');
     }

@@ -59,15 +59,16 @@
     bindComposer(options);
     requireFunction(options.startAnimation, 'interface animation start')();
 
-    return requireReplay(options).startIfRequested({
+    const replayOptions = {
       replayMode: !!options.replayMode,
       replayRequest: options.replayRequest,
       promptInput: options.promptInput,
       generationRun: options.generationRun,
       generate: options.generate,
-      startDelayMs: options.startDelayMs,
-      setTimeout: options.setTimeout
-    });
+      startDelayMs: options.startDelayMs
+    };
+    if (hasOwn(options, 'setTimeout')) replayOptions.setTimeout = options.setTimeout;
+    return requireReplay(options).startIfRequested(replayOptions);
   }
 
   const api = { start };
