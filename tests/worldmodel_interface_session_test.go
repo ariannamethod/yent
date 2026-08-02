@@ -1105,6 +1105,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(bootJS, "input: options.promptInput") {
 		t.Fatalf("interface_run.js still exposes positional composer binding arguments")
 	}
+	if !strings.Contains(runJS, "hasOwn(options, 'AbortController') ? options.AbortController : root.AbortController") ||
+		strings.Contains(runJS, "(options && options.AbortController) || root.AbortController") ||
+		strings.Contains(runJS, "options.AbortController || root.AbortController") {
+		t.Fatalf("interface_run.js does not preserve explicit null AbortController dependencies")
+	}
 	if !strings.Contains(runJS, "composer prompt input must be passed as { promptInput }") {
 		t.Fatalf("interface_run.js does not reject generic composer input alias")
 	}

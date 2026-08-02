@@ -2,7 +2,7 @@
   'use strict';
 
   function controllerCtor(options) {
-    const Controller = (options && options.AbortController) || root.AbortController;
+    const Controller = hasOwn(options, 'AbortController') ? options.AbortController : root.AbortController;
     if (typeof Controller !== 'function') throw new Error('AbortController unavailable');
     return Controller;
   }

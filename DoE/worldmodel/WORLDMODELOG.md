@@ -2,6 +2,12 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-02 - run abort controller null boundary
+
+- Explicit null `AbortController` no longer falls back to the browser/global
+  abort controller when generation run state is created.
+- Omitted abort controller dependencies still use the live page default.
+
 ## 2026-08-02 - hud telemetry null boundary
 
 - Explicit null `tokenTelemetry` no longer falls back to the global telemetry
