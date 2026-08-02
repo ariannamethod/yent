@@ -41,7 +41,7 @@
     options = options || {};
     const container = options.container;
     const documentRef = requireDocument(hasOwn(options, 'document') ? options.document : root.document);
-    const output = requireOutput(options.interfaceOutput || root.YentInterfaceOutput);
+    const output = requireOutput(hasOwn(options, 'interfaceOutput') ? options.interfaceOutput : root.YentInterfaceOutput);
     if (!hasContainer(container)) {
       throw new Error('transcript container missing');
     }
@@ -70,7 +70,7 @@
     options = options || {};
     const container = options.container;
     if (!container) return;
-    const output = requireOutput((options && options.interfaceOutput) || root.YentInterfaceOutput);
+    const output = requireOutput(hasOwn(options, 'interfaceOutput') ? options.interfaceOutput : root.YentInterfaceOutput);
     output.setText({ target: container, text: '' });
   }
 
