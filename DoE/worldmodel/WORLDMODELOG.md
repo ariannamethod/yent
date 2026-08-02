@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-02 - transcript output null boundary
+
+- Explicit null `interfaceOutput` no longer falls back to the global output
+  helper while appending or clearing transcript turns.
+- Omitted transcript output helper dependencies still use the live page
+  default.
+
 ## 2026-08-02 - turn dependency null boundary
 
 - Submit and turn dependency plumbing now preserves explicit null helper

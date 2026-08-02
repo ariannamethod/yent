@@ -871,6 +871,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(yentJS, "clear(transcript") {
 		t.Fatalf("interface_transcript.js still exposes positional transcript container arguments")
 	}
+	if !strings.Contains(transcriptJS, "hasOwn(options, 'interfaceOutput') ? options.interfaceOutput : root.YentInterfaceOutput") ||
+		strings.Contains(transcriptJS, "options.interfaceOutput || root.YentInterfaceOutput") ||
+		strings.Contains(transcriptJS, "(options && options.interfaceOutput) || root.YentInterfaceOutput") {
+		t.Fatalf("interface_transcript.js does not preserve explicit null output helper dependencies")
+	}
 	if !strings.Contains(restoreJS, "if (options.replayMode) return null") ||
 		!strings.Contains(restoreJS, "const session = options.sessionReceipt") ||
 		!strings.Contains(restoreJS, "session.load()") ||

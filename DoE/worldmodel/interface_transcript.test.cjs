@@ -93,6 +93,41 @@ function main() {
     }
   }
 
+  {
+    let touched = false;
+    const hadOutput = Object.prototype.hasOwnProperty.call(globalThis, 'YentInterfaceOutput');
+    const previousOutput = globalThis.YentInterfaceOutput;
+    globalThis.YentInterfaceOutput = {
+      setText() {
+        touched = true;
+      },
+      scrollBottom() {
+        touched = true;
+      }
+    };
+    try {
+      assert.throws(
+        () => transcript.appendTurn({
+          container: containerMock(),
+          document: documentMock(),
+          interfaceOutput: null
+        }),
+        /YentInterfaceOutput helper missing/
+      );
+      assert.throws(
+        () => transcript.clear({
+          container: containerMock(),
+          interfaceOutput: null
+        }),
+        /YentInterfaceOutput helper missing/
+      );
+      assert.equal(touched, false);
+    } finally {
+      if (hadOutput) globalThis.YentInterfaceOutput = previousOutput;
+      else delete globalThis.YentInterfaceOutput;
+    }
+  }
+
   assert.throws(() => transcript.appendTurn(containerMock()), /container must be passed as \{ container \}/);
   assert.throws(() => transcript.clear(containerMock()), /container must be passed as \{ container \}/);
   assert.throws(() => transcript.appendTurn({ document: documentMock(), interfaceOutput: output }), /transcript container missing/);

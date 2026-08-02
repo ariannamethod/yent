@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-08-02 - interface transcript output null boundary
+
+- Transcript rendering now preserves explicit null `interfaceOutput` helper
+  dependencies instead of borrowing `globalThis.YentInterfaceOutput`.
+- Omitted output helper still uses the live page default.
+- Adversarial tests cover both append and clear paths against ambient output
+  globals.
+
 ## 2026-08-02 - interface turn dependency null boundary
 
 - Submit and turn helpers no longer treat explicit null injected helpers as a
