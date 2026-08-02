@@ -69,6 +69,43 @@ function form() {
 }
 
 {
+  const hadController = Object.prototype.hasOwnProperty.call(globalThis, 'AbortController');
+  const previousController = globalThis.AbortController;
+  globalThis.AbortController = FakeAbortController;
+  try {
+    const run = runHelper.create({ button: button() });
+    const current = run.begin();
+    assert.ok(current.signal);
+    assert.strictEqual(run.finish(current), true);
+  } finally {
+    if (hadController) globalThis.AbortController = previousController;
+    else delete globalThis.AbortController;
+  }
+}
+
+{
+  let touched = false;
+  const hadController = Object.prototype.hasOwnProperty.call(globalThis, 'AbortController');
+  const previousController = globalThis.AbortController;
+  globalThis.AbortController = class AmbientAbortController {
+    constructor() {
+      touched = true;
+      this.signal = {};
+    }
+  };
+  try {
+    assert.throws(
+      () => runHelper.create({ button: button(), AbortController: null }),
+      /AbortController unavailable/
+    );
+    assert.strictEqual(touched, false);
+  } finally {
+    if (hadController) globalThis.AbortController = previousController;
+    else delete globalThis.AbortController;
+  }
+}
+
+{
   const send = button();
   const run = runHelper.create({ button: send, AbortController: FakeAbortController });
   const f = form();
