@@ -70,7 +70,7 @@
   }
 
   function probabilityText(options, value) {
-    const telemetry = (options && options.tokenTelemetry) || root.YentTokenTelemetry;
+    const telemetry = hasOwn(options, 'tokenTelemetry') ? options.tokenTelemetry : root.YentTokenTelemetry;
     if (!telemetry || typeof telemetry.metricProb !== 'function') {
       throw new Error('YentTokenTelemetry helper missing');
     }

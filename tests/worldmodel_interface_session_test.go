@@ -794,6 +794,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(hudJS, "function render") {
 		t.Fatalf("interface_hud.js does not own shared HUD binding and rendering")
 	}
+	if !strings.Contains(hudJS, "hasOwn(options, 'tokenTelemetry') ? options.tokenTelemetry : root.YentTokenTelemetry") ||
+		strings.Contains(hudJS, "(options && options.tokenTelemetry) || root.YentTokenTelemetry") ||
+		strings.Contains(hudJS, "options.tokenTelemetry || root.YentTokenTelemetry") {
+		t.Fatalf("interface_hud.js does not preserve explicit null token telemetry helper dependencies")
+	}
 	if !strings.Contains(inputJS, "function bindControls") ||
 		!strings.Contains(inputJS, "function defaultDocument") ||
 		!strings.Contains(inputJS, "getElementById(id)") ||
