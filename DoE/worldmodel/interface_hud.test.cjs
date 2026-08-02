@@ -100,6 +100,31 @@ function main() {
       () => hud.render({ hud: hud.bind({ document: documentWith(['hud-prob']) }), state: { hasCandidateTelemetry: true } }),
       /YentTokenTelemetry helper missing/
     );
+    {
+      let touched = false;
+      const hadTelemetry = Object.prototype.hasOwnProperty.call(globalThis, 'YentTokenTelemetry');
+      const previousTelemetry = globalThis.YentTokenTelemetry;
+      globalThis.YentTokenTelemetry = {
+        metricProb() {
+          touched = true;
+          return 'global';
+        }
+      };
+      try {
+        assert.throws(
+          () => hud.render({
+            hud: hud.bind({ document: documentWith(['hud-prob']) }),
+            state: { hasCandidateTelemetry: true, selectedProb: 0.7 },
+            tokenTelemetry: null
+          }),
+          /YentTokenTelemetry helper missing/
+        );
+        assert.equal(touched, false);
+      } finally {
+        if (hadTelemetry) globalThis.YentTokenTelemetry = previousTelemetry;
+        else delete globalThis.YentTokenTelemetry;
+      }
+    }
   }
 }
 

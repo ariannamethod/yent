@@ -2,6 +2,12 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-02 - hud telemetry null boundary
+
+- Explicit null `tokenTelemetry` no longer falls back to the global telemetry
+  helper when candidate HUD metrics are rendered.
+- Omitted telemetry helper dependencies still use the live page default.
+
 ## 2026-08-02 - transcript output null boundary
 
 - Explicit null `interfaceOutput` no longer falls back to the global output
