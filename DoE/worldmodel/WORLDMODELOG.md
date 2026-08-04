@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-04 - replay request null boundary
+
+- Explicit null or non-object replay requests now fail loudly in replay
+  autostart and input stream selection.
+- Omitted or forwarded undefined replay requests still behave as no replay
+  request, preserving normal live generation wiring.
+
 ## 2026-08-04 - input control ids null boundary
 
 - Explicit null or non-object control `ids` now fails loudly instead of being

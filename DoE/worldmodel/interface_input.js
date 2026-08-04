@@ -47,6 +47,15 @@
     return ids;
   }
 
+  function replayRequestFor(options) {
+    if (!hasOwn(options, 'replayRequest') || options.replayRequest === undefined) return {};
+    const request = options.replayRequest;
+    if (!request || typeof request !== 'object') {
+      throw new Error('YentInterfaceInput replay request must be passed as an object');
+    }
+    return request;
+  }
+
   function elementValue(documentRef, id) {
     if (!documentRef || typeof documentRef.getElementById !== 'function') return '';
     const el = documentRef.getElementById(id);
@@ -100,7 +109,7 @@
   function streamFor(options) {
     options = options || {};
     const replayMode = !!options.replayMode;
-    const replayRequest = options.replayRequest || {};
+    const replayRequest = replayRequestFor(options);
     const replay = hasOwn(options, 'interfaceReplay') ? options.interfaceReplay : root.YentInterfaceReplay;
     const chat = hasOwn(options, 'chatStream') ? options.chatStream : root.YentChatStream;
 

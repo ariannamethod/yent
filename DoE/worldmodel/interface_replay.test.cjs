@@ -217,6 +217,14 @@ async function main() {
     }),
     /generation run must be passed as \{ generationRun \}/
   );
+  assert.throws(
+    () => replay.startIfRequested({ replayMode: true, replayRequest: null }),
+    /replay request must be passed as an object/
+  );
+  assert.throws(
+    () => replay.startIfRequested({ replayMode: true, replayRequest: 'boundary' }),
+    /replay request must be passed as an object/
+  );
   assert.throws(() => replay.startIfRequested({ replayMode: true }), /replay prompt input unavailable/);
   assert.throws(
     () => replay.startIfRequested({ replayMode: true, promptInput: { value: '' } }),
