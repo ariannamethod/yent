@@ -631,6 +631,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			}
 		}
 	}
+	if !strings.Contains(canvasJS, "function resolveContextType(options)") ||
+		!strings.Contains(canvasJS, "hasOwn(options, 'contextType') ? options.contextType : '2d'") ||
+		strings.Contains(canvasJS, "options.contextType || '2d'") ||
+		strings.Contains(canvasJS, `options.contextType || "2d"`) {
+		t.Fatalf("interface_canvas.js does not preserve explicit null context types")
+	}
 	if !strings.Contains(replayJS, "const req = options.replayRequest || {}") ||
 		strings.Contains(replayJS, "options.request ||") ||
 		strings.Contains(replayJS, "options.promptInput || options.input") ||

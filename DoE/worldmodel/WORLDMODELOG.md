@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-04 - canvas context type null boundary
+
+- Explicit null `contextType` now reaches `getContext` instead of silently
+  reopening the default `2d` context.
+- Omitted context type still defaults to `2d` for the live Yent and
+  worldmodel canvases.
+
 ## 2026-08-04 - output scroll target null boundary
 
 - Explicit null `scrollTarget` now writes output text without falling back to

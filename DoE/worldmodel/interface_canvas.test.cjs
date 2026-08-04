@@ -138,6 +138,26 @@ function makeSurface() {
 {
   const calls = [];
   const documentRef = {
+    createElement(tag) {
+      assert.equal(tag, 'canvas');
+      return {
+        getContext(type, options) {
+          calls.push([type, options]);
+          return type === null ? null : { type, options };
+        }
+      };
+    }
+  };
+  assert.throws(
+    () => canvas.createScratch({ document: documentRef, contextType: null }),
+    /interface canvas scratch context unavailable/
+  );
+  assert.deepEqual(calls, [[null, undefined]]);
+}
+
+{
+  const calls = [];
+  const documentRef = {
     getElementById(id) {
       assert.equal(id, 'field');
       return {
@@ -156,6 +176,26 @@ function makeSurface() {
   assert.deepEqual(calls, [['2d', { alpha: false }]]);
   assert.equal(bound.context.type, '2d');
   assert.equal(bound.context.options.alpha, false);
+}
+
+{
+  const calls = [];
+  const documentRef = {
+    getElementById(id) {
+      assert.equal(id, 'field');
+      return {
+        getContext(type, options) {
+          calls.push([type, options]);
+          return type === null ? null : { type, options };
+        }
+      };
+    }
+  };
+  assert.throws(
+    () => canvas.bind({ document: documentRef, id: 'field', contextType: null }),
+    /interface canvas context unavailable: field/
+  );
+  assert.deepEqual(calls, [[null, undefined]]);
 }
 
 {
