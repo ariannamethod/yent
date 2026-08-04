@@ -64,6 +64,35 @@ function storage() {
 }
 
 {
+  const hadStorage = Object.prototype.hasOwnProperty.call(globalThis, 'sessionStorage');
+  const previousStorage = globalThis.sessionStorage;
+  let reads = 0;
+  let writes = 0;
+  globalThis.sessionStorage = {
+    getItem() {
+      reads++;
+      return JSON.stringify({ messages: [{ role: 'user', content: 'ambient prompt' }] });
+    },
+    setItem() {
+      writes++;
+    }
+  };
+  try {
+    assert.deepEqual(session.load({ storage: null }), []);
+    assert.equal(session.save({ storage: null, messages: [{ role: 'user', content: 'no ambient write' }] }), false);
+    const receipt = session.createAdapter({ storage: null });
+    const user = receipt.commitUser([], [], 'explicit null prompt');
+    assert.deepEqual(user.visibleMessages, [{ role: 'user', content: 'explicit null prompt' }]);
+    assert.deepEqual(receipt.load(), []);
+    assert.equal(reads, 0);
+    assert.equal(writes, 0);
+  } finally {
+    if (hadStorage) globalThis.sessionStorage = previousStorage;
+    else delete globalThis.sessionStorage;
+  }
+}
+
+{
   const s = storage();
   s.setItem(session.KEY, '{not valid json');
   assert.deepEqual(session.load({ storage: s }), []);

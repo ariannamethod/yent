@@ -156,6 +156,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(sessionJS, "save(storage, nextMessages") {
 		t.Fatalf("interface_session.js still exposes positional session persistence arguments")
 	}
+	if !strings.Contains(sessionJS, "function resolveStorage(options)") ||
+		!strings.Contains(sessionJS, "hasOwn(options, 'storage') ? options.storage : defaultStorage()") ||
+		strings.Contains(sessionJS, "return storage || defaultStorage()") ||
+		strings.Contains(sessionJS, "storageOrDefault(options.storage)") {
+		t.Fatalf("interface_session.js does not preserve explicit null storage dependencies")
+	}
 	if !strings.Contains(sessionJS, "const replayMode = !!options.replayMode") ||
 		strings.Contains(sessionJS, "options.replayMode || options.replay") {
 		t.Fatalf("interface_session.js still accepts a generic replay alias")

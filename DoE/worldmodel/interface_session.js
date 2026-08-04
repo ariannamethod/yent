@@ -47,8 +47,8 @@
     }
   }
 
-  function storageOrDefault(storage) {
-    return storage || defaultStorage();
+  function resolveStorage(options) {
+    return hasOwn(options, 'storage') ? options.storage : defaultStorage();
   }
 
   function load(options) {
@@ -56,7 +56,7 @@
       throw new Error('session load inputs must be passed as { storage }');
     }
     options = options || {};
-    const target = storageOrDefault(options.storage);
+    const target = resolveStorage(options);
     if (!target) return [];
     const key = (options && options.key) || DEFAULT_KEY;
     try {
@@ -74,7 +74,7 @@
       throw new Error('session save inputs must be passed as { storage, messages }');
     }
     options = options || {};
-    const target = storageOrDefault(options.storage);
+    const target = resolveStorage(options);
     if (!target) return false;
     const key = (options && options.key) || DEFAULT_KEY;
     try {
@@ -93,7 +93,7 @@
     if (hasOwn(options, 'replay')) {
       throw new Error('session replay mode must be passed as { replayMode }');
     }
-    const storage = storageOrDefault(options.storage);
+    const storage = resolveStorage(options);
     const replayMode = !!options.replayMode;
     const now = typeof options.now === 'function' ? options.now : () => Date.now();
     const saveIntervalMs = Number.isFinite(options.saveIntervalMs)
