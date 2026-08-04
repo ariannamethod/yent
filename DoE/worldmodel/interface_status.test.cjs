@@ -41,7 +41,7 @@ function main() {
   assert.equal(labels.shell.dataset.active, 'true');
 
   assert.doesNotThrow(() => status.setText({ target: null, text: 'ignored' }));
-  assert.doesNotThrow(() => status.setManifest({ labels: null, text: 'ignored', active: true }));
+  assert.doesNotThrow(() => status.setManifest({ labels: {}, text: 'ignored', active: true }));
   assert.throws(() => status.bind(makeDocument()), /document must be passed as \{ document \}/);
   assert.throws(() => status.setText(labels.run, 'OLD'), /text inputs must be passed as \{ target, text \}/);
   assert.throws(() => status.setActive(labels.shell, true), /active inputs must be passed as \{ target, active \}/);
@@ -73,6 +73,10 @@ function main() {
 
   assert.throws(() => status.bind({ run: 'run-state' }), /ids must be passed as \{ ids \}/);
   assert.throws(() => status.bind({ manifest: 'manifest-state' }), /ids must be passed as \{ ids \}/);
+  assert.throws(() => status.bind({ document: makeDocument(), ids: null }), /ids must be passed as an object/);
+  assert.throws(() => status.bind({ document: makeDocument(), ids: 'run-state' }), /ids must be passed as an object/);
+  assert.throws(() => status.setManifest({ labels: null, text: 'ignored' }), /labels must be passed as an object/);
+  assert.throws(() => status.setManifest({ labels: 'manifest-state', text: 'ignored' }), /labels must be passed as an object/);
 }
 
 main();

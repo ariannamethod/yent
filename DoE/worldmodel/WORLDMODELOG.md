@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-05 - status and HUD object bag null boundary
+
+- Explicit null or non-object status `ids`/`labels` and HUD `ids`/`hud`/`state`
+  bags now fail loudly instead of becoming empty object defaults.
+- Omitted or forwarded undefined bags still keep the existing default/no-op
+  paths for live pages and minimal test harnesses.
+
 ## 2026-08-04 - replay request null boundary
 
 - Explicit null or non-object replay requests now fail loudly in replay

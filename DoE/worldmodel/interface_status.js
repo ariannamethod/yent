@@ -22,6 +22,15 @@
     return ['run', 'note', 'manifest', 'shell'].some(key => hasOwn(options, key));
   }
 
+  function objectBag(options, key, label) {
+    if (!hasOwn(options, key) || options[key] === undefined) return {};
+    const value = options[key];
+    if (!value || typeof value !== 'object') {
+      throw new Error(`YentInterfaceStatus ${label} must be passed as an object`);
+    }
+    return value;
+  }
+
   function bind(options) {
     if (hasDocument(options)) {
       throw new Error('YentInterfaceStatus document must be passed as { document }');
@@ -31,7 +40,7 @@
     if (rejectsDirectIds(options)) {
       throw new Error('YentInterfaceStatus ids must be passed as { ids }');
     }
-    const ids = options.ids || {};
+    const ids = objectBag(options, 'ids', 'ids');
     return {
       run: element(documentRef, ids.run),
       note: element(documentRef, ids.note),
@@ -80,7 +89,7 @@
       throw new Error('YentInterfaceStatus manifest inputs must be passed as { labels, text, active }');
     }
     options = options || {};
-    const labels = options.labels || {};
+    const labels = objectBag(options, 'labels', 'labels');
     setText({ target: labels.manifest, text: options.text });
     setActive({ target: labels.shell, active: options.active });
   }
