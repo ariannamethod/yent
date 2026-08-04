@@ -675,6 +675,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(yentJS, "interfaceTranscript.clear(") {
 		t.Fatalf("yent.js does not route transcript turn rendering through interface_transcript")
 	}
+	if !strings.Contains(transcriptJS, "function resolveText(options)") ||
+		!strings.Contains(transcriptJS, "hasOwn(options, 'text') ? options.text : ''") ||
+		strings.Contains(transcriptJS, "options.text || ''") ||
+		strings.Contains(transcriptJS, `options.text || ""`) {
+		t.Fatalf("interface_transcript.js does not preserve falsey transcript text")
+	}
 	for _, directOutput := range []string{
 		"body.textContent = text || ''",
 		"assistantBody.textContent = responseText",

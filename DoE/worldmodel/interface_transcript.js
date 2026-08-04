@@ -36,6 +36,10 @@
     return text.toUpperCase();
   }
 
+  function resolveText(options) {
+    return hasOwn(options, 'text') ? options.text : '';
+  }
+
   function appendTurn(options) {
     rejectBareContainer(options);
     options = options || {};
@@ -56,7 +60,7 @@
 
     const body = documentRef.createElement('div');
     body.className = 'text';
-    output.setText({ target: body, text: options.text || '' });
+    output.setText({ target: body, text: resolveText(options) });
 
     node.appendChild(label);
     node.appendChild(body);
