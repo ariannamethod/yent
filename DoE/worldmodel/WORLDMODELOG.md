@@ -2,6 +2,12 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-04 - input control ids null boundary
+
+- Explicit null or non-object control `ids` now fails loudly instead of being
+  replaced with the default composer/prompt/send controls.
+- Omitted ids still select the live page defaults.
+
 ## 2026-08-04 - outcome handler null boundary
 
 - Explicit null or non-object outcome `handlers` now fails loudly instead of

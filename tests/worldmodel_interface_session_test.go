@@ -377,6 +377,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		if !strings.Contains(tc.src, "interfaceInput.bindControls()") {
 			t.Fatalf("%s does not bind shared prompt controls through interface_input", tc.name)
 		}
+		if !strings.Contains(inputJS, "if (!hasOwn(options, 'ids')) return {}") ||
+			!strings.Contains(inputJS, "YentInterfaceInput control ids must be passed as an object") ||
+			strings.Contains(inputJS, "return options.ids || {}") {
+			t.Fatalf("interface_input.js does not preserve explicit broken control id maps")
+		}
 		if tc.name == "worldmodel.js" && !strings.Contains(tc.src, "interfaceInput.isFocused({ control: promptInput })") {
 			t.Fatalf("worldmodel.js does not test prompt focus through interface_input")
 		}
