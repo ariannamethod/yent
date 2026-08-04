@@ -91,6 +91,10 @@
     };
   }
 
+  function resolveContextType(options) {
+    return hasOwn(options, 'contextType') ? options.contextType : '2d';
+  }
+
   function bind(options) {
     if (typeof options === 'string') {
       throw new Error('interface canvas id must be passed as { id }');
@@ -109,7 +113,7 @@
     if (!canvas || typeof canvas.getContext !== 'function') {
       throw new Error(`interface canvas element unavailable: ${id}`);
     }
-    const contextType = options.contextType || '2d';
+    const contextType = resolveContextType(options);
     const context = canvas.getContext(contextType, options.contextOptions);
     if (!context) throw new Error(`interface canvas context unavailable: ${id}`);
     return { canvas, context };
@@ -128,7 +132,7 @@
     if (!canvas || typeof canvas.getContext !== 'function') {
       throw new Error('interface canvas scratch surface unavailable');
     }
-    const contextType = options.contextType || '2d';
+    const contextType = resolveContextType(options);
     const context = canvas.getContext(contextType, options.contextOptions);
     if (!context) throw new Error('interface canvas scratch context unavailable');
     return { canvas, context };
