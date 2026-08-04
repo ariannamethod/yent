@@ -39,7 +39,12 @@
     if (hasOwn(options, 'composer') || hasOwn(options, 'prompt') || hasOwn(options, 'send')) {
       throw new Error('YentInterfaceInput control ids must be passed as { ids }');
     }
-    return options.ids || {};
+    if (!hasOwn(options, 'ids')) return {};
+    const ids = options.ids;
+    if (!ids || typeof ids !== 'object') {
+      throw new Error('YentInterfaceInput control ids must be passed as an object');
+    }
+    return ids;
   }
 
   function elementValue(documentRef, id) {

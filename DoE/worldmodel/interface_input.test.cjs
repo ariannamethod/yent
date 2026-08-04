@@ -99,6 +99,8 @@ function docElements(elements) {
   assert.throws(() => input.bindControls({ composer: 'ask' }), /control ids must be passed as \{ ids \}/);
   assert.throws(() => input.bindControls({ prompt: 'words' }), /control ids must be passed as \{ ids \}/);
   assert.throws(() => input.bindControls({ send: 'go' }), /control ids must be passed as \{ ids \}/);
+  assert.throws(() => input.bindControls({ document: docElements({}), ids: null }), /control ids must be passed as an object/);
+  assert.throws(() => input.bindControls({ document: docElements({}), ids: 'ask' }), /control ids must be passed as an object/);
   assert.throws(() => input.bindControls({ document: docElements({}) }), /composer control unavailable: composer/);
   assert.throws(() => input.bindControls({ document: docElements({
     composer: {},
