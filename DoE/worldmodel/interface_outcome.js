@@ -9,6 +9,10 @@
     if (typeof callback === 'function') callback(turn, outcome);
   }
 
+  function hasOwn(value, key) {
+    return !!value && Object.prototype.hasOwnProperty.call(value, key);
+  }
+
   function resolve(submit) {
     const turn = submit && submit.turn;
     const outcome = (submit && submit.outcome) || (turn && turn.outcome);
@@ -16,12 +20,21 @@
     return { turn, outcome };
   }
 
+  function resolveHandlers(options) {
+    if (!hasOwn(options, 'handlers')) return {};
+    const handlers = options.handlers;
+    if (!handlers || typeof handlers !== 'object') {
+      throw new Error('YentInterfaceOutcome handlers must be passed as an object');
+    }
+    return handlers;
+  }
+
   function handle(options) {
     options = options || {};
     if (options && options.turn && !options.submit) {
       throw new Error('YentInterfaceOutcome handle inputs must be passed as { submit, handlers }');
     }
-    const handlers = options.handlers || {};
+    const handlers = resolveHandlers(options);
     const submit = options.submit;
     const resolved = resolve(submit);
     const turn = resolved.turn;

@@ -2,6 +2,12 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-04 - outcome handler null boundary
+
+- Explicit null or non-object outcome `handlers` now fails loudly instead of
+  being replaced with an empty callback bag.
+- Omitted handlers still mean no callbacks for tests and minimal harnesses.
+
 ## 2026-08-04 - transcript falsey text boundary
 
 - Transcript turns now pass named `text` values through the output helper
