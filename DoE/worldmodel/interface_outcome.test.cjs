@@ -57,6 +57,14 @@ function submit(result) {
 }
 
 assert.throws(
+  () => outcome.handle({ submit: submit({ kind: 'complete', hasText: true }), handlers: null }),
+  /handlers must be passed as an object/
+);
+assert.throws(
+  () => outcome.handle({ submit: submit({ kind: 'complete', hasText: true }), handlers: 'complete' }),
+  /handlers must be passed as an object/
+);
+assert.throws(
   () => outcome.handle(submit({ kind: 'complete', hasText: true }), {}),
   /handle inputs must be passed as \{ submit, handlers \}/
 );
