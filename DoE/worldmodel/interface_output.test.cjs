@@ -78,6 +78,13 @@ function main() {
   }
 
   {
+    const target = element(77);
+    output.setTextAndScroll({ target, text: 'manifest', scrollTarget: null });
+    assert.equal(target.textContent, 'manifest');
+    assert.equal(target.scrollTop, 0);
+  }
+
+  {
     const target = element(8);
     assert.throws(() => output.setText(target, 'x'), /text inputs must be passed as \{ target, text \}/);
     assert.throws(() => output.scrollBottom(target), /scroll target must be passed as \{ target \}/);

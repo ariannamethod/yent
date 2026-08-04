@@ -2,6 +2,12 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-04 - output scroll target null boundary
+
+- Explicit null `scrollTarget` now writes output text without falling back to
+  the text target for scrolling.
+- Omitted scroll targets still scroll the text target for live output panes.
+
 ## 2026-08-02 - session storage null boundary
 
 - Explicit null `storage` no longer falls back to browser/global
