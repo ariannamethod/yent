@@ -65,6 +65,10 @@
     }
   }
 
+  function resolveScrollTarget(options, target) {
+    return hasOwn(options, 'scrollTarget') ? options.scrollTarget : target;
+  }
+
   function setTextAndScroll(options) {
     if (looksLikeOutputTarget(options)) {
       throw new Error('YentInterfaceOutput text/scroll inputs must be passed as { target, text, scrollTarget }');
@@ -72,7 +76,7 @@
     options = options || {};
     const target = options.target;
     setText({ target, text: options.text });
-    scrollBottom({ target: options.scrollTarget || target });
+    scrollBottom({ target: resolveScrollTarget(options, target) });
   }
 
   const api = { bind, setText, scrollBottom, setTextAndScroll };

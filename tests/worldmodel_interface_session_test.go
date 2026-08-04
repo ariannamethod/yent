@@ -693,6 +693,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(worldJS, "interfaceOutput.setTextAndScroll(manifestText") {
 		t.Fatalf("interface_output.js still exposes positional output writer arguments")
 	}
+	if !strings.Contains(outputJS, "function resolveScrollTarget(options, target)") ||
+		!strings.Contains(outputJS, "hasOwn(options, 'scrollTarget') ? options.scrollTarget : target") ||
+		strings.Contains(outputJS, "options.scrollTarget || target") {
+		t.Fatalf("interface_output.js does not preserve explicit null scroll targets")
+	}
 	if strings.Contains(worldJS, "function textSeed") || strings.Contains(worldJS, "function hash") {
 		t.Fatalf("worldmodel.js still carries page-local topology hash/seed helpers")
 	}
