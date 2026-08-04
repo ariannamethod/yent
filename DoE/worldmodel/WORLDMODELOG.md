@@ -2,6 +2,12 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-02 - session storage null boundary
+
+- Explicit null `storage` no longer falls back to browser/global
+  `sessionStorage` in session load, save, or adapter commits.
+- Omitted storage dependencies still use the live page default.
+
 ## 2026-08-02 - run abort controller null boundary
 
 - Explicit null `AbortController` no longer falls back to the browser/global
