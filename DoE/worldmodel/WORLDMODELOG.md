@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-04 - transcript falsey text boundary
+
+- Transcript turns now pass named `text` values through the output helper
+  instead of collapsing falsey payloads to an empty string.
+- Missing transcript text still renders as empty text, while `0` and `false`
+  remain visible diagnostic values.
+
 ## 2026-08-04 - canvas context type null boundary
 
 - Explicit null `contextType` now reaches `getContext` instead of silently

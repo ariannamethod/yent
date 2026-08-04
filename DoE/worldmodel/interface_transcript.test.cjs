@@ -61,6 +61,30 @@ function main() {
 
   {
     const container = containerMock();
+    const body = transcript.appendTurn({
+      container,
+      document: documentMock(),
+      interfaceOutput: output,
+      role: 'assistant',
+      text: 0
+    });
+    assert.equal(body.textContent, '0');
+  }
+
+  {
+    const container = containerMock();
+    const body = transcript.appendTurn({
+      container,
+      document: documentMock(),
+      interfaceOutput: output,
+      role: 'assistant',
+      text: false
+    });
+    assert.equal(body.textContent, 'false');
+  }
+
+  {
+    const container = containerMock();
     transcript.clear({ container, interfaceOutput: output });
     assert.equal(container.textContent, '');
   }
