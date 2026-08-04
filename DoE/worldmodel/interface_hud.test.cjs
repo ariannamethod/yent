@@ -94,8 +94,14 @@ function main() {
     assert.throws(() => hud.bind(documentWith(['hud-prob'])), /document must be passed as \{ document \}/);
     assert.throws(() => hud.bind({ tok: 'custom-tok' }), /ids must be passed as \{ ids \}/);
     assert.throws(() => hud.bind({ exp: 'custom-exp' }), /ids must be passed as \{ ids \}/);
+    assert.throws(() => hud.bind({ document: documentWith(['hud-tok']), ids: null }), /ids must be passed as an object/);
+    assert.throws(() => hud.bind({ document: documentWith(['hud-tok']), ids: 'hud-tok' }), /ids must be passed as an object/);
     assert.throws(() => hud.render(hud.bind({ document: documentWith(['hud-prob']) }), { hasCandidateTelemetry: false }), /render inputs must be passed as \{ hud, state \}/);
     assert.doesNotThrow(() => hud.render({ hud: {}, state: { hasCandidateTelemetry: false } }));
+    assert.throws(() => hud.render({ hud: null, state: {} }), /hud must be passed as an object/);
+    assert.throws(() => hud.render({ hud: {}, state: null }), /state must be passed as an object/);
+    assert.throws(() => hud.render({ hud: 'hud', state: {} }), /hud must be passed as an object/);
+    assert.throws(() => hud.render({ hud: {}, state: 'state' }), /state must be passed as an object/);
     assert.throws(
       () => hud.render({ hud: hud.bind({ document: documentWith(['hud-prob']) }), state: { hasCandidateTelemetry: true } }),
       /YentTokenTelemetry helper missing/

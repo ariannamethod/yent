@@ -828,6 +828,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(worldJS, "interfaceStatus.setManifest(statusLabels") {
 		t.Fatalf("interface_status.js still exposes positional status writer arguments")
 	}
+	if !strings.Contains(statusJS, "function objectBag(options, key, label)") ||
+		!strings.Contains(statusJS, "YentInterfaceStatus ${label} must be passed as an object") ||
+		strings.Contains(statusJS, "options.ids || {}") ||
+		strings.Contains(statusJS, "options.labels || {}") {
+		t.Fatalf("interface_status.js does not preserve explicit broken status object bags")
+	}
 	if !strings.Contains(yentJS, "interfaceStatus.bind({ ids: { run: 'run-state' } })") ||
 		!strings.Contains(worldJS, "interfaceStatus.bind({\n  ids: {") {
 		t.Fatalf("page status labels are not bound through explicit ids")
@@ -840,6 +846,13 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(hudJS, "(options && options.tokenTelemetry) || root.YentTokenTelemetry") ||
 		strings.Contains(hudJS, "options.tokenTelemetry || root.YentTokenTelemetry") {
 		t.Fatalf("interface_hud.js does not preserve explicit null token telemetry helper dependencies")
+	}
+	if !strings.Contains(hudJS, "function objectBag(options, key, label)") ||
+		!strings.Contains(hudJS, "YentInterfaceHud ${label} must be passed as an object") ||
+		strings.Contains(hudJS, "options.ids || {}") ||
+		strings.Contains(hudJS, "options.hud || {}") ||
+		strings.Contains(hudJS, "options.state || {}") {
+		t.Fatalf("interface_hud.js does not preserve explicit broken HUD object bags")
 	}
 	if !strings.Contains(inputJS, "function bindControls") ||
 		!strings.Contains(inputJS, "function defaultDocument") ||

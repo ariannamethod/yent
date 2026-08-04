@@ -23,6 +23,15 @@
       .some(key => hasOwn(options, key));
   }
 
+  function objectBag(options, key, label) {
+    if (!hasOwn(options, key) || options[key] === undefined) return {};
+    const value = options[key];
+    if (!value || typeof value !== 'object') {
+      throw new Error(`YentInterfaceHud ${label} must be passed as an object`);
+    }
+    return value;
+  }
+
   function bind(options) {
     if (hasDocument(options)) {
       throw new Error('YentInterfaceHud document must be passed as { document }');
@@ -32,7 +41,7 @@
     if (rejectsDirectIds(options)) {
       throw new Error('YentInterfaceHud ids must be passed as { ids }');
     }
-    const ids = options.ids || {};
+    const ids = objectBag(options, 'ids', 'ids');
     return {
       tok: element(documentRef, ids.tok || 'hud-tok'),
       exp: element(documentRef, ids.exp || 'hud-exp'),
@@ -82,8 +91,8 @@
       throw new Error('YentInterfaceHud render inputs must be passed as { hud, state }');
     }
     options = options || {};
-    const hud = options.hud || {};
-    const state = options.state || {};
+    const hud = objectBag(options, 'hud', 'hud');
+    const state = objectBag(options, 'state', 'state');
     const hasCandidates = !!state.hasCandidateTelemetry;
     write(hud.tok, fixed(state.tokps, 1, 0));
     write(hud.exp, positiveIntegerText(state.experts));
