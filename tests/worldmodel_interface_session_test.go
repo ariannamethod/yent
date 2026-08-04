@@ -382,6 +382,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 			strings.Contains(inputJS, "return options.ids || {}") {
 			t.Fatalf("interface_input.js does not preserve explicit broken control id maps")
 		}
+		if !strings.Contains(inputJS, "function replayRequestFor(options)") ||
+			!strings.Contains(inputJS, "if (!hasOwn(options, 'replayRequest') || options.replayRequest === undefined) return {}") ||
+			!strings.Contains(inputJS, "YentInterfaceInput replay request must be passed as an object") ||
+			strings.Contains(inputJS, "options.replayRequest || {}") {
+			t.Fatalf("interface_input.js does not preserve explicit broken replay requests")
+		}
 		if tc.name == "worldmodel.js" && !strings.Contains(tc.src, "interfaceInput.isFocused({ control: promptInput })") {
 			t.Fatalf("worldmodel.js does not test prompt focus through interface_input")
 		}
@@ -642,7 +648,10 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(canvasJS, `options.contextType || "2d"`) {
 		t.Fatalf("interface_canvas.js does not preserve explicit null context types")
 	}
-	if !strings.Contains(replayJS, "const req = options.replayRequest || {}") ||
+	if !strings.Contains(replayJS, "function replayRequestFor(options)") ||
+		!strings.Contains(replayJS, "if (!hasOwn(options, 'replayRequest') || options.replayRequest === undefined) return {}") ||
+		!strings.Contains(replayJS, "replay request must be passed as an object") ||
+		strings.Contains(replayJS, "options.replayRequest || {}") ||
 		strings.Contains(replayJS, "options.request ||") ||
 		strings.Contains(replayJS, "options.promptInput || options.input") ||
 		strings.Contains(replayJS, "options.generationRun || options.run") {

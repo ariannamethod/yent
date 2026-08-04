@@ -88,6 +88,15 @@
     return !!value && Object.prototype.hasOwnProperty.call(value, key);
   }
 
+  function replayRequestFor(options) {
+    if (!hasOwn(options, 'replayRequest') || options.replayRequest === undefined) return {};
+    const request = options.replayRequest;
+    if (!request || typeof request !== 'object') {
+      throw new Error('replay request must be passed as an object');
+    }
+    return request;
+  }
+
   function enabledFlag(params, key) {
     if (!params.has(key)) return false;
     const value = String(params.get(key) || '').toLowerCase();
@@ -218,7 +227,7 @@
     if (hasOwn(options, 'run')) {
       throw new Error('generation run must be passed as { generationRun }');
     }
-    const req = options.replayRequest || {};
+    const req = replayRequestFor(options);
     const active = typeof options.replayMode === 'boolean' ? options.replayMode : !!req.enabled;
     if (!active) return false;
 

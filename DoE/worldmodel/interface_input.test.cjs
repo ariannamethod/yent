@@ -258,6 +258,14 @@ async function main() {
     assert.deepEqual(result, { done: true, replay: true });
   }
 
+  assert.throws(
+    () => input.streamFor({ replayMode: true, replayRequest: null }),
+    /replay request must be passed as an object/
+  );
+  assert.throws(
+    () => input.streamFor({ replayMode: true, replayRequest: 'boundary' }),
+    /replay request must be passed as an object/
+  );
   assert.throws(() => input.streamFor({ replayMode: false }), /YentChatStream helper missing/);
   assert.throws(() => input.streamFor({ replayMode: true }), /YentInterfaceReplay helper missing/);
 
