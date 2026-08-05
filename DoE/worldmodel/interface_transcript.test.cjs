@@ -36,6 +36,8 @@ function main() {
   assert.equal(transcript.labelFor('user', { user: 'OLEG' }), 'OLEG');
   assert.equal(transcript.labelFor('assistant', { assistant: 'YENT' }), 'YENT');
   assert.equal(transcript.labelFor('observer'), 'OBSERVER');
+  assert.throws(() => transcript.labelFor('user', null), /labels must be passed as an object/);
+  assert.throws(() => transcript.labelFor('user', 'OLEG'), /labels must be passed as an object/);
 
   {
     const container = containerMock();
@@ -156,6 +158,15 @@ function main() {
   assert.throws(() => transcript.clear(containerMock()), /container must be passed as \{ container \}/);
   assert.throws(() => transcript.appendTurn({ document: documentMock(), interfaceOutput: output }), /transcript container missing/);
   assert.throws(() => transcript.appendTurn({ container: containerMock(), interfaceOutput: output }), /document helper missing/);
+  assert.throws(
+    () => transcript.appendTurn({
+      container: containerMock(),
+      document: documentMock(),
+      interfaceOutput: output,
+      labels: null
+    }),
+    /labels must be passed as an object/
+  );
   {
     const saved = globalThis.YentInterfaceOutput;
     delete globalThis.YentInterfaceOutput;

@@ -2,6 +2,12 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-05 - transcript labels null boundary
+
+- Explicit null or non-object transcript label maps now fail loudly instead of
+  becoming the default uppercase role labels.
+- Omitted labels still keep the default transcript role rendering.
+
 ## 2026-08-05 - status and HUD object bag null boundary
 
 - Explicit null or non-object status `ids`/`labels` and HUD `ids`/`hud`/`state`
