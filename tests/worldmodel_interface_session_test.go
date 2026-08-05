@@ -793,8 +793,13 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	}
 	if !strings.Contains(tokenTelemetryJS, "function resetCandidateState") ||
 		!strings.Contains(tokenTelemetryJS, "function applyCandidateState") ||
+		!strings.Contains(tokenTelemetryJS, "function telemetryData(data)") ||
+		!strings.Contains(tokenTelemetryJS, "token telemetry data must be passed as an object") ||
 		!strings.Contains(tokenTelemetryJS, "options.candidateCount") {
 		t.Fatalf("token_telemetry.js does not own shared candidate state bookkeeping")
+	}
+	if strings.Contains(tokenTelemetryJS, "data = data || {}") {
+		t.Fatalf("token_telemetry.js still lets explicit null data fall back to empty telemetry")
 	}
 	if !strings.Contains(stateJS, "BASELINE") ||
 		!strings.Contains(stateJS, "function create") ||
