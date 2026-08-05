@@ -2,6 +2,24 @@ const assert = require('node:assert/strict');
 const telemetry = require('./token_telemetry.js');
 
 {
+  const t = telemetry.normalize();
+  assert.equal(t.hasCandidateTelemetry, false);
+  assert.equal(t.token, '');
+  assert.deepEqual(t.topTokens, []);
+}
+
+{
+  assert.throws(() => telemetry.normalize(null), /telemetry data must be passed as an object/);
+  assert.throws(() => telemetry.normalize('token'), /telemetry data must be passed as an object/);
+  assert.throws(() => telemetry.normalize([]), /telemetry data must be passed as an object/);
+  assert.throws(() => telemetry.candidateWords(null), /telemetry data must be passed as an object/);
+  assert.throws(
+    () => telemetry.applyCandidateState({ hasCandidateTelemetry: false }, null),
+    /telemetry data must be passed as an object/
+  );
+}
+
+{
   const t = telemetry.normalize({
     token: 'A',
     token_id: 7.8,

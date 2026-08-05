@@ -60,8 +60,16 @@
     return out;
   }
 
+  function telemetryData(data) {
+    if (data === undefined) return {};
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('token telemetry data must be passed as an object');
+    }
+    return data;
+  }
+
   function normalize(data, options) {
-    data = data || {};
+    data = telemetryData(data);
     const topTokens = normalizeTopTokens(data.top_tokens, options);
     const tokenId = integerField(data, 'token_id');
     const step = integerField(data, 'step');

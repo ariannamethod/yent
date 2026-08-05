@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-05 - token telemetry data null boundary
+
+- Explicit null, array, or non-object token telemetry data now fails loudly
+  instead of becoming an empty telemetry event.
+- Omitted telemetry data still normalizes to the empty legacy event for tests
+  and minimal harnesses.
+
 ## 2026-08-05 - state override null boundary
 
 - Explicit null or non-object state overrides now fail loudly instead of
