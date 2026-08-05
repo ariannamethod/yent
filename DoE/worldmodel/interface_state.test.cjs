@@ -22,6 +22,9 @@ function main() {
     assert.equal(state.BASELINE.debt, 0.0);
   }
 
+  assert.throws(() => state.create(null), /state overrides must be passed as an object/);
+  assert.throws(() => state.create('debt'), /state overrides must be passed as an object/);
+
   {
     const custom = state.create({
       debt: 0.42,
