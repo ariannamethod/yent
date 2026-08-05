@@ -29,8 +29,16 @@
     return !!value && Object.prototype.hasOwnProperty.call(value, key);
   }
 
+  function labelTable(labels) {
+    if (labels === undefined) return {};
+    if (!labels || typeof labels !== 'object') {
+      throw new Error('transcript labels must be passed as an object');
+    }
+    return labels;
+  }
+
   function labelFor(role, labels) {
-    const table = labels || {};
+    const table = labelTable(labels);
     if (Object.prototype.hasOwnProperty.call(table, role)) return String(table[role]);
     const text = role == null ? 'turn' : String(role);
     return text.toUpperCase();

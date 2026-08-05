@@ -919,10 +919,13 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		t.Fatalf("interface_text.js still exposes positional tape append arguments")
 	}
 	if !strings.Contains(transcriptJS, "function labelFor") ||
+		!strings.Contains(transcriptJS, "function labelTable(labels)") ||
+		!strings.Contains(transcriptJS, "transcript labels must be passed as an object") ||
 		!strings.Contains(transcriptJS, "function appendTurn") ||
 		!strings.Contains(transcriptJS, "function clear") ||
 		!strings.Contains(transcriptJS, "output.setText({ target: body") ||
-		!strings.Contains(transcriptJS, "output.scrollBottom({ target: container })") {
+		!strings.Contains(transcriptJS, "output.scrollBottom({ target: container })") ||
+		strings.Contains(transcriptJS, "labels || {}") {
 		t.Fatalf("interface_transcript.js does not own transcript turn rendering")
 	}
 	if strings.Contains(transcriptJS, "function appendTurn(container") ||
