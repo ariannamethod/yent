@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-05 - state override null boundary
+
+- Explicit null or non-object state overrides now fail loudly instead of
+  becoming a clean baseline state.
+- Omitted overrides still create a fresh copy of the shared HUD/runtime
+  baseline.
+
 ## 2026-08-05 - transcript labels null boundary
 
 - Explicit null or non-object transcript label maps now fail loudly instead of

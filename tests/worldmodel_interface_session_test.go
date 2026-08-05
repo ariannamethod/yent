@@ -798,8 +798,13 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	}
 	if !strings.Contains(stateJS, "BASELINE") ||
 		!strings.Contains(stateJS, "function create") ||
+		!strings.Contains(stateJS, "function overrideTable(overrides)") ||
+		!strings.Contains(stateJS, "state overrides must be passed as an object") ||
 		!strings.Contains(stateJS, "hasCandidateTelemetry") {
 		t.Fatalf("interface_state.js does not own shared HUD/runtime state defaults")
+	}
+	if strings.Contains(stateJS, "overrides || {}") {
+		t.Fatalf("interface_state.js still lets explicit null overrides fall back to baseline")
 	}
 	if !strings.Contains(clockJS, "function create") ||
 		!strings.Contains(clockJS, "function reset") ||

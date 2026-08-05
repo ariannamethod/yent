@@ -15,8 +15,16 @@
     hasCandidateTelemetry: false
   });
 
+  function overrideTable(overrides) {
+    if (overrides === undefined) return {};
+    if (!overrides || typeof overrides !== 'object') {
+      throw new Error('state overrides must be passed as an object');
+    }
+    return overrides;
+  }
+
   function create(overrides) {
-    return Object.assign({}, BASELINE, overrides || {});
+    return Object.assign({}, BASELINE, overrideTable(overrides));
   }
 
   const api = { BASELINE, create };
