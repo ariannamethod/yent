@@ -7,6 +7,14 @@
     return !!value && Object.prototype.hasOwnProperty.call(value, key);
   }
 
+  function optionTable(options) {
+    if (options === undefined) return {};
+    if (!options || typeof options !== 'object' || Array.isArray(options)) {
+      throw new Error('chat stream options must be passed as an object');
+    }
+    return options;
+  }
+
   function dependency(options) {
     const eventStream = hasOwn(options, 'eventStream') ? options.eventStream : root.YentEventStream;
     if (!eventStream || typeof eventStream.createParser !== 'function') {
@@ -48,9 +56,10 @@
   }
 
   function requestBody(options) {
-    const messages = Array.isArray(options && options.messages) ? options.messages : [];
-    const temperature = clampNumber(options && options.temperature, 0.8, 0, 2);
-    const maxTokens = clampInteger(options && options.maxTokens, 512, 1, 512);
+    options = optionTable(options);
+    const messages = Array.isArray(options.messages) ? options.messages : [];
+    const temperature = clampNumber(options.temperature, 0.8, 0, 2);
+    const maxTokens = clampInteger(options.maxTokens, 512, 1, 512);
     return JSON.stringify({
       messages,
       temperature,
@@ -62,7 +71,7 @@
     if (options instanceof Error || typeof options === 'string') {
       throw new Error('chat outcome inputs must be passed as { error, responseText }');
     }
-    options = options || {};
+    options = optionTable(options);
     const error = options.error || null;
     const responseText = options.responseText;
     const text = typeof responseText === 'string' ? responseText : '';
@@ -90,7 +99,7 @@
   }
 
   async function stream(options) {
-    options = options || {};
+    options = optionTable(options);
     const eventStream = dependency(options);
     const endpoint = endpointFor(options);
     const response = await fetchImpl(options)(endpoint, {

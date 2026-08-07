@@ -23,6 +23,15 @@ function makeResponse(chunks, options = {}) {
 
 async function main() {
 {
+  const body = JSON.parse(chat.requestBody());
+  assert.deepEqual(body, {
+    messages: [],
+    temperature: 0.8,
+    max_tokens: 512
+  });
+}
+
+{
   const body = JSON.parse(chat.requestBody({
     messages: [{ role: 'user', content: 'hello' }],
     temperature: 0.4,
@@ -46,9 +55,29 @@ async function main() {
     temperature: 2,
     max_tokens: 1
   });
+  assert.throws(
+    () => chat.requestBody(null),
+    /chat stream options must be passed as an object/
+  );
+  assert.throws(
+    () => chat.requestBody([]),
+    /chat stream options must be passed as an object/
+  );
+  assert.throws(
+    () => chat.requestBody('legacy'),
+    /chat stream options must be passed as an object/
+  );
 }
 
 {
+  assert.deepEqual(chat.outcome(), {
+    kind: 'empty',
+    hasText: false,
+    commitAssistant: false,
+    fault: false,
+    stopped: false,
+    message: ''
+  });
   assert.deepEqual(chat.outcome({ error: null, responseText: 'answer' }), {
     kind: 'complete',
     hasText: true,
@@ -86,6 +115,25 @@ async function main() {
   assert.throws(
     () => chat.outcome(new Error('old'), 'partial'),
     /outcome inputs must be passed as \{ error, responseText \}/
+  );
+  assert.throws(
+    () => chat.outcome(null),
+    /chat stream options must be passed as an object/
+  );
+  assert.throws(
+    () => chat.outcome([]),
+    /chat stream options must be passed as an object/
+  );
+}
+
+{
+  await assert.rejects(
+    () => chat.stream(null),
+    /chat stream options must be passed as an object/
+  );
+  await assert.rejects(
+    () => chat.stream([]),
+    /chat stream options must be passed as an object/
   );
 }
 
