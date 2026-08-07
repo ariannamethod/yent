@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-07 - interface outcome options null boundary
+
+- Explicit null, array, or non-object outcome option bags now fail before
+  stopped, fault, or complete handlers are resolved.
+- Omitted outcome options still reach the established missing-outcome
+  diagnostic used by minimal harnesses.
+
 ## 2026-08-07 - interface submit options null boundary
 
 - Explicit null, array, or non-object submit option bags now fail before the

@@ -1,8 +1,16 @@
 (function (root) {
   'use strict';
 
+  function optionTable(options, message) {
+    if (options === undefined) return {};
+    if (!options || typeof options !== 'object' || Array.isArray(options)) {
+      throw new Error(message);
+    }
+    return options;
+  }
+
   function call(options) {
-    options = options || {};
+    options = optionTable(options, 'interface outcome callback options must be passed as an object');
     const callback = options.callback;
     const turn = options.turn;
     const outcome = options.outcome;
@@ -30,7 +38,7 @@
   }
 
   function handle(options) {
-    options = options || {};
+    options = optionTable(options, 'interface outcome options must be passed as an object');
     if (options && options.turn && !options.submit) {
       throw new Error('YentInterfaceOutcome handle inputs must be passed as { submit, handlers }');
     }

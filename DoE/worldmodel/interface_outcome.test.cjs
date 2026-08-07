@@ -68,4 +68,17 @@ assert.throws(
   () => outcome.handle(submit({ kind: 'complete', hasText: true }), {}),
   /handle inputs must be passed as \{ submit, handlers \}/
 );
+assert.throws(() => outcome.handle(), /YentInterfaceOutcome outcome missing/);
+assert.throws(
+  () => outcome.handle(null),
+  /interface outcome options must be passed as an object/
+);
+assert.throws(
+  () => outcome.handle([]),
+  /interface outcome options must be passed as an object/
+);
+assert.throws(
+  () => outcome.handle('legacy'),
+  /interface outcome options must be passed as an object/
+);
 assert.throws(() => outcome.handle({}), /YentInterfaceOutcome outcome missing/);

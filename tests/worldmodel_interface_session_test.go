@@ -1162,6 +1162,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(outcomeJS, "handlers = options.handlers") {
 		t.Fatalf("interface_outcome.js does not own shared outcome dispatch")
 	}
+	if !strings.Contains(outcomeJS, "function optionTable(options, message)") ||
+		!strings.Contains(outcomeJS, "interface outcome options must be passed as an object") ||
+		!strings.Contains(outcomeJS, "options = optionTable(options, 'interface outcome options must be passed as an object')") ||
+		strings.Contains(outcomeJS, "options = options || {}") {
+		t.Fatalf("interface_outcome.js does not guard explicit invalid option bags")
+	}
 	if strings.Contains(outcomeJS, "function handle(submit") ||
 		strings.Contains(outcomeJS, "call(handlers.stopped,") ||
 		strings.Contains(outcomeJS, "call(handlers.fault,") ||
