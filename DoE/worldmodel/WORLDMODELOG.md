@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-07 - interface turn options null boundary
+
+- Explicit null, array, or non-object assistant-turn option bags now fail
+  before the live turn can read helpers, session receipts, or replay state.
+- Omitted turn options still reach the established missing-helper diagnostics
+  used by minimal harnesses.
+
 ## 2026-08-07 - chat stream options null boundary
 
 - Explicit null, array, or non-object chat stream option bags now fail loudly

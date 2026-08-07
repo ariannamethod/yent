@@ -119,8 +119,24 @@ async function main() {
 
   {
     await assert.rejects(
+      () => turn.streamAssistant(),
+      /YentInterfaceInput helper missing/
+    );
+    await assert.rejects(
       () => turn.streamAssistant({}),
       /YentInterfaceInput helper missing/
+    );
+    await assert.rejects(
+      () => turn.streamAssistant(null),
+      /interface turn options must be passed as an object/
+    );
+    await assert.rejects(
+      () => turn.streamAssistant([]),
+      /interface turn options must be passed as an object/
+    );
+    await assert.rejects(
+      () => turn.streamAssistant('legacy'),
+      /interface turn options must be passed as an object/
     );
     await assert.rejects(
       () => turn.streamAssistant({

@@ -1085,6 +1085,12 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		strings.Contains(turnJS, "options.replayRequest || options.request") {
 		t.Fatalf("interface_turn.js still accepts generic session/request aliases")
 	}
+	if !strings.Contains(turnJS, "function optionTable(options)") ||
+		!strings.Contains(turnJS, "interface turn options must be passed as an object") ||
+		!strings.Contains(turnJS, "options = optionTable(options)") ||
+		strings.Contains(turnJS, "options = options || {}") {
+		t.Fatalf("interface_turn.js does not guard explicit invalid option bags")
+	}
 	if !strings.Contains(turnJS, "hasOwn(options, 'interfaceInput') ? options.interfaceInput : root.YentInterfaceInput") ||
 		!strings.Contains(turnJS, "hasOwn(options, 'chatStream') ? options.chatStream : root.YentChatStream") ||
 		!strings.Contains(turnJS, "hasOwn(options, 'interfaceReplay') ? options.interfaceReplay : root.YentInterfaceReplay") ||
