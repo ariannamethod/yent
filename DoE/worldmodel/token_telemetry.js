@@ -26,7 +26,16 @@
     return Number.isFinite(min) && Number.isFinite(max) ? clamp(value, min, max) : value;
   }
 
+  function optionTable(options) {
+    if (options === undefined) return {};
+    if (!options || typeof options !== 'object' || Array.isArray(options)) {
+      throw new Error('token telemetry options must be passed as an object');
+    }
+    return options;
+  }
+
   function optionInteger(options, key, fallback, min, max) {
+    options = optionTable(options);
     const value = options && options[key];
     if (!isFiniteNumber(value)) return fallback;
     return Math.max(min, Math.min(max, Math.floor(value)));
@@ -184,7 +193,7 @@
 
   function applyCandidateState(state, data, options) {
     if (!state) throw new Error('candidate state missing');
-    options = options || {};
+    options = optionTable(options);
     const telemetry = telemetryOrNormalize(data, options);
     const selectedProb = telemetry.hasSelectedProb ? telemetry.selectedProb :
       (isFiniteNumber(state.selectedProb) ? state.selectedProb : 0);
