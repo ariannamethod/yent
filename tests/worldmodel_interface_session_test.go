@@ -1119,6 +1119,11 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 		!strings.Contains(chatStreamJS, "const responseText = options.responseText") {
 		t.Fatalf("chat_stream.js does not own named stream outcome inputs")
 	}
+	if !strings.Contains(chatStreamJS, "function optionTable(options)") ||
+		!strings.Contains(chatStreamJS, "chat stream options must be passed as an object") ||
+		!strings.Contains(chatStreamJS, "options = optionTable(options)") {
+		t.Fatalf("chat_stream.js does not guard explicit invalid option bags")
+	}
 	if !strings.Contains(chatStreamJS, "const eventStream = hasOwn(options, 'eventStream') ? options.eventStream : root.YentEventStream") ||
 		!strings.Contains(chatStreamJS, "if (hasOwn(options, 'fetch'))") ||
 		!strings.Contains(chatStreamJS, "const Decoder = hasOwn(options, 'TextDecoder') ? options.TextDecoder : root.TextDecoder") ||
@@ -1127,7 +1132,9 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	}
 	if strings.Contains(chatStreamJS, "(options && options.eventStream) || root.YentEventStream") ||
 		strings.Contains(chatStreamJS, "(options && options.TextDecoder) || root.TextDecoder") ||
-		strings.Contains(chatStreamJS, "options.endpoint || DEFAULT_ENDPOINT") {
+		strings.Contains(chatStreamJS, "options.endpoint || DEFAULT_ENDPOINT") ||
+		strings.Contains(chatStreamJS, "options = options || {}") ||
+		strings.Contains(chatStreamJS, "options && options.messages") {
 		t.Fatalf("chat_stream.js still lets explicit null transport inputs fall back to defaults")
 	}
 	if strings.Contains(chatStreamJS, "function outcome(error") ||

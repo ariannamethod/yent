@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-07 - chat stream options null boundary
+
+- Explicit null, array, or non-object chat stream option bags now fail loudly
+  instead of becoming default request, outcome, or stream options.
+- Omitted chat stream options still use the established defaults for minimal
+  harnesses and live dependency fallback.
+
 ## 2026-08-05 - token telemetry options null boundary
 
 - Explicit null, array, or non-object token telemetry options now fail loudly
