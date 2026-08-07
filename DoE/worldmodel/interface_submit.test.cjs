@@ -96,7 +96,20 @@ async function main() {
   }
 
   {
+    await assert.rejects(() => submit.run(), /YentInterfaceRun controller helper missing/);
     await assert.rejects(() => submit.run({}), /YentInterfaceRun controller helper missing/);
+    await assert.rejects(
+      () => submit.run(null),
+      /interface submit options must be passed as an object/
+    );
+    await assert.rejects(
+      () => submit.run([]),
+      /interface submit options must be passed as an object/
+    );
+    await assert.rejects(
+      () => submit.run('legacy'),
+      /interface submit options must be passed as an object/
+    );
     await assert.rejects(
       () => submit.run({ run: generationRun(), sessionReceipt: session(), interfaceTurn: { streamAssistant() {} } }),
       /generation run must be passed as \{ generationRun \}/
