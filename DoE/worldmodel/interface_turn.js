@@ -16,8 +16,16 @@
     return value && Object.prototype.hasOwnProperty.call(value, key);
   }
 
+  function optionTable(options) {
+    if (options === undefined) return {};
+    if (!options || typeof options !== 'object' || Array.isArray(options)) {
+      throw new Error('interface turn options must be passed as an object');
+    }
+    return options;
+  }
+
   async function streamAssistant(options) {
-    options = options || {};
+    options = optionTable(options);
     if (hasOwn(options, 'session')) {
       throw new Error('session adapter must be passed as { sessionReceipt }');
     }
