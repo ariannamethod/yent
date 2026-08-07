@@ -20,6 +20,23 @@ const telemetry = require('./token_telemetry.js');
 }
 
 {
+  assert.throws(() => telemetry.normalize({ token: 'x' }, null), /telemetry options must be passed as an object/);
+  assert.throws(() => telemetry.normalize({ token: 'x' }, []), /telemetry options must be passed as an object/);
+  assert.throws(
+    () => telemetry.candidateWords({ top_tokens: [] }, 'limits'),
+    /telemetry options must be passed as an object/
+  );
+  assert.throws(
+    () => telemetry.candidateText({ top_tokens: [] }, null),
+    /telemetry options must be passed as an object/
+  );
+  assert.throws(
+    () => telemetry.applyCandidateState({ hasCandidateTelemetry: false }, { token: 'legacy' }, null),
+    /telemetry options must be passed as an object/
+  );
+}
+
+{
   const t = telemetry.normalize({
     token: 'A',
     token_id: 7.8,

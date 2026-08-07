@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-05 - token telemetry options null boundary
+
+- Explicit null, array, or non-object token telemetry options now fail loudly
+  instead of becoming default telemetry limits.
+- Omitted telemetry options still use the established top-token, word, and
+  candidate-state defaults.
+
 ## 2026-08-05 - token telemetry data null boundary
 
 - Explicit null, array, or non-object token telemetry data now fails loudly
