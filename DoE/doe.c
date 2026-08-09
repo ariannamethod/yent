@@ -34,6 +34,8 @@
 #include <math.h>
 #include <time.h>
 #include <pthread.h>
+#include <stdatomic.h>
+#include <sched.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <float.h>
@@ -1307,8 +1309,106 @@ static pq_fn pq_for(int dt, int c) {
     }
     return NULL;
 }
-typedef struct { pq_fn fn; float *out; const uint8_t *Wq; const float *x; int r0,r1,c; } PQWork;
-static void *pq_worker(void *arg) { PQWork *w=(PQWork*)arg; w->fn(w->out,w->Wq,w->x,w->r0,w->r1,w->c); return NULL; }
+typedef void (*pq_range_fn)(void *ctx, int r0, int r1);
+
+typedef struct {
+    pthread_mutex_t mu;
+    pthread_cond_t  work;
+    pq_range_fn fn; void *ctx;
+    int m, chunk;
+    _Atomic int next, busy, gen, shutdown;
+    int nthreads, started;
+    pthread_t th[32];
+} pq_pool_t;
+
+static pq_pool_t g_pq = {
+    PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER,
+    NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, { 0 }
+};
+static int g_pq_spin = -1;
+
+static void pq_spin_init(void) {
+    if (g_pq_spin >= 0) return;
+    const char *e = getenv("DOE_SPIN");
+    g_pq_spin = (e && atoi(e) >= 0) ? atoi(e) : 20000;
+}
+#if defined(__aarch64__) || defined(__arm__)
+#define PQ_PAUSE() __asm__ __volatile__("yield" ::: "memory")
+#elif defined(__x86_64__) || defined(__i386__)
+#define PQ_PAUSE() __asm__ __volatile__("pause" ::: "memory")
+#else
+#define PQ_PAUSE() ((void)0)
+#endif
+
+static void pq_drain(pq_range_fn fn, void *ctx, int m, int ch) {
+    for (;;) {
+        int r0 = atomic_fetch_add_explicit(&g_pq.next, ch, memory_order_relaxed);
+        if (r0 >= m) break;
+        int r1 = r0 + ch; if (r1 > m) r1 = m;
+        fn(ctx, r0, r1);
+    }
+}
+
+static void *pq_pool_worker(void *arg) {
+    (void)arg;
+    int seen = 0;
+    for (;;) {
+        int spins = 0;
+        for (;;) {
+            if (atomic_load_explicit(&g_pq.shutdown, memory_order_relaxed)) return NULL;
+            if (atomic_load_explicit(&g_pq.gen, memory_order_acquire) != seen) break;
+            if (++spins < g_pq_spin) { PQ_PAUSE(); continue; }
+            pthread_mutex_lock(&g_pq.mu);
+            if (atomic_load_explicit(&g_pq.gen, memory_order_acquire) == seen &&
+                !atomic_load_explicit(&g_pq.shutdown, memory_order_relaxed))
+                pthread_cond_wait(&g_pq.work, &g_pq.mu);
+            pthread_mutex_unlock(&g_pq.mu);
+            spins = 0;
+        }
+        seen = atomic_load_explicit(&g_pq.gen, memory_order_acquire);
+        pq_drain(g_pq.fn, g_pq.ctx, g_pq.m, g_pq.chunk);
+        atomic_fetch_sub_explicit(&g_pq.busy, 1, memory_order_release);
+    }
+}
+
+static void pq_run(pq_range_fn fn, void *ctx, int m, int nt) {
+    if (nt <= 1) { fn(ctx, 0, m); return; }
+    pq_spin_init();
+    if (!g_pq.started) {
+        pthread_mutex_lock(&g_pq.mu);
+        if (!g_pq.started) {
+            g_pq.nthreads = 1;
+            for (int i = 0; i < nt - 1 && i < 31; i++) {
+                if (pthread_create(&g_pq.th[i], NULL, pq_pool_worker, NULL) != 0) break;
+                g_pq.nthreads++;
+            }
+            g_pq.started = 1;
+        }
+        pthread_mutex_unlock(&g_pq.mu);
+    }
+    int workers = g_pq.nthreads - 1;
+    int ch = m / (g_pq.nthreads * 16); if (ch < 1) ch = 1;
+    g_pq.fn = fn; g_pq.ctx = ctx; g_pq.m = m; g_pq.chunk = ch;
+    atomic_store_explicit(&g_pq.next, 0, memory_order_relaxed);
+    atomic_store_explicit(&g_pq.busy, workers, memory_order_relaxed);
+    atomic_fetch_add_explicit(&g_pq.gen, 1, memory_order_release);
+    pthread_mutex_lock(&g_pq.mu);
+    pthread_cond_broadcast(&g_pq.work);
+    pthread_mutex_unlock(&g_pq.mu);
+
+    pq_drain(fn, ctx, m, ch);
+
+    int spins = 0;
+    while (atomic_load_explicit(&g_pq.busy, memory_order_acquire) > 0) {
+        if (++spins < g_pq_spin) { PQ_PAUSE(); continue; }
+        sched_yield(); spins = 0;
+    }
+}
+
+typedef struct { pq_fn fn; float *out; const uint8_t *Wq; const float *x; int c; } PQCtx;
+static void pq_range(void *ctx, int r0, int r1) {
+    PQCtx *w = (PQCtx *)ctx; w->fn(w->out, w->Wq, w->x, r0, r1, w->c);
+}
 
 /* out[r] = Wq[r,c] @ x[c], weights packed. Returns 0 ok, -1 if dtype unsupported. */
 static int doe_qmatvec(float *out, const uint8_t *Wq, int dt, const float *x, int r, int c) {
@@ -1316,10 +1416,8 @@ static int doe_qmatvec(float *out, const uint8_t *Wq, int dt, const float *x, in
     if (!fn) return -1;
     int nt = g_n_threads; if (nt < 1) nt = 1; if (nt > 32) nt = 32; if (nt > r) nt = r;
     if (nt <= 1 || (long)r*c < (1L<<20)) { fn(out, Wq, x, 0, r, c); return 0; }
-    pthread_t thr[32]; PQWork work[32]; int chunk=(r+nt-1)/nt, actual=0;
-    for (int t=0;t<nt;t++) { int r0=t*chunk, r1=r0+chunk; if (r0>=r) break; if (r1>r) r1=r;
-        work[t]=(PQWork){fn,out,Wq,x,r0,r1,c}; pthread_create(&thr[t],NULL,pq_worker,&work[t]); actual++; }
-    for (int t=0;t<actual;t++) pthread_join(thr[t],NULL);
+    PQCtx ctx = { fn, out, Wq, x, c };
+    pq_run(pq_range, &ctx, r, nt);
     return 0;
 }
 
