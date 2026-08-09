@@ -6,6 +6,20 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-08-10 - DoE packed matvec worker reuse
+
+- Vendored the canonical DoE persistent packed-qmatvec worker pool into
+  `DoE/doe.c`.
+- Packed F16/Q4_0/Q5_0/Q8_0/Q4_K/Q6_K CPU matvecs no longer create and join a
+  pthread team on every projection; worker threads stay warm and rows are
+  claimed dynamically.
+- Result math is unchanged: each output row still accumulates in the same
+  per-row order, only the row scheduling mechanism changed.
+- `DOE_SPIN` is now available for tuning the spin-before-sleep window inherited
+  from canonical DoE.
+- The broader approximate `DOE_INT8` expansion for Q5/Q8/K-quants is left as a
+  separate speed layer because it changes the fast-path numerical contract.
+
 ## 2026-08-02 - interface transcript output null boundary
 
 - Transcript rendering now preserves explicit null `interfaceOutput` helper
