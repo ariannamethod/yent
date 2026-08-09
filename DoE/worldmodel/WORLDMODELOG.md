@@ -2,6 +2,13 @@
 
 Yent worldmodel interface log.
 
+## 2026-08-07 - interface run options null boundary
+
+- Explicit null, array, or non-object generation-run option bags now fail
+  before AbortController, button text, or active run state are selected.
+- Composer binding still rejects old positional form usage first, while
+  explicit invalid composer option bags fail before form/input handlers are read.
+
 ## 2026-08-07 - interface outcome options null boundary
 
 - Explicit null, array, or non-object outcome option bags now fail before

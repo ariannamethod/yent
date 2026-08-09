@@ -1211,6 +1211,14 @@ func TestWorldmodelInterfaceSessionContract(t *testing.T) {
 	if !strings.Contains(runJS, "composer prompt input must be passed as { promptInput }") {
 		t.Fatalf("interface_run.js does not reject generic composer input alias")
 	}
+	if !strings.Contains(runJS, "function optionTable(options, message)") ||
+		!strings.Contains(runJS, "interface run options must be passed as an object") ||
+		!strings.Contains(runJS, "composer binding options must be passed as an object") ||
+		!strings.Contains(runJS, "options = optionTable(options, 'interface run options must be passed as an object')") ||
+		!strings.Contains(runJS, "options = optionTable(options, 'composer binding options must be passed as an object')") ||
+		strings.Contains(runJS, "options = options || {}") {
+		t.Fatalf("interface_run.js does not guard explicit invalid option bags")
+	}
 	if !strings.Contains(animationJS, "function create") ||
 		!strings.Contains(animationJS, "requestAnimationFrame") ||
 		!strings.Contains(animationJS, "function requestFrame") {
