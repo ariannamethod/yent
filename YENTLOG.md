@@ -6,6 +6,20 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-08-10 - DoE cached INT8 fast path
+
+- Vendored the next canonical DoE speed layer into `DoE/doe.c`: `DOE_INT8=1`
+  now reuses a thread-local quantized activation cache instead of re-quantizing
+  the same Q/K/V and gate/up input vectors for every projection.
+- The approximate int8 path now accepts Q4_0, Q8_0, Q4_K, and Q6_K packed
+  weights and runs through the persistent packed-matvec worker pool.
+- Q4_0 now carries per-block activation sums, so its zero-point correction is
+  applied once per block instead of subtracting bias from every lane.
+- The default path remains exact; this only changes behavior for explicit
+  `DOE_INT8=1`.
+- Q5_0 INT8 remains intentionally out of this layer because its canonical NEON
+  path carries a large lookup table and deserves a separate review.
+
 ## 2026-08-10 - DoE packed matvec worker reuse
 
 - Vendored the canonical DoE persistent packed-qmatvec worker pool into
