@@ -17,8 +17,16 @@
     return !!value && Object.prototype.hasOwnProperty.call(value, key);
   }
 
+  function optionTable(options, message) {
+    if (options === undefined) return {};
+    if (!options || typeof options !== 'object' || Array.isArray(options)) {
+      throw new Error(message);
+    }
+    return options;
+  }
+
   function create(options) {
-    options = options || {};
+    options = optionTable(options, 'interface run options must be passed as an object');
     const button = options.button || null;
     const idleText = typeof options.idleText === 'string' ? options.idleText : 'SEND';
     const busyText = typeof options.busyText === 'string' ? options.busyText : 'STOP';
@@ -62,7 +70,7 @@
       if (looksLikeForm(options)) {
         throw new Error('composer binding inputs must be passed as { form, promptInput, onSubmit }');
       }
-      options = options || {};
+      options = optionTable(options, 'composer binding options must be passed as an object');
       if (hasOwn(options, 'input')) {
         throw new Error('composer prompt input must be passed as { promptInput }');
       }

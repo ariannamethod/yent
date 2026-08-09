@@ -106,6 +106,21 @@ function form() {
 }
 
 {
+  assert.throws(
+    () => runHelper.create(null),
+    /interface run options must be passed as an object/
+  );
+  assert.throws(
+    () => runHelper.create([]),
+    /interface run options must be passed as an object/
+  );
+  assert.throws(
+    () => runHelper.create('legacy'),
+    /interface run options must be passed as an object/
+  );
+}
+
+{
   const send = button();
   const run = runHelper.create({ button: send, AbortController: FakeAbortController });
   const f = form();
@@ -146,6 +161,10 @@ function form() {
 {
   const run = runHelper.create({ button: button(), AbortController: FakeAbortController });
   assert.throws(() => run.bindComposer(form(), { value: '' }, () => {}), /must be passed as \{ form, promptInput, onSubmit \}/);
+  assert.throws(() => run.bindComposer(), /composer form unavailable/);
+  assert.throws(() => run.bindComposer(null), /composer binding options must be passed as an object/);
+  assert.throws(() => run.bindComposer([]), /composer binding options must be passed as an object/);
+  assert.throws(() => run.bindComposer('legacy'), /composer binding options must be passed as an object/);
   assert.throws(() => run.bindComposer({ input: { value: '' }, onSubmit() {} }), /prompt input must be passed as \{ promptInput \}/);
   assert.throws(() => run.bindComposer({ promptInput: { value: '' }, onSubmit() {} }), /composer form unavailable/);
   assert.throws(() => run.bindComposer({ form: form(), onSubmit() {} }), /composer input unavailable/);
