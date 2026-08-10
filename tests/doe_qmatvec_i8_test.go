@@ -53,6 +53,7 @@ static void fill_x(float *x, int cols, int salt) {
 
 static size_t block_bytes(int dt) {
     if (dt == 2) return 18;
+    if (dt == 6) return 22;
     if (dt == 8) return 34;
     if (dt == 12) return 144;
     if (dt == 14) return 210;
@@ -73,6 +74,26 @@ static void fill_q4_0(uint8_t *w, int rows, int cols) {
             uint8_t hi = (uint8_t)((r * 7 + b + i * 11) & 15);
             blk[2 + i] = (uint8_t)(lo | (hi << 4));
         }
+    }
+}
+
+static void fill_q5_0(uint8_t *w, int rows, int cols) {
+    int nb = cols / 32;
+    for (int r = 0; r < rows; r++) for (int b = 0; b < nb; b++) {
+        uint8_t *blk = w + ((size_t)r * nb + b) * 22;
+        uint32_t qh = 0;
+        put_f16(blk, 0x3c00);
+        for (int i = 0; i < 16; i++) {
+            uint8_t q0 = (uint8_t)((r * 5 + b * 3 + i * 7) & 31);
+            uint8_t q1 = (uint8_t)((r * 11 + b * 13 + i * 17) & 31);
+            if (q0 & 16) qh |= (uint32_t)1u << i;
+            if (q1 & 16) qh |= (uint32_t)1u << (i + 16);
+            blk[6 + i] = (uint8_t)((q0 & 15) | ((q1 & 15) << 4));
+        }
+        blk[2] = (uint8_t)(qh & 0xffu);
+        blk[3] = (uint8_t)((qh >> 8) & 0xffu);
+        blk[4] = (uint8_t)((qh >> 16) & 0xffu);
+        blk[5] = (uint8_t)((qh >> 24) & 0xffu);
     }
 }
 
@@ -122,6 +143,7 @@ static void fill_q6_k(uint8_t *w, int rows, int cols) {
 
 static void fill_weight(uint8_t *w, int dt, int rows, int cols) {
     if (dt == 2) fill_q4_0(w, rows, cols);
+    else if (dt == 6) fill_q5_0(w, rows, cols);
     else if (dt == 8) fill_q8_0(w, rows, cols);
     else if (dt == 12) fill_q4_k(w, rows, cols);
     else if (dt == 14) fill_q6_k(w, rows, cols);
@@ -181,12 +203,13 @@ static int check_cache_not_stale(void) {
 }
 
 int main(void) {
-    int dts[] = {2, 8, 12, 14};
-    for (int i = 0; i < 4; i++) {
+    int dts[] = {2, 6, 8, 12, 14};
+    for (int i = 0; i < 5; i++) {
         int rc = check_threaded_i8(dts[i]);
         if (rc != 0) return rc;
     }
-    if (doe_qmatvec_i8(NULL, NULL, 6, NULL, 1, 32) != -1) return 80;
+    if (doe_qmatvec_i8(NULL, NULL, 1, NULL, 1, 32) != -1) return 80;
+    if (doe_qmatvec_i8(NULL, NULL, 6, NULL, 1, 33) != -1) return 81;
     return check_cache_not_stale();
 }
 `, doePath)
