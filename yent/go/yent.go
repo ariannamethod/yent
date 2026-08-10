@@ -275,7 +275,9 @@ func (y *Yent) Generate(prompt string, maxTokens int, temperature, topP float32)
 	// Feed all prompt tokens through transformer
 	pos := 0
 	for _, tok := range allTokens {
-		y.model.Forward(tok, pos)
+		if err := y.model.ForwardErr(tok, pos); err != nil {
+			return "", fmt.Errorf("prefill token %d at pos %d: %w", tok, pos, err)
+		}
 		pos++
 		if pos >= y.model.Config.SeqLen-1 {
 			break
@@ -385,7 +387,9 @@ func (y *Yent) Generate(prompt string, maxTokens int, temperature, topP float32)
 		piece := y.tokenizer.DecodeToken(next)
 		output = append(output, []byte(piece)...)
 
-		y.model.Forward(next, pos)
+		if err := y.model.ForwardErr(next, pos); err != nil {
+			return "", fmt.Errorf("generated token %d at pos %d: %w", next, pos, err)
+		}
 		pos++
 		genCount++
 

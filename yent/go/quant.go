@@ -23,7 +23,7 @@ import (
 // Number of goroutines for parallel matmul
 var numWorkers = runtime.NumCPU()
 
-const q4BlockSize = 32   // elements per Q4_0 block
+const q4BlockSize = 32     // elements per Q4_0 block
 const q4BytesPerBlock = 18 // 2 (scale) + 16 (data)
 
 // DequantQ4_0Block dequantizes a single Q4_0 block (32 values) into out
@@ -225,9 +225,9 @@ func EmbedLookupQ8_0(data []byte, token, dim int) []float32 {
 const q6kBlockSize = 256
 const q6kBytesPerBlock = 210
 
-// DequantQ6_K dequantizes a full Q6_K tensor into float32
-func DequantQ6_K(data []byte, n int) []float32 {
-	out := make([]float32, n)
+// dequantQ6_KInto dequantizes Q6_K blocks into an existing output slice.
+func dequantQ6_KInto(data []byte, out []float32) {
+	n := len(out)
 	nblocks := n / q6kBlockSize
 
 	for i := 0; i < nblocks; i++ {
@@ -260,6 +260,12 @@ func DequantQ6_K(data []byte, n int) []float32 {
 			}
 		}
 	}
+}
+
+// DequantQ6_K dequantizes a full Q6_K tensor into float32
+func DequantQ6_K(data []byte, n int) []float32 {
+	out := make([]float32, n)
+	dequantQ6_KInto(data, out)
 	return out
 }
 
