@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-08-10 - DoE Q5_0 high-bit table
+
+- Vendored the canonical Q5_0 NEON high-bit lookup table into `DoE/doe.c`.
+- The Q5_0 `DOE_INT8=1` path now expands high-bit masks with resident table
+  loads instead of recomputing eight shifts/or operations per mask byte.
+- Math and scalar fallback are unchanged; this only tightens the ARM dotprod
+  hot loop.
+
 ## 2026-08-10 - DoE Q5_0 cached INT8 path
 
 - Vendored the next isolated DoE speed layer into `DoE/doe.c`: `DOE_INT8=1`
