@@ -6,6 +6,18 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-08-10 - DoE ARM SIMD build contract
+
+- Added a vendored `DoE/Makefile` so standalone DoE builds can reproduce the
+  canonical ARM SIMD probe instead of compiling the `DOE_INT8=1` dot-product
+  kernels out under a plain aarch64 target.
+- Native arm64 builds now ask the compiler first, then probe `/proc/cpuinfo`
+  or Darwin `sysctl` for dot-product/i8mm support only when an explicit
+  `-march` is needed.
+- The main Yent build remains unchanged; this only names the standalone DoE
+  build path and keeps cross-compilation opt-out via `ARM_SIMD=0` or explicit
+  `ARM_FLAGS=`.
+
 ## 2026-08-10 - DoE Q5_0 high-bit table
 
 - Vendored the canonical Q5_0 NEON high-bit lookup table into `DoE/doe.c`.
