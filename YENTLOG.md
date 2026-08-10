@@ -6,6 +6,15 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-08-10 - DoE Q5_0 cached INT8 path
+
+- Vendored the next isolated DoE speed layer into `DoE/doe.c`: `DOE_INT8=1`
+  now accepts Q5_0 packed weights in the cached dynamic-activation int8 path.
+- Q5_0 applies the lifted `-16 * sum(qa)` block bias once per activation block,
+  matching the exact packed format while keeping the default path unchanged.
+- The focused qmatvec harness now builds synthetic Q5_0 blocks and proves
+  single-threaded and pooled execution produce identical outputs.
+
 ## 2026-08-10 - DoE cached INT8 fast path
 
 - Vendored the next canonical DoE speed layer into `DoE/doe.c`: `DOE_INT8=1`

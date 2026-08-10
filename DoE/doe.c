@@ -1423,8 +1423,7 @@ static int doe_qmatvec(float *out, const uint8_t *Wq, int dt, const float *x, in
 
 /* int8 dynamic-activation-quant fast path. APPROXIMATE.
  * Default packed matvec stays exact. DOE_INT8=1 opts supported dtypes into this
- * cached int8 path. This layer covers Q4_0, Q8_0, Q4_K, and Q6_K; Q5_0 stays
- * isolated for the next vendor step because its NEON path carries a large table. */
+ * cached int8 path. */
 static void pq_quant_act_q8(const float *x, int c, int8_t *qa, float *da, int32_t *asum) {
     int nb=c/32;
     for (int b=0;b<nb;b++) { const float *xb=x+(size_t)b*32; float amax=0;
@@ -1660,6 +1659,102 @@ static void pq_q4_k_rows_i8(float *out, const uint8_t *W, const int8_t *qa, cons
 }
 #endif
 
+#if defined(__ARM_NEON) && defined(__ARM_FEATURE_DOTPROD)
+static inline uint64_t pq_q5_hi_byte(uint8_t mask) {
+    return ((uint64_t)((mask >> 0) & 1u) <<  4)
+         | ((uint64_t)((mask >> 1) & 1u) << 12)
+         | ((uint64_t)((mask >> 2) & 1u) << 20)
+         | ((uint64_t)((mask >> 3) & 1u) << 28)
+         | ((uint64_t)((mask >> 4) & 1u) << 36)
+         | ((uint64_t)((mask >> 5) & 1u) << 44)
+         | ((uint64_t)((mask >> 6) & 1u) << 52)
+         | ((uint64_t)((mask >> 7) & 1u) << 60);
+}
+
+static inline uint8x16_t pq_q5_hi_lanes(uint8_t lo, uint8_t hi) {
+    return vreinterpretq_u8_u64(vcombine_u64(
+        vcreate_u64(pq_q5_hi_byte(lo)),
+        vcreate_u64(pq_q5_hi_byte(hi))));
+}
+
+static void pq_q5_0_rows_i8(float *out, const uint8_t *W, const int8_t *qa, const float *da,
+                            const int32_t *as, int r0, int r1, int c) {
+    int nb = c / 32;
+    const uint8x16_t m0f = vdupq_n_u8(0x0F);
+    for (int row = r0; row < r1; row++) {
+        const uint8_t *rb = W + (size_t)row * nb * 22;
+        float a = 0.0f;
+        int b = 0;
+        for (; b + 4 <= nb; b += 4) {
+            int32x4_t s0, s1, s2, s3;
+            float dv[4];
+            int32x4_t *sp[4] = { &s0, &s1, &s2, &s3 };
+            for (int j = 0; j < 4; j++) {
+                const uint8_t *bl = rb + (size_t)(b + j) * 22;
+                dv[j] = f16_to_f32((uint16_t)(bl[0] | (bl[1] << 8)));
+                uint8x16_t h0 = pq_q5_hi_lanes(bl[2], bl[3]);
+                uint8x16_t h1 = pq_q5_hi_lanes(bl[4], bl[5]);
+                uint8x16_t pk = vld1q_u8(bl + 6);
+                int8x16_t lo = vreinterpretq_s8_u8(vorrq_u8(vandq_u8(pk, m0f), h0));
+                int8x16_t hi = vreinterpretq_s8_u8(vorrq_u8(vshrq_n_u8(pk, 4), h1));
+                const int8_t *qab = qa + (size_t)(b + j) * 32;
+                int32x4_t t = vdupq_n_s32(0);
+                t = vdotq_s32(t, lo, vld1q_s8(qab));
+                t = vdotq_s32(t, hi, vld1q_s8(qab + 16));
+                *sp[j] = t;
+            }
+            int32_t sums[4];
+            vst1q_s32(sums, vpaddq_s32(vpaddq_s32(s0, s1), vpaddq_s32(s2, s3)));
+            a += dv[0] * da[b + 0] * (float)(sums[0] - 16 * as[b + 0]);
+            a += dv[1] * da[b + 1] * (float)(sums[1] - 16 * as[b + 1]);
+            a += dv[2] * da[b + 2] * (float)(sums[2] - 16 * as[b + 2]);
+            a += dv[3] * da[b + 3] * (float)(sums[3] - 16 * as[b + 3]);
+        }
+        for (; b < nb; b++) {
+            const uint8_t *bl = rb + (size_t)b * 22;
+            float d = f16_to_f32((uint16_t)(bl[0] | (bl[1] << 8)));
+            uint8x16_t h0 = pq_q5_hi_lanes(bl[2], bl[3]);
+            uint8x16_t h1 = pq_q5_hi_lanes(bl[4], bl[5]);
+            uint8x16_t pk = vld1q_u8(bl + 6);
+            int8x16_t lo = vreinterpretq_s8_u8(vorrq_u8(vandq_u8(pk, m0f), h0));
+            int8x16_t hi = vreinterpretq_s8_u8(vorrq_u8(vshrq_n_u8(pk, 4), h1));
+            const int8_t *qab = qa + (size_t)b * 32;
+            int32x4_t t = vdupq_n_s32(0);
+            t = vdotq_s32(t, lo, vld1q_s8(qab));
+            t = vdotq_s32(t, hi, vld1q_s8(qab + 16));
+            a += d * da[b] * (float)(vaddvq_s32(t) - 16 * as[b]);
+        }
+        out[row] = a;
+    }
+}
+#else
+static void pq_q5_0_rows_i8(float *out, const uint8_t *W, const int8_t *qa, const float *da,
+                            const int32_t *as, int r0, int r1, int c) {
+    int nb = c / 32;
+    for (int row = r0; row < r1; row++) {
+        const uint8_t *rb = W + (size_t)row * nb * 22;
+        float a = 0.0f;
+        for (int b = 0; b < nb; b++) {
+            const uint8_t *bl = rb + (size_t)b * 22;
+            float d = f16_to_f32((uint16_t)(bl[0] | (bl[1] << 8)));
+            uint32_t qh = (uint32_t)bl[2] | ((uint32_t)bl[3] << 8)
+                        | ((uint32_t)bl[4] << 16) | ((uint32_t)bl[5] << 24);
+            const uint8_t *qs = bl + 6;
+            const int8_t *qab = qa + (size_t)b * 32;
+            int32_t t = 0;
+            for (int j = 0; j < 16; j++) {
+                int q0 = (int)((qs[j] & 0x0F) | (((qh >> j) & 1u) << 4));
+                int q1 = (int)((qs[j] >> 4)   | (((qh >> (j + 16)) & 1u) << 4));
+                t += q0 * (int)qab[j];
+                t += q1 * (int)qab[j + 16];
+            }
+            a += d * da[b] * (float)(t - 16 * as[b]);
+        }
+        out[row] = a;
+    }
+}
+#endif
+
 typedef void (*pq_i8_fn)(float *, const uint8_t *, const int8_t *, const float *, const int32_t *, int, int, int);
 typedef struct { pq_i8_fn fn; float *out; const uint8_t *Wq; const int8_t *qa; const float *da; const int32_t *as; int c; } PQI8Ctx;
 static void pq_i8_range(void *ctx, int r0, int r1) {
@@ -1699,6 +1794,7 @@ static int pq_qcache_get(const float *x, int c, int8_t **qa_out, float **da_out,
 
 static int doe_qmatvec_i8(float *out, const uint8_t *Wq, int dt, const float *x, int r, int c) {
     pq_i8_fn kern = (dt == 2)  ? pq_q4_0_rows_i8
+                  : (dt == 6)  ? pq_q5_0_rows_i8
                   : (dt == 8)  ? pq_q8_0_rows_i8
                   : (dt == 12) ? pq_q4_k_rows_i8
                   : (dt == 14) ? pq_q6_k_rows_i8 : NULL;
@@ -1718,7 +1814,7 @@ static int doe_qmatvec_i8(float *out, const uint8_t *Wq, int dt, const float *x,
 
 /* matvec dispatch: packed weight (dt != 0) -> doe_qmatvec (inline dequant);
  * else the existing f32 matvec. The one call the forward uses for host weights.
- * DOE_INT8=1 opts Q4_0/Q8_0/Q4_K/Q6_K weights into the cached int8
+ * DOE_INT8=1 opts Q4_0/Q5_0/Q8_0/Q4_K/Q6_K weights into the cached int8
  * dynamic-activation-quant fast path. APPROXIMATE; default is exact. */
 static int g_doe_int8 = -1;
 static double g_prof_mv_ns = 0; static int g_prof_on = -1; /* DOE_PROFILE: matvec share of decode */
