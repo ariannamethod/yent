@@ -6,6 +6,18 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-08-10 - notorch embedding row contract
+
+- Ported the transferable row-level lesson from fresh notorch GGUF work into
+  Yent's Go runtime: token embedding lookup now validates dtype, row shape,
+  token bounds, whole-row table size, and integer offset arithmetic before
+  touching the recurrent state buffer.
+- `Generate` now surfaces prefill/generated-token embedding failures as errors
+  through `ForwardErr` instead of letting malformed GGUF/token state panic or
+  silently feed zero embeddings.
+- Q6_K embedding lookup now dequantizes into the reusable embedding buffer
+  directly instead of allocating a temporary row on every forwarded token.
+
 ## 2026-08-10 - DoE ARM SIMD build contract
 
 - Added a vendored `DoE/Makefile` so standalone DoE builds can reproduce the

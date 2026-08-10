@@ -411,70 +411,168 @@ func matmulDispatch(out []float32, w []byte, wtype uint32, x []float32, rows, co
 	}
 }
 
-// embedLookupInto extracts an embedding row into a pre-allocated buffer (zero alloc)
-func embedLookupInto(out []float32, data []byte, dtype uint32, token, dim int) {
+func ggmlTypeLabel(t uint32) string {
+	switch t {
+	case ggmlTypeF32:
+		return "F32"
+	case ggmlTypeF16:
+		return "F16"
+	case ggmlTypeQ4_0:
+		return "Q4_0"
+	case ggmlTypeQ5_0:
+		return "Q5_0"
+	case ggmlTypeQ8_0:
+		return "Q8_0"
+	case ggmlTypeQ4_K:
+		return "Q4_K"
+	case ggmlTypeQ6_K:
+		return "Q6_K"
+	default:
+		return fmt.Sprintf("type_%d", t)
+	}
+}
+
+func checkedMulInt(a, b int) (int, bool) {
+	if a < 0 || b < 0 {
+		return 0, false
+	}
+	if a != 0 && b > int(^uint(0)>>1)/a {
+		return 0, false
+	}
+	return a * b, true
+}
+
+func checkedAddInt(a, b int) (int, bool) {
+	if a < 0 || b < 0 {
+		return 0, false
+	}
+	if b > int(^uint(0)>>1)-a {
+		return 0, false
+	}
+	return a + b, true
+}
+
+func embeddingRowLayout(dtype uint32, dim int) (blocksPerRow, bytesPerRow, blockElems, blockBytes int, err error) {
+	if dim <= 0 {
+		return 0, 0, 0, 0, fmt.Errorf("invalid embedding dim %d", dim)
+	}
+
 	switch dtype {
 	case ggmlTypeQ4_0:
-		blocksPerRow := dim / q4BlockSize
-		bytesPerRow := blocksPerRow * q4BytesPerBlock
-		rowOff := token * bytesPerRow
+		blockElems, blockBytes = q4BlockSize, q4BytesPerBlock
+	case ggmlTypeQ5_0:
+		blockElems, blockBytes = q50BlockSize, q50BytesPerBlock
+	case ggmlTypeQ8_0:
+		blockElems, blockBytes = q8BlockSize, q8BytesPerBlock
+	case ggmlTypeQ4_K:
+		blockElems, blockBytes = q4kBlockSize, q4kBytesPerBlock
+	case ggmlTypeQ6_K:
+		blockElems, blockBytes = q6kBlockSize, q6kBytesPerBlock
+	case ggmlTypeF16:
+		blockElems, blockBytes = 1, 2
+	case ggmlTypeF32:
+		blockElems, blockBytes = 1, 4
+	default:
+		return 0, 0, 0, 0, fmt.Errorf("unsupported embedding dtype %s", ggmlTypeLabel(dtype))
+	}
+
+	if dim%blockElems != 0 {
+		return 0, 0, 0, 0, fmt.Errorf("embedding dim %d is not whole %s blocks of %d", dim, ggmlTypeLabel(dtype), blockElems)
+	}
+	blocksPerRow = dim / blockElems
+	bytesPerRow, ok := checkedMulInt(blocksPerRow, blockBytes)
+	if !ok {
+		return 0, 0, 0, 0, fmt.Errorf("embedding row byte size overflows for %s dim=%d", ggmlTypeLabel(dtype), dim)
+	}
+	return blocksPerRow, bytesPerRow, blockElems, blockBytes, nil
+}
+
+func embeddingRowSlice(data []byte, dtype uint32, token, dim int) ([]byte, int, int, error) {
+	blocksPerRow, bytesPerRow, _, _, err := embeddingRowLayout(dtype, dim)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	if token < 0 {
+		return nil, 0, 0, fmt.Errorf("negative embedding token %d", token)
+	}
+	if bytesPerRow <= 0 {
+		return nil, 0, 0, fmt.Errorf("invalid embedding row byte size %d for %s", bytesPerRow, ggmlTypeLabel(dtype))
+	}
+	if len(data)%bytesPerRow != 0 {
+		return nil, 0, 0, fmt.Errorf("embedding table has partial %s row: bytes=%d row_bytes=%d", ggmlTypeLabel(dtype), len(data), bytesPerRow)
+	}
+	rows := len(data) / bytesPerRow
+	if token >= rows {
+		return nil, 0, 0, fmt.Errorf("embedding token %d outside %s table rows=%d row_bytes=%d", token, ggmlTypeLabel(dtype), rows, bytesPerRow)
+	}
+	rowOff, ok := checkedMulInt(token, bytesPerRow)
+	if !ok {
+		return nil, 0, 0, fmt.Errorf("embedding row offset overflows for token=%d row_bytes=%d", token, bytesPerRow)
+	}
+	rowEnd, ok := checkedAddInt(rowOff, bytesPerRow)
+	if !ok || rowEnd > len(data) {
+		return nil, 0, 0, fmt.Errorf("embedding row bounds invalid for token=%d offset=%d end=%d bytes=%d", token, rowOff, rowEnd, len(data))
+	}
+	return data[rowOff:rowEnd], blocksPerRow, bytesPerRow, nil
+}
+
+// embedLookupInto extracts an embedding row into a pre-allocated buffer (zero alloc)
+func embedLookupInto(out []float32, data []byte, dtype uint32, token, dim int) error {
+	if len(out) < dim {
+		return fmt.Errorf("embedding output buffer too small: have=%d need=%d", len(out), dim)
+	}
+	row, blocksPerRow, _, err := embeddingRowSlice(data, dtype, token, dim)
+	if err != nil {
+		return err
+	}
+	out = out[:dim]
+
+	switch dtype {
+	case ggmlTypeQ4_0:
 		for b := 0; b < blocksPerRow; b++ {
-			blockOff := rowOff + b*q4BytesPerBlock
-			DequantQ4_0Block(data[blockOff:blockOff+q4BytesPerBlock], out[b*q4BlockSize:])
+			blockOff := b * q4BytesPerBlock
+			DequantQ4_0Block(row[blockOff:blockOff+q4BytesPerBlock], out[b*q4BlockSize:])
 		}
 	case ggmlTypeQ5_0:
-		blocksPerRow := dim / q50BlockSize
-		bytesPerRow := blocksPerRow * q50BytesPerBlock
-		rowOff := token * bytesPerRow
 		for b := 0; b < blocksPerRow; b++ {
-			blockOff := rowOff + b*q50BytesPerBlock
-			DequantQ5_0Block(data[blockOff:blockOff+q50BytesPerBlock], out[b*q50BlockSize:])
+			blockOff := b * q50BytesPerBlock
+			DequantQ5_0Block(row[blockOff:blockOff+q50BytesPerBlock], out[b*q50BlockSize:])
 		}
 	case ggmlTypeQ8_0:
-		blocksPerRow := dim / q8BlockSize
-		bytesPerRow := blocksPerRow * q8BytesPerBlock
-		rowOff := token * bytesPerRow
 		for b := 0; b < blocksPerRow; b++ {
-			blockOff := rowOff + b*q8BytesPerBlock
-			DequantQ8_0Block(data[blockOff:blockOff+q8BytesPerBlock], out[b*q8BlockSize:])
+			blockOff := b * q8BytesPerBlock
+			DequantQ8_0Block(row[blockOff:blockOff+q8BytesPerBlock], out[b*q8BlockSize:])
 		}
 	case ggmlTypeQ4_K:
-		blocksPerRow := dim / q4kBlockSize
-		bytesPerRow := blocksPerRow * q4kBytesPerBlock
-		rowOff := token * bytesPerRow
 		for b := 0; b < blocksPerRow; b++ {
-			blockOff := rowOff + b*q4kBytesPerBlock
-			DequantQ4_KBlock(data[blockOff:blockOff+q4kBytesPerBlock], out[b*q4kBlockSize:])
+			blockOff := b * q4kBytesPerBlock
+			DequantQ4_KBlock(row[blockOff:blockOff+q4kBytesPerBlock], out[b*q4kBlockSize:])
 		}
 	case ggmlTypeQ6_K:
-		blocksPerRow := dim / q6kBlockSize
-		bytesPerRow := blocksPerRow * q6kBytesPerBlock
-		rowOff := token * bytesPerRow
-		copy(out, DequantQ6_K(data[rowOff:rowOff+bytesPerRow], dim))
+		dequantQ6_KInto(row, out)
 	case ggmlTypeF16:
-		off := token * dim * 2
 		for i := 0; i < dim; i++ {
-			h := uint16(data[off+i*2]) | uint16(data[off+i*2+1])<<8
+			h := uint16(row[i*2]) | uint16(row[i*2+1])<<8
 			out[i] = half2float(h)
 		}
 	case ggmlTypeF32:
-		off := token * dim * 4
 		for i := 0; i < dim; i++ {
 			out[i] = math.Float32frombits(
-				uint32(data[off+i*4]) | uint32(data[off+i*4+1])<<8 |
-					uint32(data[off+i*4+2])<<16 | uint32(data[off+i*4+3])<<24)
+				uint32(row[i*4]) | uint32(row[i*4+1])<<8 |
+					uint32(row[i*4+2])<<16 | uint32(row[i*4+3])<<24)
 		}
 	default:
-		for i := 0; i < dim; i++ {
-			out[i] = 0
-		}
+		return fmt.Errorf("unsupported embedding dtype %s", ggmlTypeLabel(dtype))
 	}
+	return nil
 }
 
 // embedLookupDispatch extracts an embedding row based on tensor type (allocating version for API compat)
 func embedLookupDispatch(data []byte, dtype uint32, token, dim int) []float32 {
 	out := make([]float32, dim)
-	embedLookupInto(out, data, dtype, token, dim)
+	if err := embedLookupInto(out, data, dtype, token, dim); err != nil {
+		panic(err)
+	}
 	return out
 }
 
@@ -547,18 +645,31 @@ func addBias(out []float32, bias []float32) {
 	}
 }
 
-// Forward runs one token through the transformer
+// Forward runs one token through the transformer.
 func (m *LlamaModel) Forward(token int, pos int) {
+	if err := m.ForwardErr(token, pos); err != nil {
+		panic(err)
+	}
+}
+
+// ForwardErr runs one token through the transformer and reports corrupt runtime boundaries.
+func (m *LlamaModel) ForwardErr(token int, pos int) error {
 	cfg := &m.Config
 	w := &m.Weights
 	s := &m.State
 	dim := cfg.EmbedDim
+
+	if pos < 0 || pos >= cfg.SeqLen {
+		return fmt.Errorf("position %d outside seq_len %d", pos, cfg.SeqLen)
+	}
 	kvDim := cfg.NumKVHeads * cfg.HeadDim
 	hd := cfg.HeadDim
 	headGroupSize := cfg.NumHeads / cfg.NumKVHeads
 
 	// 1. Token embedding lookup (zero-alloc: reuses s.EmbBuf)
-	embedLookupInto(s.EmbBuf, w.TokenEmbed, w.TokenEmbType, token, dim)
+	if err := embedLookupInto(s.EmbBuf, w.TokenEmbed, w.TokenEmbType, token, dim); err != nil {
+		return fmt.Errorf("token embedding lookup: %w", err)
+	}
 
 	// 1.5. Gamma injection: embed[token] += γ[token]
 	if m.Gamma != nil {
@@ -683,6 +794,7 @@ func (m *LlamaModel) Forward(token int, pos int) {
 
 	// 4. LM head → logits
 	matmulDispatch(s.Logits, w.Output, w.OutputType, s.X, cfg.VocabSize, dim)
+	return nil
 }
 
 // Reset clears KV cache and position for new generation
