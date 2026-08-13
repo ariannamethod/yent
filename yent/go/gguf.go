@@ -214,46 +214,6 @@ func readValueDepth(r io.Reader, vtype uint32, depth int) (interface{}, error) {
 	}
 }
 
-// toInt converts GGUF metadata value to int
-func toInt(v interface{}) int {
-	switch x := v.(type) {
-	case uint32:
-		return int(x)
-	case int32:
-		return int(x)
-	case uint64:
-		return int(x)
-	case int64:
-		return int(x)
-	case uint8:
-		return int(x)
-	case int8:
-		return int(x)
-	case uint16:
-		return int(x)
-	case int16:
-		return int(x)
-	default:
-		return 0
-	}
-}
-
-// toFloat32 converts GGUF metadata value to float32
-func toFloat32(v interface{}) float32 {
-	switch x := v.(type) {
-	case float32:
-		return x
-	case float64:
-		return float32(x)
-	case uint32:
-		return float32(x)
-	case int32:
-		return float32(x)
-	default:
-		return 0
-	}
-}
-
 // ggmlTypeSize returns bytes per element for a tensor type (for blocked types, per block)
 func ggmlBlockSize(t uint32) int {
 	switch t {
@@ -515,6 +475,21 @@ func metadataStringArray(kv map[string]interface{}, key string) ([]string, bool,
 	return out, true, nil
 }
 
+func metadataStringValue(kv map[string]interface{}, key string) (string, bool, error) {
+	v, ok := kv[key]
+	if !ok {
+		return "", false, nil
+	}
+	s, ok := v.(string)
+	if !ok {
+		return "", true, fmt.Errorf("%s is %T, want string", key, v)
+	}
+	if strings.TrimSpace(s) == "" {
+		return "", true, fmt.Errorf("%s is empty", key)
+	}
+	return s, true, nil
+}
+
 func metadataFloat32Value(v interface{}) (float32, bool) {
 	switch x := v.(type) {
 	case float32:
@@ -563,6 +538,24 @@ func metadataFloat32Array(kv map[string]interface{}, key string) ([]float32, boo
 		out[i] = val
 	}
 	return out, true, nil
+}
+
+func metadataPositiveFloat32(kv map[string]interface{}, key string) (float32, bool, error) {
+	v, ok := kv[key]
+	if !ok {
+		return 0, false, nil
+	}
+	val, valid := metadataFloat32Value(v)
+	if !valid {
+		return 0, true, fmt.Errorf("%s is %T, want numeric", key, v)
+	}
+	if math.IsNaN(float64(val)) || math.IsInf(float64(val), 0) {
+		return 0, true, fmt.Errorf("%s is non-finite", key)
+	}
+	if val <= 0 {
+		return 0, true, fmt.Errorf("%s must be positive, got %g", key, val)
+	}
+	return val, true, nil
 }
 
 func metadataInt32Value(v interface{}) (int32, bool) {
@@ -622,6 +615,21 @@ func metadataInt32Array(kv map[string]interface{}, key string) ([]int32, bool, e
 	return out, true, nil
 }
 
+func metadataPositiveInt(kv map[string]interface{}, key string) (int, bool, error) {
+	v, ok := kv[key]
+	if !ok {
+		return 0, false, nil
+	}
+	val, valid := metadataInt32Value(v)
+	if !valid {
+		return 0, true, fmt.Errorf("%s is %T, want int32-compatible integer", key, v)
+	}
+	if val <= 0 {
+		return 0, true, fmt.Errorf("%s must be positive, got %d", key, val)
+	}
+	return int(val), true, nil
+}
+
 func metadataTokenID(kv map[string]interface{}, key string) (int, bool, error) {
 	v, ok := kv[key]
 	if !ok {
@@ -635,6 +643,39 @@ func metadataTokenID(kv map[string]interface{}, key string) (int, bool, error) {
 		return 0, true, fmt.Errorf("%s is negative: %d", key, id)
 	}
 	return int(id), true, nil
+}
+
+func metadataBool(kv map[string]interface{}, key string) (bool, bool, error) {
+	v, ok := kv[key]
+	if !ok {
+		return false, false, nil
+	}
+	b, ok := v.(bool)
+	if !ok {
+		return false, true, fmt.Errorf("%s is %T, want bool", key, v)
+	}
+	return b, true, nil
+}
+
+func validateModelMetadata(meta *GGUFMetadata, hasHeadDim bool) error {
+	if meta == nil {
+		return nil
+	}
+	if meta.NumHeads > 0 && meta.NumKVHeads > 0 && meta.NumKVHeads > meta.NumHeads {
+		return fmt.Errorf("%s.attention.head_count_kv %d > %s.attention.head_count %d",
+			meta.Architecture, meta.NumKVHeads, meta.Architecture, meta.NumHeads)
+	}
+	if meta.NumHeads > 0 && meta.NumKVHeads > 0 && meta.NumHeads%meta.NumKVHeads != 0 {
+		return fmt.Errorf("%s.attention.head_count %d is not divisible by %s.attention.head_count_kv %d",
+			meta.Architecture, meta.NumHeads, meta.Architecture, meta.NumKVHeads)
+	}
+	if meta.NumHeads > 0 && meta.EmbedDim > 0 && !hasHeadDim {
+		if meta.EmbedDim%meta.NumHeads != 0 {
+			return fmt.Errorf("%s.embedding_length %d is not divisible by %s.attention.head_count %d",
+				meta.Architecture, meta.EmbedDim, meta.Architecture, meta.NumHeads)
+		}
+	}
+	return nil
 }
 
 func validateTokenizerMetadata(meta *GGUFMetadata, hasBosID, hasEosID bool) error {
@@ -675,69 +716,91 @@ func parseMetadata(kv map[string]interface{}) (GGUFMetadata, error) {
 		EosID:      2,
 	}
 
-	// Architecture prefix (usually "llama")
 	arch := "llama"
-	if v, ok := kv["general.architecture"]; ok {
-		if s, ok := v.(string); ok {
-			arch = s
-		}
+	if s, ok, err := metadataStringValue(kv, "general.architecture"); err != nil {
+		return meta, err
+	} else if ok {
+		arch = s
 	}
 	meta.Architecture = arch
 
 	// Model dimensions
-	if v, ok := kv[arch+".block_count"]; ok {
-		meta.NumLayers = toInt(v)
+	if n, ok, err := metadataPositiveInt(kv, arch+".block_count"); err != nil {
+		return meta, err
+	} else if ok {
+		meta.NumLayers = n
 	}
-	if v, ok := kv[arch+".embedding_length"]; ok {
-		meta.EmbedDim = toInt(v)
+	if n, ok, err := metadataPositiveInt(kv, arch+".embedding_length"); err != nil {
+		return meta, err
+	} else if ok {
+		meta.EmbedDim = n
 	}
-	if v, ok := kv[arch+".attention.head_count"]; ok {
-		meta.NumHeads = toInt(v)
+	if n, ok, err := metadataPositiveInt(kv, arch+".attention.head_count"); err != nil {
+		return meta, err
+	} else if ok {
+		meta.NumHeads = n
 	}
-	if v, ok := kv[arch+".attention.head_count_kv"]; ok {
-		meta.NumKVHeads = toInt(v)
+	if n, ok, err := metadataPositiveInt(kv, arch+".attention.head_count_kv"); err != nil {
+		return meta, err
+	} else if ok {
+		meta.NumKVHeads = n
 	}
-	if v, ok := kv[arch+".feed_forward_length"]; ok {
-		meta.IntermSize = toInt(v)
+	if n, ok, err := metadataPositiveInt(kv, arch+".feed_forward_length"); err != nil {
+		return meta, err
+	} else if ok {
+		meta.IntermSize = n
 	}
-	if v, ok := kv[arch+".context_length"]; ok {
-		meta.SeqLen = toInt(v)
+	if n, ok, err := metadataPositiveInt(kv, arch+".context_length"); err != nil {
+		return meta, err
+	} else if ok {
+		meta.SeqLen = n
 	}
-	if v, ok := kv[arch+".attention.layer_norm_rms_epsilon"]; ok {
-		meta.RMSNormEps = toFloat32(v)
+	if f, ok, err := metadataPositiveFloat32(kv, arch+".attention.layer_norm_rms_epsilon"); err != nil {
+		return meta, err
+	} else if ok {
+		meta.RMSNormEps = f
 	}
-	if v, ok := kv[arch+".rope.freq_base"]; ok {
-		meta.RopeTheta = toFloat32(v)
+	if f, ok, err := metadataPositiveFloat32(kv, arch+".rope.freq_base"); err != nil {
+		return meta, err
+	} else if ok {
+		meta.RopeTheta = f
 	}
 
 	// Derived (Y-B1: prefer attention.key_length from header — Mistral hd=128 != 5120/32=160; Qwen-neutral)
-	if v, ok := kv[arch+".attention.key_length"]; ok {
-		meta.HeadDim = toInt(v)
+	hasHeadDim := false
+	if n, ok, err := metadataPositiveInt(kv, arch+".attention.key_length"); err != nil {
+		return meta, err
+	} else if ok {
+		hasHeadDim = true
+		meta.HeadDim = n
 	} else if meta.NumHeads > 0 && meta.EmbedDim > 0 {
 		meta.HeadDim = meta.EmbedDim / meta.NumHeads
 	}
 	if meta.NumKVHeads == 0 {
 		meta.NumKVHeads = meta.NumHeads // MHA fallback
 	}
+	if err := validateModelMetadata(&meta, hasHeadDim); err != nil {
+		return meta, err
+	}
 
 	// nanollama-specific flags
-	if v, ok := kv["nanollama.qk_norm"]; ok {
-		if b, ok := v.(bool); ok {
-			meta.QKNorm = b
-		}
+	if b, ok, err := metadataBool(kv, "nanollama.qk_norm"); err != nil {
+		return meta, err
+	} else if ok {
+		meta.QKNorm = b
 	}
-	if v, ok := kv["nanollama.rope_conjugate"]; ok {
-		if b, ok := v.(bool); ok {
-			meta.RopeConjugate = b
-		}
+	if b, ok, err := metadataBool(kv, "nanollama.rope_conjugate"); err != nil {
+		return meta, err
+	} else if ok {
+		meta.RopeConjugate = b
 	}
 
 	// Tokenizer model type
 	meta.TokenizerModel = "llama" // default: SentencePiece
-	if v, ok := kv["tokenizer.ggml.model"]; ok {
-		if s, ok := v.(string); ok {
-			meta.TokenizerModel = s
-		}
+	if s, ok, err := metadataStringValue(kv, "tokenizer.ggml.model"); err != nil {
+		return meta, err
+	} else if ok {
+		meta.TokenizerModel = s
 	}
 
 	// Tokenizer
