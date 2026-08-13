@@ -1,7 +1,9 @@
 package yent
 
 import (
+	"bytes"
 	"encoding/binary"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -227,6 +229,37 @@ func TestLoadGGUFRejectsAbsurdHeaderCounts(t *testing.T) {
 	}
 }
 
+func TestReadValueRejectsMalformedArraysBeforeAllocation(t *testing.T) {
+	var buf bytes.Buffer
+	writeTestLE(t, &buf, uint32(ggufTypeUint8))
+	writeTestLE(t, &buf, uint64(maxGGUFArrayElements+1))
+
+	got, err := readValue(&buf, ggufTypeArray)
+	if err == nil || !strings.Contains(err.Error(), "array too large") {
+		t.Fatalf("readValue error = %v want array too large", err)
+	}
+	if got != nil {
+		t.Fatalf("oversized array returned value: %#v", got)
+	}
+}
+
+func TestReadValueRejectsOverNestedArrays(t *testing.T) {
+	var buf bytes.Buffer
+	for i := 0; i <= maxGGUFArrayDepth; i++ {
+		writeTestLE(t, &buf, uint32(ggufTypeArray))
+		writeTestLE(t, &buf, uint64(1))
+	}
+	writeTestLE(t, &buf, uint32(7))
+
+	got, err := readValue(&buf, ggufTypeArray)
+	if err == nil || !strings.Contains(err.Error(), "array nesting too deep") {
+		t.Fatalf("readValue error = %v want array nesting too deep", err)
+	}
+	if got != nil {
+		t.Fatalf("over-nested array returned value: %#v", got)
+	}
+}
+
 type ggufTestTensor struct {
 	name   string
 	ndims  uint32
@@ -304,9 +337,9 @@ func writeTestGGUFString(t *testing.T, f *os.File, s string) {
 	}
 }
 
-func writeTestLE(t *testing.T, f *os.File, v interface{}) {
+func writeTestLE(t *testing.T, w io.Writer, v interface{}) {
 	t.Helper()
-	if err := binary.Write(f, binary.LittleEndian, v); err != nil {
+	if err := binary.Write(w, binary.LittleEndian, v); err != nil {
 		t.Fatal(err)
 	}
 }

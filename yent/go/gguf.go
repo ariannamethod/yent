@@ -27,6 +27,8 @@ const (
 	ggufVersion = 3
 
 	maxGGUFStringBytes   = 1 << 24
+	maxGGUFArrayElements = 1 << 22
+	maxGGUFArrayDepth    = 4
 	maxGGUFMetadataCount = 1 << 20
 	maxGGUFTensorCount   = 1 << 20
 	maxGGUFTensorDims    = 4
@@ -129,6 +131,10 @@ func readString(r io.Reader) (string, error) {
 }
 
 func readValue(r io.Reader, vtype uint32) (interface{}, error) {
+	return readValueDepth(r, vtype, 0)
+}
+
+func readValueDepth(r io.Reader, vtype uint32, depth int) (interface{}, error) {
 	switch vtype {
 	case ggufTypeUint8:
 		var v uint8
@@ -177,6 +183,9 @@ func readValue(r io.Reader, vtype uint32) (interface{}, error) {
 		err := binary.Read(r, binary.LittleEndian, &v)
 		return v, err
 	case ggufTypeArray:
+		if depth >= maxGGUFArrayDepth {
+			return nil, fmt.Errorf("array nesting too deep: %d > %d", depth+1, maxGGUFArrayDepth)
+		}
 		var elemType uint32
 		if err := binary.Read(r, binary.LittleEndian, &elemType); err != nil {
 			return nil, err
@@ -185,14 +194,14 @@ func readValue(r io.Reader, vtype uint32) (interface{}, error) {
 		if err := binary.Read(r, binary.LittleEndian, &count); err != nil {
 			return nil, err
 		}
-		if count > 1<<24 {
-			return nil, fmt.Errorf("array too large: %d", count)
+		if count > maxGGUFArrayElements {
+			return nil, fmt.Errorf("array too large: %d > %d", count, maxGGUFArrayElements)
 		}
 		arr := make([]interface{}, count)
 		for i := uint64(0); i < count; i++ {
-			v, err := readValue(r, elemType)
+			v, err := readValueDepth(r, elemType, depth+1)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("array[%d]: %w", i, err)
 			}
 			arr[i] = v
 		}

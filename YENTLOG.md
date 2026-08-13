@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-08-13 - GGUF metadata array boundary
+
+- Go GGUF metadata parsing now has explicit array element and nesting limits
+  before allocating parser storage or recursing into nested values.
+- Nested malformed arrays now return contextual `array[index]` errors instead
+  of recursively consuming memory or losing the failing position.
+- Added parser-level tests for oversized metadata arrays and excessive nesting.
+
 ## 2026-08-13 - GGUF tensor data range contract
 
 - Go GGUF loading now validates every tensor's offset and computed byte size
