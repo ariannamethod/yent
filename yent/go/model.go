@@ -155,14 +155,19 @@ func LoadLlamaModel(gguf *GGUFFile) (*LlamaModel, error) {
 		cfg.SeqLen = 2048
 	}
 
+	layout, err := runtimeConfigLayoutFor(&cfg)
+	if err != nil {
+		return nil, fmt.Errorf("runtime config: %w", err)
+	}
+
 	// Load weights
-	w, err := loadWeights(gguf, &cfg)
+	w, err := loadWeightsWithLayout(gguf, &cfg, layout)
 	if err != nil {
 		return nil, fmt.Errorf("load weights: %w", err)
 	}
 
 	// Allocate state
-	state := allocState(&cfg)
+	state := allocState(&cfg, layout)
 	precomputeRoPE(&state, &cfg)
 
 	model := &LlamaModel{
@@ -184,15 +189,17 @@ func LoadLlamaModel(gguf *GGUFFile) (*LlamaModel, error) {
 
 // loadWeights maps GGUF tensors to LlamaWeights
 func loadWeights(gguf *GGUFFile, cfg *LlamaConfig) (*LlamaWeights, error) {
+	layout, err := runtimeConfigLayoutFor(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("runtime config: %w", err)
+	}
+	return loadWeightsWithLayout(gguf, cfg, layout)
+}
+
+func loadWeightsWithLayout(gguf *GGUFFile, cfg *LlamaConfig, layout runtimeConfigLayout) (*LlamaWeights, error) {
 	w := &LlamaWeights{}
-	qRows, ok := checkedMulInt(cfg.NumHeads, cfg.HeadDim)
-	if !ok {
-		return nil, fmt.Errorf("attention q rows overflow: heads=%d head_dim=%d", cfg.NumHeads, cfg.HeadDim)
-	}
-	kvRows, ok := checkedMulInt(cfg.NumKVHeads, cfg.HeadDim)
-	if !ok {
-		return nil, fmt.Errorf("attention kv rows overflow: kv_heads=%d head_dim=%d", cfg.NumKVHeads, cfg.HeadDim)
-	}
+	qRows := layout.QRows
+	kvRows := layout.KVRows
 
 	// Token embedding
 	emb, embInfo, err := gguf.GetTensor("token_embd.weight")
@@ -429,24 +436,116 @@ func tensorShapeString(info *GGUFTensorInfo) string {
 	return b.String()
 }
 
+type runtimeConfigLayout struct {
+	QRows        int
+	KVRows       int
+	AttElems     int
+	KVCacheElems int
+	RopeElems    int
+}
+
+func runtimeConfigLayoutFor(cfg *LlamaConfig) (runtimeConfigLayout, error) {
+	var layout runtimeConfigLayout
+	if cfg == nil {
+		return layout, fmt.Errorf("nil config")
+	}
+	if err := validatePositiveInt("num_layers", cfg.NumLayers); err != nil {
+		return layout, err
+	}
+	if err := validatePositiveInt("embedding_dim", cfg.EmbedDim); err != nil {
+		return layout, err
+	}
+	if err := validatePositiveInt("num_heads", cfg.NumHeads); err != nil {
+		return layout, err
+	}
+	if err := validatePositiveInt("num_kv_heads", cfg.NumKVHeads); err != nil {
+		return layout, err
+	}
+	if err := validatePositiveInt("head_dim", cfg.HeadDim); err != nil {
+		return layout, err
+	}
+	if cfg.HeadDim%2 != 0 {
+		return layout, fmt.Errorf("head_dim must be even for RoPE pairs, got %d", cfg.HeadDim)
+	}
+	if err := validatePositiveInt("vocab_size", cfg.VocabSize); err != nil {
+		return layout, err
+	}
+	if err := validatePositiveInt("seq_len", cfg.SeqLen); err != nil {
+		return layout, err
+	}
+	if err := validatePositiveInt("intermediate_size", cfg.IntermSize); err != nil {
+		return layout, err
+	}
+	if cfg.NumKVHeads > cfg.NumHeads {
+		return layout, fmt.Errorf("num_kv_heads %d > num_heads %d", cfg.NumKVHeads, cfg.NumHeads)
+	}
+	if cfg.NumHeads%cfg.NumKVHeads != 0 {
+		return layout, fmt.Errorf("num_heads %d is not divisible by num_kv_heads %d", cfg.NumHeads, cfg.NumKVHeads)
+	}
+	if !isFinitePositiveFloat32(cfg.RMSNormEps) {
+		return layout, fmt.Errorf("rms_norm_eps must be finite and positive, got %g", cfg.RMSNormEps)
+	}
+	if !isFinitePositiveFloat32(cfg.RopeTheta) {
+		return layout, fmt.Errorf("rope_theta must be finite and positive, got %g", cfg.RopeTheta)
+	}
+
+	var ok bool
+	layout.QRows, ok = checkedMulInt(cfg.NumHeads, cfg.HeadDim)
+	if !ok {
+		return layout, fmt.Errorf("attention q rows overflow: heads=%d head_dim=%d", cfg.NumHeads, cfg.HeadDim)
+	}
+	layout.KVRows, ok = checkedMulInt(cfg.NumKVHeads, cfg.HeadDim)
+	if !ok {
+		return layout, fmt.Errorf("attention kv rows overflow: kv_heads=%d head_dim=%d", cfg.NumKVHeads, cfg.HeadDim)
+	}
+	layout.AttElems, ok = checkedMulInt(cfg.NumHeads, cfg.SeqLen)
+	if !ok {
+		return layout, fmt.Errorf("attention score buffer overflow: heads=%d seq_len=%d", cfg.NumHeads, cfg.SeqLen)
+	}
+	layerSeq, ok := checkedMulInt(cfg.NumLayers, cfg.SeqLen)
+	if !ok {
+		return layout, fmt.Errorf("kv cache layer/sequence overflow: layers=%d seq_len=%d", cfg.NumLayers, cfg.SeqLen)
+	}
+	layout.KVCacheElems, ok = checkedMulInt(layerSeq, layout.KVRows)
+	if !ok {
+		return layout, fmt.Errorf("kv cache buffer overflow: layers=%d seq_len=%d kv_dim=%d",
+			cfg.NumLayers, cfg.SeqLen, layout.KVRows)
+	}
+	layout.RopeElems, ok = checkedMulInt(cfg.SeqLen, cfg.HeadDim/2)
+	if !ok {
+		return layout, fmt.Errorf("rope cache buffer overflow: seq_len=%d head_dim=%d", cfg.SeqLen, cfg.HeadDim)
+	}
+	return layout, nil
+}
+
+func validatePositiveInt(name string, value int) error {
+	if value <= 0 {
+		return fmt.Errorf("%s must be positive, got %d", name, value)
+	}
+	return nil
+}
+
+func isFinitePositiveFloat32(value float32) bool {
+	return value > 0 && !math.IsNaN(float64(value)) && !math.IsInf(float64(value), 0)
+}
+
 // allocState allocates all runtime buffers
-func allocState(cfg *LlamaConfig) LlamaState {
-	kvDim := cfg.NumKVHeads * cfg.HeadDim
+func allocState(cfg *LlamaConfig, layout runtimeConfigLayout) LlamaState {
 	return LlamaState{
 		X:          make([]float32, cfg.EmbedDim),
 		XB:         make([]float32, cfg.EmbedDim),
 		XB2:        make([]float32, cfg.EmbedDim),
 		HB:         make([]float32, cfg.IntermSize),
 		HB2:        make([]float32, cfg.IntermSize),
-		Q:          make([]float32, cfg.NumHeads*cfg.HeadDim),
-		K:          make([]float32, kvDim),
-		V:          make([]float32, kvDim),
-		Att:        make([]float32, cfg.NumHeads*cfg.SeqLen),
+		Q:          make([]float32, layout.QRows),
+		K:          make([]float32, layout.KVRows),
+		V:          make([]float32, layout.KVRows),
+		Att:        make([]float32, layout.AttElems),
 		Logits:     make([]float32, cfg.VocabSize),
-		KeyCache:   make([]float32, cfg.NumLayers*cfg.SeqLen*kvDim),
-		ValueCache: make([]float32, cfg.NumLayers*cfg.SeqLen*kvDim),
-		CosCache:   make([]float32, cfg.SeqLen*(cfg.HeadDim/2)),
-		SinCache:   make([]float32, cfg.SeqLen*(cfg.HeadDim/2)),
+		KeyCache:   make([]float32, layout.KVCacheElems),
+		ValueCache: make([]float32, layout.KVCacheElems),
+		CosCache:   make([]float32, layout.RopeElems),
+		SinCache:   make([]float32, layout.RopeElems),
 		EmbBuf:     make([]float32, cfg.EmbedDim),
 	}
 }
