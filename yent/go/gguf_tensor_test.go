@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -373,6 +374,160 @@ func TestParseMetadataRejectsMalformedTokenizerMetadata(t *testing.T) {
 	}
 }
 
+func TestParseMetadataAcceptsConsistentModelMetadata(t *testing.T) {
+	meta, err := parseMetadata(map[string]interface{}{
+		"general.architecture":                   "nlama",
+		"nlama.block_count":                      uint32(13),
+		"nlama.embedding_length":                 uint32(576),
+		"nlama.attention.head_count":             uint32(9),
+		"nlama.attention.head_count_kv":          uint32(3),
+		"nlama.feed_forward_length":              uint32(1536),
+		"nlama.context_length":                   uint32(2048),
+		"nlama.attention.layer_norm_rms_epsilon": float32(1e-5),
+		"nlama.rope.freq_base":                   float32(10000),
+		"nlama.attention.key_length":             uint32(64),
+		"nanollama.qk_norm":                      true,
+		"nanollama.rope_conjugate":               true,
+		"tokenizer.ggml.model":                   "llama",
+	})
+	if err != nil {
+		t.Fatalf("parseMetadata error = %v", err)
+	}
+	if meta.Architecture != "nlama" || meta.NumLayers != 13 || meta.EmbedDim != 576 ||
+		meta.NumHeads != 9 || meta.NumKVHeads != 3 || meta.HeadDim != 64 ||
+		meta.IntermSize != 1536 || meta.SeqLen != 2048 || meta.TokenizerModel != "llama" ||
+		!meta.QKNorm || !meta.RopeConjugate {
+		t.Fatalf("unexpected model metadata: %+v", meta)
+	}
+
+	meta, err = parseMetadata(map[string]interface{}{
+		"general.architecture":         "mistral",
+		"mistral.embedding_length":     uint32(5120),
+		"mistral.attention.head_count": uint32(32),
+		"mistral.attention.key_length": uint32(128),
+	})
+	if err != nil {
+		t.Fatalf("parseMetadata with explicit key_length error = %v", err)
+	}
+	if meta.HeadDim != 128 || meta.NumKVHeads != 32 {
+		t.Fatalf("explicit key_length metadata = %+v", meta)
+	}
+}
+
+func TestParseMetadataRejectsMalformedModelMetadata(t *testing.T) {
+	tests := []struct {
+		name string
+		kv   map[string]interface{}
+		want string
+	}{
+		{
+			name: "architecture type",
+			kv: map[string]interface{}{
+				"general.architecture": uint32(7),
+			},
+			want: "general.architecture",
+		},
+		{
+			name: "architecture empty",
+			kv: map[string]interface{}{
+				"general.architecture": " ",
+			},
+			want: "general.architecture is empty",
+		},
+		{
+			name: "dimension type",
+			kv: map[string]interface{}{
+				"llama.block_count": "13",
+			},
+			want: "llama.block_count",
+		},
+		{
+			name: "dimension zero",
+			kv: map[string]interface{}{
+				"llama.embedding_length": uint32(0),
+			},
+			want: "must be positive",
+		},
+		{
+			name: "head count negative",
+			kv: map[string]interface{}{
+				"llama.attention.head_count": int32(-1),
+			},
+			want: "llama.attention.head_count",
+		},
+		{
+			name: "kv heads exceed heads",
+			kv: map[string]interface{}{
+				"llama.embedding_length":        uint32(8),
+				"llama.attention.head_count":    uint32(2),
+				"llama.attention.head_count_kv": uint32(4),
+			},
+			want: "head_count_kv",
+		},
+		{
+			name: "kv heads do not divide heads",
+			kv: map[string]interface{}{
+				"llama.embedding_length":        uint32(12),
+				"llama.attention.head_count":    uint32(6),
+				"llama.attention.head_count_kv": uint32(4),
+			},
+			want: "not divisible",
+		},
+		{
+			name: "derived head dimension truncates",
+			kv: map[string]interface{}{
+				"llama.embedding_length":     uint32(10),
+				"llama.attention.head_count": uint32(3),
+			},
+			want: "not divisible",
+		},
+		{
+			name: "explicit head dimension zero",
+			kv: map[string]interface{}{
+				"llama.attention.key_length": uint32(0),
+			},
+			want: "llama.attention.key_length",
+		},
+		{
+			name: "rms epsilon non finite",
+			kv: map[string]interface{}{
+				"llama.attention.layer_norm_rms_epsilon": float32(math.Inf(1)),
+			},
+			want: "non-finite",
+		},
+		{
+			name: "rope theta type",
+			kv: map[string]interface{}{
+				"llama.rope.freq_base": "10000",
+			},
+			want: "llama.rope.freq_base",
+		},
+		{
+			name: "nanollama flag type",
+			kv: map[string]interface{}{
+				"nanollama.qk_norm": uint8(1),
+			},
+			want: "nanollama.qk_norm",
+		},
+		{
+			name: "tokenizer model type",
+			kv: map[string]interface{}{
+				"tokenizer.ggml.model": uint32(1),
+			},
+			want: "tokenizer.ggml.model",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := parseMetadata(tt.kv)
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("parseMetadata error = %v want containing %q", err, tt.want)
+			}
+		})
+	}
+}
+
 func TestLoadGGUFRejectsMalformedTokenizerMetadata(t *testing.T) {
 	path := writeGGUFTestFileWithMetadata(t, []ggufTestMetadata{
 		{
@@ -390,6 +545,31 @@ func TestLoadGGUFRejectsMalformedTokenizerMetadata(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "parse metadata") ||
 		!strings.Contains(err.Error(), "tokenizer.ggml.tokens[0]") {
 		t.Fatalf("LoadGGUF error = %v want malformed tokenizer metadata", err)
+	}
+}
+
+func TestLoadGGUFRejectsMalformedModelMetadata(t *testing.T) {
+	path := writeGGUFTestFileWithMetadata(t, []ggufTestMetadata{
+		{
+			key: "general.architecture",
+			writeValue: func(f *os.File) {
+				writeTestLE(t, f, uint32(ggufTypeString))
+				writeTestGGUFString(t, f, "llama")
+			},
+		},
+		{
+			key: "llama.embedding_length",
+			writeValue: func(f *os.File) {
+				writeTestLE(t, f, uint32(ggufTypeString))
+				writeTestGGUFString(t, f, "bad")
+			},
+		},
+	}, []ggufTestTensor{{name: "tok", dims: []uint64{1}, typ: ggmlTypeF32}}, 4)
+
+	_, err := LoadGGUF(path)
+	if err == nil || !strings.Contains(err.Error(), "parse metadata") ||
+		!strings.Contains(err.Error(), "llama.embedding_length") {
+		t.Fatalf("LoadGGUF error = %v want malformed model metadata", err)
 	}
 }
 

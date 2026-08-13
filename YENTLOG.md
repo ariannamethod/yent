@@ -6,6 +6,19 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-08-13 - GGUF scalar model metadata contract
+
+- Go GGUF metadata parsing now treats model scalar keys as typed contracts
+  instead of silently converting wrong types into zero/default dimensions.
+- Present architecture, dimension, head-count, rope, RMS epsilon, tokenizer
+  model, and nanollama flag keys now fail loud on malformed type or invalid
+  range while absent optional keys keep their historical defaults.
+- Derived head geometry now rejects lossy integer truncation when
+  `attention.key_length` is absent, and validates grouped-query head counts
+  before they reach allocation or attention loops.
+- Added parser-level malformed metadata cases plus a minimal GGUF fixture that
+  proves `LoadGGUF` rejects bad model metadata during `parse metadata`.
+
 ## 2026-08-13 - GGUF tokenizer metadata contract
 
 - Go GGUF metadata parsing now treats tokenizer arrays as typed contracts:
