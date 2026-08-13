@@ -26,6 +26,11 @@ const (
 	ggufMagic   = 0x46554747 // "GGUF" in LE
 	ggufVersion = 3
 
+	maxGGUFStringBytes   = 1 << 24
+	maxGGUFMetadataCount = 1 << 20
+	maxGGUFTensorCount   = 1 << 20
+	maxGGUFTensorDims    = 4
+
 	// GGUF value types
 	ggufTypeUint8   = 0
 	ggufTypeInt8    = 1
@@ -113,7 +118,7 @@ func readString(r io.Reader) (string, error) {
 	if err := binary.Read(r, binary.LittleEndian, &length); err != nil {
 		return "", err
 	}
-	if length > 1<<24 { // 16MB sanity limit
+	if length > maxGGUFStringBytes { // 16MB sanity limit
 		return "", fmt.Errorf("string too long: %d", length)
 	}
 	buf := make([]byte, length)
@@ -280,7 +285,7 @@ func tensorBytes(info *GGUFTensorInfo) (uint64, error) {
 	if info == nil {
 		return 0, fmt.Errorf("nil tensor info")
 	}
-	if info.NDims == 0 || info.NDims > 4 {
+	if info.NDims == 0 || info.NDims > maxGGUFTensorDims {
 		return 0, fmt.Errorf("invalid ndim %d", info.NDims)
 	}
 
@@ -342,6 +347,12 @@ func LoadGGUF(path string) (*GGUFFile, error) {
 	if err := binary.Read(f, binary.LittleEndian, &metadataCount); err != nil {
 		return nil, err
 	}
+	if tensorCount > maxGGUFTensorCount {
+		return nil, fmt.Errorf("tensor count too large: %d > %d", tensorCount, maxGGUFTensorCount)
+	}
+	if metadataCount > maxGGUFMetadataCount {
+		return nil, fmt.Errorf("metadata count too large: %d > %d", metadataCount, maxGGUFMetadataCount)
+	}
 
 	fmt.Printf("[tongue/gguf] version=%d tensors=%d metadata=%d\n", version, tensorCount, metadataCount)
 
@@ -372,29 +383,39 @@ func LoadGGUF(path string) (*GGUFFile, error) {
 		}
 		var ndims uint32
 		if err := binary.Read(f, binary.LittleEndian, &ndims); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("read tensor ndim %d (%s): %w", i, name, err)
+		}
+		if ndims == 0 || ndims > maxGGUFTensorDims {
+			return nil, fmt.Errorf("tensor %s invalid ndim %d", name, ndims)
 		}
 		var dims [4]uint64
 		for d := uint32(0); d < ndims; d++ {
 			if err := binary.Read(f, binary.LittleEndian, &dims[d]); err != nil {
-				return nil, err
+				return nil, fmt.Errorf("read tensor dim %d for %s: %w", d, name, err)
 			}
 		}
 		var ttype uint32
 		if err := binary.Read(f, binary.LittleEndian, &ttype); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("read tensor type %d (%s): %w", i, name, err)
 		}
 		var offset uint64
 		if err := binary.Read(f, binary.LittleEndian, &offset); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("read tensor offset %d (%s): %w", i, name, err)
 		}
-		tensors[name] = &GGUFTensorInfo{
+		if _, exists := tensors[name]; exists {
+			return nil, fmt.Errorf("duplicate tensor name: %s", name)
+		}
+		info := &GGUFTensorInfo{
 			Name:   name,
 			NDims:  ndims,
 			Dims:   dims,
 			Type:   ttype,
 			Offset: offset,
 		}
+		if _, err := tensorBytes(info); err != nil {
+			return nil, fmt.Errorf("tensor %s invalid layout: %w", name, err)
+		}
+		tensors[name] = info
 	}
 
 	// Current position = end of header/metadata/tensor_info

@@ -6,6 +6,16 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-08-13 - GGUF tensor-info parser contract
+
+- Go GGUF loading now caps absurd tensor/metadata counts before allocating
+  parser maps or entering long malformed loops.
+- Tensor-info parsing now rejects zero/over-4D tensors, duplicate tensor
+  names, unsupported tensor types, and partial blocked quant layouts during
+  `LoadGGUF` instead of deferring corruption to later access.
+- Added minimal GGUF fixture tests proving malformed tensor metadata returns
+  errors instead of panicking or overwriting earlier tensor entries.
+
 ## 2026-08-13 - GGUF tensor byte-size contract
 
 - Go GGUF tensor byte-size math now rejects nil tensor infos, zero
