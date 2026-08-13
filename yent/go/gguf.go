@@ -33,6 +33,9 @@ const (
 	maxGGUFTensorCount   = 1 << 20
 	maxGGUFTensorDims    = 4
 
+	maxInt32Value = int64(1<<31 - 1)
+	minInt32Value = int64(-1 << 31)
+
 	// GGUF value types
 	ggufTypeUint8   = 0
 	ggufTypeInt8    = 1
@@ -479,7 +482,10 @@ func LoadGGUF(path string) (*GGUFFile, error) {
 	}
 
 	// Parse metadata into structured form
-	meta := parseMetadata(kv)
+	meta, err := parseMetadata(kv)
+	if err != nil {
+		return nil, fmt.Errorf("parse metadata: %w", err)
+	}
 
 	return &GGUFFile{
 		Meta:       meta,
@@ -489,8 +495,178 @@ func LoadGGUF(path string) (*GGUFFile, error) {
 	}, nil
 }
 
+func metadataStringArray(kv map[string]interface{}, key string) ([]string, bool, error) {
+	v, ok := kv[key]
+	if !ok {
+		return nil, false, nil
+	}
+	arr, ok := v.([]interface{})
+	if !ok {
+		return nil, true, fmt.Errorf("%s is %T, want array", key, v)
+	}
+	out := make([]string, len(arr))
+	for i, item := range arr {
+		s, ok := item.(string)
+		if !ok {
+			return nil, true, fmt.Errorf("%s[%d] is %T, want string", key, i, item)
+		}
+		out[i] = s
+	}
+	return out, true, nil
+}
+
+func metadataFloat32Value(v interface{}) (float32, bool) {
+	switch x := v.(type) {
+	case float32:
+		return x, true
+	case float64:
+		return float32(x), true
+	case uint8:
+		return float32(x), true
+	case int8:
+		return float32(x), true
+	case uint16:
+		return float32(x), true
+	case int16:
+		return float32(x), true
+	case uint32:
+		return float32(x), true
+	case int32:
+		return float32(x), true
+	case uint64:
+		return float32(x), true
+	case int64:
+		return float32(x), true
+	default:
+		return 0, false
+	}
+}
+
+func metadataFloat32Array(kv map[string]interface{}, key string) ([]float32, bool, error) {
+	v, ok := kv[key]
+	if !ok {
+		return nil, false, nil
+	}
+	arr, ok := v.([]interface{})
+	if !ok {
+		return nil, true, fmt.Errorf("%s is %T, want array", key, v)
+	}
+	out := make([]float32, len(arr))
+	for i, item := range arr {
+		val, ok := metadataFloat32Value(item)
+		if !ok {
+			return nil, true, fmt.Errorf("%s[%d] is %T, want numeric", key, i, item)
+		}
+		if math.IsNaN(float64(val)) || math.IsInf(float64(val), 0) {
+			return nil, true, fmt.Errorf("%s[%d] is non-finite", key, i)
+		}
+		out[i] = val
+	}
+	return out, true, nil
+}
+
+func metadataInt32Value(v interface{}) (int32, bool) {
+	switch x := v.(type) {
+	case uint8:
+		return int32(x), true
+	case int8:
+		return int32(x), true
+	case uint16:
+		return int32(x), true
+	case int16:
+		return int32(x), true
+	case uint32:
+		if uint64(x) > uint64(maxInt32Value) {
+			return 0, false
+		}
+		return int32(x), true
+	case int32:
+		return x, true
+	case uint64:
+		if x > uint64(maxInt32Value) {
+			return 0, false
+		}
+		return int32(x), true
+	case int64:
+		if x < minInt32Value || x > maxInt32Value {
+			return 0, false
+		}
+		return int32(x), true
+	case int:
+		if int64(x) < minInt32Value || int64(x) > maxInt32Value {
+			return 0, false
+		}
+		return int32(x), true
+	default:
+		return 0, false
+	}
+}
+
+func metadataInt32Array(kv map[string]interface{}, key string) ([]int32, bool, error) {
+	v, ok := kv[key]
+	if !ok {
+		return nil, false, nil
+	}
+	arr, ok := v.([]interface{})
+	if !ok {
+		return nil, true, fmt.Errorf("%s is %T, want array", key, v)
+	}
+	out := make([]int32, len(arr))
+	for i, item := range arr {
+		val, ok := metadataInt32Value(item)
+		if !ok {
+			return nil, true, fmt.Errorf("%s[%d] is %T, want int32-compatible integer", key, i, item)
+		}
+		out[i] = val
+	}
+	return out, true, nil
+}
+
+func metadataTokenID(kv map[string]interface{}, key string) (int, bool, error) {
+	v, ok := kv[key]
+	if !ok {
+		return 0, false, nil
+	}
+	id, valid := metadataInt32Value(v)
+	if !valid {
+		return 0, true, fmt.Errorf("%s is %T, want int32-compatible integer", key, v)
+	}
+	if id < 0 {
+		return 0, true, fmt.Errorf("%s is negative: %d", key, id)
+	}
+	return int(id), true, nil
+}
+
+func validateTokenizerMetadata(meta *GGUFMetadata, hasBosID, hasEosID bool) error {
+	if meta == nil || len(meta.TokenList) == 0 {
+		return nil
+	}
+	seen := make(map[string]int, len(meta.TokenList))
+	for i, tok := range meta.TokenList {
+		if prev, ok := seen[tok]; ok {
+			return fmt.Errorf("tokenizer.ggml.tokens[%d] duplicates tokenizer.ggml.tokens[%d]", i, prev)
+		}
+		seen[tok] = i
+	}
+	if len(meta.TokenScores) > 0 && len(meta.TokenScores) != len(meta.TokenList) {
+		return fmt.Errorf("tokenizer.ggml.scores length %d != tokenizer.ggml.tokens length %d",
+			len(meta.TokenScores), len(meta.TokenList))
+	}
+	if len(meta.TokenTypes) > 0 && len(meta.TokenTypes) != len(meta.TokenList) {
+		return fmt.Errorf("tokenizer.ggml.token_type length %d != tokenizer.ggml.tokens length %d",
+			len(meta.TokenTypes), len(meta.TokenList))
+	}
+	if hasBosID && (meta.BosID < 0 || meta.BosID >= len(meta.TokenList)) {
+		return fmt.Errorf("tokenizer.ggml.bos_token_id %d out of vocab range 0..%d", meta.BosID, len(meta.TokenList)-1)
+	}
+	if hasEosID && (meta.EosID < 0 || meta.EosID >= len(meta.TokenList)) {
+		return fmt.Errorf("tokenizer.ggml.eos_token_id %d out of vocab range 0..%d", meta.EosID, len(meta.TokenList)-1)
+	}
+	return nil
+}
+
 // parseMetadata extracts model config from GGUF KV pairs
-func parseMetadata(kv map[string]interface{}) GGUFMetadata {
+func parseMetadata(kv map[string]interface{}) (GGUFMetadata, error) {
 	meta := GGUFMetadata{
 		KV:         kv,
 		RMSNormEps: 1e-5,
@@ -565,49 +741,63 @@ func parseMetadata(kv map[string]interface{}) GGUFMetadata {
 	}
 
 	// Tokenizer
-	if v, ok := kv["tokenizer.ggml.tokens"]; ok {
-		if arr, ok := v.([]interface{}); ok {
-			meta.TokenList = make([]string, len(arr))
-			for i, tok := range arr {
-				if s, ok := tok.(string); ok {
-					meta.TokenList[i] = s
-				}
-			}
-			meta.VocabSize = len(meta.TokenList)
-		}
+	hasTokens := false
+	if tokens, ok, err := metadataStringArray(kv, "tokenizer.ggml.tokens"); err != nil {
+		return meta, err
+	} else if ok {
+		hasTokens = true
+		meta.TokenList = tokens
+		meta.VocabSize = len(meta.TokenList)
 	}
-	if v, ok := kv["tokenizer.ggml.scores"]; ok {
-		if arr, ok := v.([]interface{}); ok {
-			meta.TokenScores = make([]float32, len(arr))
-			for i, s := range arr {
-				meta.TokenScores[i] = toFloat32(s)
-			}
-		}
+	hasScores := false
+	if scores, ok, err := metadataFloat32Array(kv, "tokenizer.ggml.scores"); err != nil {
+		return meta, err
+	} else if ok {
+		hasScores = true
+		meta.TokenScores = scores
 	}
-	if v, ok := kv["tokenizer.ggml.token_type"]; ok {
-		if arr, ok := v.([]interface{}); ok {
-			meta.TokenTypes = make([]int32, len(arr))
-			for i, t := range arr {
-				meta.TokenTypes[i] = int32(toInt(t))
-			}
-		}
+	hasTypes := false
+	if types, ok, err := metadataInt32Array(kv, "tokenizer.ggml.token_type"); err != nil {
+		return meta, err
+	} else if ok {
+		hasTypes = true
+		meta.TokenTypes = types
 	}
-	if v, ok := kv["tokenizer.ggml.bos_token_id"]; ok {
-		meta.BosID = toInt(v)
+	bosID, hasBosID, err := metadataTokenID(kv, "tokenizer.ggml.bos_token_id")
+	if err != nil {
+		return meta, err
 	}
-	if v, ok := kv["tokenizer.ggml.eos_token_id"]; ok {
-		meta.EosID = toInt(v)
+	if hasBosID {
+		meta.BosID = bosID
+	}
+	eosID, hasEosID, err := metadataTokenID(kv, "tokenizer.ggml.eos_token_id")
+	if err != nil {
+		return meta, err
+	}
+	if hasEosID {
+		meta.EosID = eosID
 	}
 	// BPE merges (GPT-2 style tokenizers)
-	if v, ok := kv["tokenizer.ggml.merges"]; ok {
-		if arr, ok := v.([]interface{}); ok {
-			meta.TokenMerges = make([]string, len(arr))
-			for i, m := range arr {
-				if s, ok := m.(string); ok {
-					meta.TokenMerges[i] = s
-				}
-			}
+	hasMerges := false
+	if merges, ok, err := metadataStringArray(kv, "tokenizer.ggml.merges"); err != nil {
+		return meta, err
+	} else if ok {
+		hasMerges = true
+		meta.TokenMerges = merges
+	}
+	if !hasTokens && (hasScores || hasTypes || hasMerges) {
+		return meta, fmt.Errorf("tokenizer side metadata present without tokenizer.ggml.tokens")
+	}
+	if hasTokens && len(meta.TokenList) == 0 {
+		return meta, fmt.Errorf("tokenizer.ggml.tokens is empty")
+	}
+	for i, merge := range meta.TokenMerges {
+		if strings.TrimSpace(merge) == "" {
+			return meta, fmt.Errorf("tokenizer.ggml.merges[%d] is empty", i)
 		}
+	}
+	if err := validateTokenizerMetadata(&meta, hasBosID, hasEosID); err != nil {
+		return meta, err
 	}
 
 	// Default: add space prefix (standard SentencePiece behavior)
@@ -633,7 +823,7 @@ func parseMetadata(kv map[string]interface{}) GGUFMetadata {
 		fmt.Printf("[tongue/gguf] BPE merges=%d\n", len(meta.TokenMerges))
 	}
 
-	return meta
+	return meta, nil
 }
 
 // GetTensor returns raw bytes for a named tensor

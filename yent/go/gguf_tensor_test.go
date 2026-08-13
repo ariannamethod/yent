@@ -260,6 +260,144 @@ func TestReadValueRejectsOverNestedArrays(t *testing.T) {
 	}
 }
 
+func TestParseMetadataAcceptsConsistentTokenizerMetadata(t *testing.T) {
+	meta, err := parseMetadata(map[string]interface{}{
+		"tokenizer.ggml.model":        "gpt2",
+		"tokenizer.ggml.tokens":       []interface{}{"<s>", "</s>", "hello"},
+		"tokenizer.ggml.scores":       []interface{}{float32(0.0), float32(-1.0), float32(-2.0)},
+		"tokenizer.ggml.token_type":   []interface{}{int32(3), int32(3), int32(1)},
+		"tokenizer.ggml.bos_token_id": uint32(0),
+		"tokenizer.ggml.eos_token_id": uint32(1),
+		"tokenizer.ggml.merges":       []interface{}{"h ello"},
+	})
+	if err != nil {
+		t.Fatalf("parseMetadata error = %v", err)
+	}
+	if meta.VocabSize != 3 || len(meta.TokenScores) != 3 || len(meta.TokenTypes) != 3 || len(meta.TokenMerges) != 1 {
+		t.Fatalf("unexpected tokenizer metadata: vocab=%d scores=%d types=%d merges=%d",
+			meta.VocabSize, len(meta.TokenScores), len(meta.TokenTypes), len(meta.TokenMerges))
+	}
+}
+
+func TestParseMetadataRejectsMalformedTokenizerMetadata(t *testing.T) {
+	tests := []struct {
+		name string
+		kv   map[string]interface{}
+		want string
+	}{
+		{
+			name: "token entry type",
+			kv: map[string]interface{}{
+				"tokenizer.ggml.tokens": []interface{}{"a", uint32(7)},
+			},
+			want: "tokenizer.ggml.tokens[1]",
+		},
+		{
+			name: "duplicate token",
+			kv: map[string]interface{}{
+				"tokenizer.ggml.tokens": []interface{}{"a", "a"},
+			},
+			want: "duplicates",
+		},
+		{
+			name: "score entry type",
+			kv: map[string]interface{}{
+				"tokenizer.ggml.tokens": []interface{}{"a", "b"},
+				"tokenizer.ggml.scores": []interface{}{"bad", float32(0)},
+			},
+			want: "tokenizer.ggml.scores[0]",
+		},
+		{
+			name: "score length mismatch",
+			kv: map[string]interface{}{
+				"tokenizer.ggml.tokens": []interface{}{"a", "b"},
+				"tokenizer.ggml.scores": []interface{}{float32(0)},
+			},
+			want: "tokenizer.ggml.scores length",
+		},
+		{
+			name: "token type length mismatch",
+			kv: map[string]interface{}{
+				"tokenizer.ggml.tokens":     []interface{}{"a", "b"},
+				"tokenizer.ggml.token_type": []interface{}{int32(1)},
+			},
+			want: "tokenizer.ggml.token_type length",
+		},
+		{
+			name: "side metadata without tokens",
+			kv: map[string]interface{}{
+				"tokenizer.ggml.scores": []interface{}{float32(0)},
+			},
+			want: "without tokenizer.ggml.tokens",
+		},
+		{
+			name: "empty tokens",
+			kv: map[string]interface{}{
+				"tokenizer.ggml.tokens": []interface{}{},
+			},
+			want: "tokenizer.ggml.tokens is empty",
+		},
+		{
+			name: "merge entry type",
+			kv: map[string]interface{}{
+				"tokenizer.ggml.tokens": []interface{}{"a", "b"},
+				"tokenizer.ggml.merges": []interface{}{uint32(1)},
+			},
+			want: "tokenizer.ggml.merges[0]",
+		},
+		{
+			name: "empty merge",
+			kv: map[string]interface{}{
+				"tokenizer.ggml.tokens": []interface{}{"a", "b"},
+				"tokenizer.ggml.merges": []interface{}{"   "},
+			},
+			want: "tokenizer.ggml.merges[0] is empty",
+		},
+		{
+			name: "bos out of range",
+			kv: map[string]interface{}{
+				"tokenizer.ggml.tokens":       []interface{}{"a", "b"},
+				"tokenizer.ggml.bos_token_id": uint32(7),
+			},
+			want: "tokenizer.ggml.bos_token_id",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := parseMetadata(tt.kv)
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("parseMetadata error = %v want containing %q", err, tt.want)
+			}
+		})
+	}
+}
+
+func TestLoadGGUFRejectsMalformedTokenizerMetadata(t *testing.T) {
+	path := writeGGUFTestFileWithMetadata(t, []ggufTestMetadata{
+		{
+			key: "tokenizer.ggml.tokens",
+			writeValue: func(f *os.File) {
+				writeTestLE(t, f, uint32(ggufTypeArray))
+				writeTestLE(t, f, uint32(ggufTypeUint32))
+				writeTestLE(t, f, uint64(1))
+				writeTestLE(t, f, uint32(7))
+			},
+		},
+	}, []ggufTestTensor{{name: "tok", dims: []uint64{1}, typ: ggmlTypeF32}}, 4)
+
+	_, err := LoadGGUF(path)
+	if err == nil || !strings.Contains(err.Error(), "parse metadata") ||
+		!strings.Contains(err.Error(), "tokenizer.ggml.tokens[0]") {
+		t.Fatalf("LoadGGUF error = %v want malformed tokenizer metadata", err)
+	}
+}
+
+type ggufTestMetadata struct {
+	key        string
+	writeValue func(f *os.File)
+}
+
 type ggufTestTensor struct {
 	name   string
 	ndims  uint32
@@ -269,6 +407,11 @@ type ggufTestTensor struct {
 }
 
 func writeGGUFTestFile(t *testing.T, tensors []ggufTestTensor, dataBytes int) string {
+	t.Helper()
+	return writeGGUFTestFileWithMetadata(t, nil, tensors, dataBytes)
+}
+
+func writeGGUFTestFileWithMetadata(t *testing.T, metadata []ggufTestMetadata, tensors []ggufTestTensor, dataBytes int) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "test.gguf")
 	f, err := os.Create(path)
@@ -280,7 +423,12 @@ func writeGGUFTestFile(t *testing.T, tensors []ggufTestTensor, dataBytes int) st
 	writeTestLE(t, f, uint32(ggufMagic))
 	writeTestLE(t, f, uint32(ggufVersion))
 	writeTestLE(t, f, uint64(len(tensors)))
-	writeTestLE(t, f, uint64(0))
+	writeTestLE(t, f, uint64(len(metadata)))
+
+	for _, m := range metadata {
+		writeTestGGUFString(t, f, m.key)
+		m.writeValue(f)
+	}
 
 	for _, tensor := range tensors {
 		writeTestGGUFString(t, f, tensor.name)
