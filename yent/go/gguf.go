@@ -315,6 +315,24 @@ func tensorBytes(info *GGUFTensorInfo) (uint64, error) {
 	return blocks * bs, nil
 }
 
+func validateTensorRanges(tensors map[string]*GGUFTensorInfo, dataSize uint64) error {
+	for name, info := range tensors {
+		size, err := tensorBytes(info)
+		if err != nil {
+			return fmt.Errorf("tensor %s invalid layout: %w", name, err)
+		}
+		if info.Offset > dataSize {
+			return fmt.Errorf("tensor %s out of tensor data bounds: offset %d > data size %d",
+				name, info.Offset, dataSize)
+		}
+		if size > dataSize-info.Offset {
+			return fmt.Errorf("tensor %s out of tensor data bounds: offset %d + size %d > data size %d",
+				name, info.Offset, size, dataSize)
+		}
+	}
+	return nil
+}
+
 // LoadGGUF loads a GGUF file
 func LoadGGUF(path string) (*GGUFFile, error) {
 	f, err := os.Open(path)
@@ -436,6 +454,9 @@ func LoadGGUF(path string) (*GGUFFile, error) {
 	dataSize := fileInfo.Size() - dataOffset
 	if dataSize <= 0 {
 		return nil, fmt.Errorf("no tensor data (dataOffset=%d, fileSize=%d)", dataOffset, fileInfo.Size())
+	}
+	if err := validateTensorRanges(tensors, uint64(dataSize)); err != nil {
+		return nil, err
 	}
 
 	fmt.Printf("[tongue/gguf] data offset=%d size=%.1f MB\n", dataOffset, float64(dataSize)/1024/1024)
