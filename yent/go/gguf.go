@@ -266,25 +266,48 @@ func ggmlBlockElements(t uint32) int {
 	switch t {
 	case ggmlTypeF32, ggmlTypeF16:
 		return 1
+	case ggmlTypeQ4_0, ggmlTypeQ4_1, ggmlTypeQ5_0, ggmlTypeQ8_0:
+		return 32
 	case ggmlTypeQ4_K, ggmlTypeQ6_K:
 		return 256 // k-quant super block
 	default:
-		return 32 // Q4_0, Q4_1, Q5_0, Q5_1, Q8_0
+		return 0
 	}
 }
 
 // tensorBytes returns total bytes for a tensor
-func tensorBytes(info *GGUFTensorInfo) uint64 {
+func tensorBytes(info *GGUFTensorInfo) (uint64, error) {
+	if info == nil {
+		return 0, fmt.Errorf("nil tensor info")
+	}
+	if info.NDims == 0 || info.NDims > 4 {
+		return 0, fmt.Errorf("invalid ndim %d", info.NDims)
+	}
+
 	nel := uint64(1)
 	for i := uint32(0); i < info.NDims; i++ {
+		if info.Dims[i] == 0 {
+			return 0, fmt.Errorf("zero dimension at axis %d", i)
+		}
+		if nel > ^uint64(0)/info.Dims[i] {
+			return 0, fmt.Errorf("element count overflows at axis %d (%d * %d)", i, nel, info.Dims[i])
+		}
 		nel *= info.Dims[i]
 	}
 	bs := uint64(ggmlBlockSize(info.Type))
 	be := uint64(ggmlBlockElements(info.Type))
-	if be == 0 {
-		return 0
+	if bs == 0 || be == 0 {
+		return 0, fmt.Errorf("unsupported tensor type %d", info.Type)
 	}
-	return (nel / be) * bs
+	if nel%be != 0 {
+		return 0, fmt.Errorf("tensor %s has %d elements, not whole blocks of %d for type %d",
+			info.Name, nel, be, info.Type)
+	}
+	blocks := nel / be
+	if blocks > ^uint64(0)/bs {
+		return 0, fmt.Errorf("byte size overflows for %d blocks of %d bytes", blocks, bs)
+	}
+	return blocks * bs, nil
 }
 
 // LoadGGUF loads a GGUF file
@@ -568,13 +591,20 @@ func (g *GGUFFile) GetTensor(name string) ([]byte, *GGUFTensorInfo, error) {
 	if !ok {
 		return nil, nil, fmt.Errorf("tensor not found: %s", name)
 	}
-	size := tensorBytes(info)
+	size, err := tensorBytes(info)
+	if err != nil {
+		return nil, nil, fmt.Errorf("tensor %s invalid layout: %w", name, err)
+	}
 	start := info.Offset
-	end := start + size
-	if end > uint64(len(g.TensorData)) {
+	if start > uint64(len(g.TensorData)) {
+		return nil, nil, fmt.Errorf("tensor %s out of bounds: %d > %d",
+			name, start, len(g.TensorData))
+	}
+	if size > uint64(len(g.TensorData))-start {
 		return nil, nil, fmt.Errorf("tensor %s out of bounds: %d + %d > %d",
 			name, start, size, len(g.TensorData))
 	}
+	end := start + size
 	return g.TensorData[start:end], info, nil
 }
 
@@ -591,13 +621,17 @@ func (g *GGUFFile) FindTensor(substr string) (*GGUFTensorInfo, bool) {
 // ListTensors prints all tensors (debug)
 func (g *GGUFFile) ListTensors() {
 	for name, info := range g.Tensors {
-		size := tensorBytes(info)
 		fmt.Printf("  %-50s  type=%d  dims=[", name, info.Type)
 		for d := uint32(0); d < info.NDims; d++ {
 			if d > 0 {
 				fmt.Print(", ")
 			}
 			fmt.Printf("%d", info.Dims[d])
+		}
+		size, err := tensorBytes(info)
+		if err != nil {
+			fmt.Printf("]  invalid: %v\n", err)
+			continue
 		}
 		fmt.Printf("]  %.2f MB\n", float64(size)/1024/1024)
 	}
