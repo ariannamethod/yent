@@ -6,6 +6,21 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-08-13 - GGUF tokenizer metadata contract
+
+- Go GGUF metadata parsing now treats tokenizer arrays as typed contracts:
+  tokens and merges must be strings, scores must be finite numeric values, and
+  token types must fit int32.
+- Optional tokenizer side arrays now fail loud when present but mismatched
+  against the vocab length, and duplicate vocab entries are rejected before
+  they poison `tokenToID`.
+- Tokenizer side metadata without `tokenizer.ggml.tokens`, or an explicitly
+  empty vocab array, is rejected as an incomplete tokenizer.
+- Explicit BOS/EOS metadata is now validated as an in-vocab non-negative token
+  ID; absent IDs still keep the historical defaults.
+- Added focused parser tests for valid tokenizer metadata and malformed
+  tokens/scores/types/merges/special IDs.
+
 ## 2026-08-13 - GGUF metadata array boundary
 
 - Go GGUF metadata parsing now has explicit array element and nesting limits
