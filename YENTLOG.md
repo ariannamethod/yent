@@ -6,6 +6,16 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-08-13 - GGUF tensor byte-size contract
+
+- Go GGUF tensor byte-size math now rejects nil tensor infos, zero
+  dimensions, element/byte overflow, unsupported tensor types, and partial
+  blocked quant tensors instead of truncating `(elements / block)`.
+- `GetTensor` now reports invalid tensor layouts and checks offset/size
+  arithmetic before slicing raw tensor data.
+- `ListTensors` prints invalid layout diagnostics instead of presenting
+  malformed tensors as small valid tensors.
+
 ## 2026-08-10 - notorch embedding row contract
 
 - Ported the transferable row-level lesson from fresh notorch GGUF work into
