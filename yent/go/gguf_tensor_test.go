@@ -1,6 +1,9 @@
 package yent
 
 import (
+	"encoding/binary"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -131,5 +134,164 @@ func TestGGUFGetTensorRejectsOutOfBoundsWithoutOffsetWrap(t *testing.T) {
 		if data != nil || info != nil {
 			t.Fatalf("out-of-bounds tensor %q returned data/info: data=%v info=%+v", name, data, info)
 		}
+	}
+}
+
+func TestLoadGGUFRejectsInvalidTensorInfo(t *testing.T) {
+	tests := []struct {
+		name        string
+		tensors     []ggufTestTensor
+		want        string
+		wantNoPanic bool
+	}{
+		{
+			name:        "ndims over four",
+			tensors:     []ggufTestTensor{{name: "bad.ndims", ndims: 5, dims: []uint64{1, 1, 1, 1, 1}, typ: ggmlTypeF32}},
+			want:        "invalid ndim 5",
+			wantNoPanic: true,
+		},
+		{
+			name:    "duplicate tensor",
+			tensors: []ggufTestTensor{{name: "dup", dims: []uint64{1}, typ: ggmlTypeF32}, {name: "dup", dims: []uint64{1}, typ: ggmlTypeF32}},
+			want:    "duplicate tensor name",
+		},
+		{
+			name:    "partial q4 tensor",
+			tensors: []ggufTestTensor{{name: "partial", dims: []uint64{33}, typ: ggmlTypeQ4_0}},
+			want:    "not whole blocks",
+		},
+		{
+			name:    "unsupported tensor type",
+			tensors: []ggufTestTensor{{name: "unsupported", dims: []uint64{256}, typ: ggmlTypeQ5_K}},
+			want:    "unsupported tensor type",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := writeGGUFTestFile(t, tt.tensors, 64)
+			defer func() {
+				if r := recover(); r != nil {
+					t.Fatalf("LoadGGUF panicked: %v", r)
+				}
+			}()
+			_, err := LoadGGUF(path)
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("LoadGGUF error = %v want containing %q", err, tt.want)
+			}
+		})
+	}
+}
+
+func TestLoadGGUFRejectsAbsurdHeaderCounts(t *testing.T) {
+	tests := []struct {
+		name          string
+		tensorCount   uint64
+		metadataCount uint64
+		want          string
+	}{
+		{
+			name:        "tensor count",
+			tensorCount: maxGGUFTensorCount + 1,
+			want:        "tensor count too large",
+		},
+		{
+			name:          "metadata count",
+			metadataCount: maxGGUFMetadataCount + 1,
+			want:          "metadata count too large",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := writeGGUFHeaderOnlyTestFile(t, tt.tensorCount, tt.metadataCount)
+			_, err := LoadGGUF(path)
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("LoadGGUF error = %v want containing %q", err, tt.want)
+			}
+		})
+	}
+}
+
+type ggufTestTensor struct {
+	name  string
+	ndims uint32
+	dims  []uint64
+	typ   uint32
+}
+
+func writeGGUFTestFile(t *testing.T, tensors []ggufTestTensor, dataBytes int) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "test.gguf")
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	writeTestLE(t, f, uint32(ggufMagic))
+	writeTestLE(t, f, uint32(ggufVersion))
+	writeTestLE(t, f, uint64(len(tensors)))
+	writeTestLE(t, f, uint64(0))
+
+	for _, tensor := range tensors {
+		writeTestGGUFString(t, f, tensor.name)
+		ndims := tensor.ndims
+		if ndims == 0 && len(tensor.dims) > 0 {
+			ndims = uint32(len(tensor.dims))
+		}
+		writeTestLE(t, f, ndims)
+		for _, dim := range tensor.dims {
+			writeTestLE(t, f, dim)
+		}
+		writeTestLE(t, f, tensor.typ)
+		writeTestLE(t, f, uint64(0))
+	}
+
+	if pos, err := f.Seek(0, 1); err != nil {
+		t.Fatal(err)
+	} else {
+		pad := (32 - (pos % 32)) % 32
+		if pad > 0 {
+			if _, err := f.Write(make([]byte, pad)); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	if dataBytes > 0 {
+		if _, err := f.Write(make([]byte, dataBytes)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return path
+}
+
+func writeGGUFHeaderOnlyTestFile(t *testing.T, tensorCount, metadataCount uint64) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "header.gguf")
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	writeTestLE(t, f, uint32(ggufMagic))
+	writeTestLE(t, f, uint32(ggufVersion))
+	writeTestLE(t, f, tensorCount)
+	writeTestLE(t, f, metadataCount)
+	return path
+}
+
+func writeTestGGUFString(t *testing.T, f *os.File, s string) {
+	t.Helper()
+	writeTestLE(t, f, uint64(len(s)))
+	if _, err := f.WriteString(s); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func writeTestLE(t *testing.T, f *os.File, v interface{}) {
+	t.Helper()
+	if err := binary.Write(f, binary.LittleEndian, v); err != nil {
+		t.Fatal(err)
 	}
 }
