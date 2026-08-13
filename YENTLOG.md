@@ -6,6 +6,23 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-08-13 - GGUF weight shape contract
+
+- Go model loading now validates GGUF tensor shapes against the parsed model
+  config before exposing weights to the forward path.
+- Token embeddings, LM head, norms, attention projections, MLP projections,
+  and optional attention biases now fail loud on wrong dims instead of relying
+  on later matvec/dequant access to reveal corruption.
+- Optional bias tensors remain optional only when absent; if present but
+  malformed, they now abort loading instead of being silently treated as
+  missing.
+- Quantized matrices now require each row to be a whole number of GGML blocks,
+  closing the gap where the total tensor byte size could be valid while the
+  per-row matvec stride was not.
+- Added in-memory malformed weight fixtures plus skip-by-default real GGUF
+  smoke coverage; verified against `nano_arianna_f16.gguf` and
+  `nano89-base-q4.gguf`.
+
 ## 2026-08-13 - GGUF scalar model metadata contract
 
 - Go GGUF metadata parsing now treats model scalar keys as typed contracts

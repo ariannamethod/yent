@@ -185,10 +185,24 @@ func LoadLlamaModel(gguf *GGUFFile) (*LlamaModel, error) {
 // loadWeights maps GGUF tensors to LlamaWeights
 func loadWeights(gguf *GGUFFile, cfg *LlamaConfig) (*LlamaWeights, error) {
 	w := &LlamaWeights{}
+	qRows, ok := checkedMulInt(cfg.NumHeads, cfg.HeadDim)
+	if !ok {
+		return nil, fmt.Errorf("attention q rows overflow: heads=%d head_dim=%d", cfg.NumHeads, cfg.HeadDim)
+	}
+	kvRows, ok := checkedMulInt(cfg.NumKVHeads, cfg.HeadDim)
+	if !ok {
+		return nil, fmt.Errorf("attention kv rows overflow: kv_heads=%d head_dim=%d", cfg.NumKVHeads, cfg.HeadDim)
+	}
 
 	// Token embedding
 	emb, embInfo, err := gguf.GetTensor("token_embd.weight")
 	if err != nil {
+		return nil, fmt.Errorf("token_embd.weight: %w", err)
+	}
+	if err := expectTensorMatrix(embInfo, "token_embd.weight", cfg.VocabSize, cfg.EmbedDim); err != nil {
+		return nil, fmt.Errorf("token_embd.weight: %w", err)
+	}
+	if _, _, _, _, err := embeddingRowLayout(embInfo.Type, cfg.EmbedDim); err != nil {
 		return nil, fmt.Errorf("token_embd.weight: %w", err)
 	}
 	w.TokenEmbed = emb
@@ -201,17 +215,22 @@ func loadWeights(gguf *GGUFFile, cfg *LlamaConfig) (*LlamaWeights, error) {
 	}
 
 	// Output (LM head) — might be tied to embedding
-	outData, outInfo, err := gguf.GetTensor("output.weight")
-	if err != nil {
+	var outData []byte
+	var outType uint32
+	if _, ok := gguf.Tensors["output.weight"]; !ok {
 		// Not found — use tied embeddings
 		outData = w.TokenEmbed
-		outInfo = embInfo
+		outType = embInfo.Type
 		fmt.Printf("[tongue/model] output.weight not found, using tied embeddings\n")
 	} else {
-		fmt.Printf("[tongue/model] output.weight: type=%d\n", outInfo.Type)
+		outData, outType, err = getRawMatrixTensor(gguf, "output.weight", cfg.VocabSize, cfg.EmbedDim)
+		if err != nil {
+			return nil, fmt.Errorf("output.weight: %w", err)
+		}
+		fmt.Printf("[tongue/model] output.weight: type=%d\n", outType)
 	}
 	w.Output = outData
-	w.OutputType = outInfo.Type
+	w.OutputType = outType
 
 	// Per-layer weights
 	w.Layers = make([]LlamaLayerWeights, cfg.NumLayers)
@@ -232,39 +251,51 @@ func loadWeights(gguf *GGUFFile, cfg *LlamaConfig) (*LlamaWeights, error) {
 		}
 
 		// Attention projections
-		l.WQ, l.WQType, err = getRawTensor(gguf, prefix+"attn_q.weight")
+		l.WQ, l.WQType, err = getRawMatrixTensor(gguf, prefix+"attn_q.weight", qRows, cfg.EmbedDim)
 		if err != nil {
 			return nil, fmt.Errorf("layer %d attn_q: %w", i, err)
 		}
-		l.WK, l.WKType, err = getRawTensor(gguf, prefix+"attn_k.weight")
+		l.WK, l.WKType, err = getRawMatrixTensor(gguf, prefix+"attn_k.weight", kvRows, cfg.EmbedDim)
 		if err != nil {
 			return nil, fmt.Errorf("layer %d attn_k: %w", i, err)
 		}
-		l.WV, l.WVType, err = getRawTensor(gguf, prefix+"attn_v.weight")
+		l.WV, l.WVType, err = getRawMatrixTensor(gguf, prefix+"attn_v.weight", kvRows, cfg.EmbedDim)
 		if err != nil {
 			return nil, fmt.Errorf("layer %d attn_v: %w", i, err)
 		}
-		l.WO, l.WOType, err = getRawTensor(gguf, prefix+"attn_output.weight")
+		l.WO, l.WOType, err = getRawMatrixTensor(gguf, prefix+"attn_output.weight", cfg.EmbedDim, qRows)
 		if err != nil {
 			return nil, fmt.Errorf("layer %d attn_output: %w", i, err)
 		}
 
 		// Attention biases (optional — Qwen2.5 has them, LLaMA does not)
-		l.BQ, _ = getF32TensorOptional(gguf, prefix+"attn_q.bias", cfg.NumHeads*cfg.HeadDim)
-		l.BK, _ = getF32TensorOptional(gguf, prefix+"attn_k.bias", cfg.NumKVHeads*cfg.HeadDim)
-		l.BV, _ = getF32TensorOptional(gguf, prefix+"attn_v.bias", cfg.NumKVHeads*cfg.HeadDim)
-		l.BO, _ = getF32TensorOptional(gguf, prefix+"attn_output.bias", cfg.EmbedDim)
+		l.BQ, err = getF32TensorOptional(gguf, prefix+"attn_q.bias", qRows)
+		if err != nil {
+			return nil, fmt.Errorf("layer %d attn_q.bias: %w", i, err)
+		}
+		l.BK, err = getF32TensorOptional(gguf, prefix+"attn_k.bias", kvRows)
+		if err != nil {
+			return nil, fmt.Errorf("layer %d attn_k.bias: %w", i, err)
+		}
+		l.BV, err = getF32TensorOptional(gguf, prefix+"attn_v.bias", kvRows)
+		if err != nil {
+			return nil, fmt.Errorf("layer %d attn_v.bias: %w", i, err)
+		}
+		l.BO, err = getF32TensorOptional(gguf, prefix+"attn_output.bias", cfg.EmbedDim)
+		if err != nil {
+			return nil, fmt.Errorf("layer %d attn_output.bias: %w", i, err)
+		}
 
 		// MLP projections (gated MLP / SwiGLU)
-		l.WGate, l.WGateType, err = getRawTensor(gguf, prefix+"ffn_gate.weight")
+		l.WGate, l.WGateType, err = getRawMatrixTensor(gguf, prefix+"ffn_gate.weight", cfg.IntermSize, cfg.EmbedDim)
 		if err != nil {
 			return nil, fmt.Errorf("layer %d ffn_gate: %w", i, err)
 		}
-		l.WUp, l.WUpType, err = getRawTensor(gguf, prefix+"ffn_up.weight")
+		l.WUp, l.WUpType, err = getRawMatrixTensor(gguf, prefix+"ffn_up.weight", cfg.IntermSize, cfg.EmbedDim)
 		if err != nil {
 			return nil, fmt.Errorf("layer %d ffn_up: %w", i, err)
 		}
-		l.WDown, l.WDownType, err = getRawTensor(gguf, prefix+"ffn_down.weight")
+		l.WDown, l.WDownType, err = getRawMatrixTensor(gguf, prefix+"ffn_down.weight", cfg.EmbedDim, cfg.IntermSize)
 		if err != nil {
 			return nil, fmt.Errorf("layer %d ffn_down: %w", i, err)
 		}
@@ -277,6 +308,9 @@ func loadWeights(gguf *GGUFFile, cfg *LlamaConfig) (*LlamaWeights, error) {
 func getF32Tensor(gguf *GGUFFile, name string, expectedSize int) ([]float32, error) {
 	data, info, err := gguf.GetTensor(name)
 	if err != nil {
+		return nil, err
+	}
+	if err := expectTensorVector(info, name, expectedSize); err != nil {
 		return nil, err
 	}
 
@@ -313,20 +347,86 @@ func getF32Tensor(gguf *GGUFFile, name string, expectedSize int) ([]float32, err
 
 // getF32TensorOptional loads a tensor if it exists, returns nil if not found
 func getF32TensorOptional(gguf *GGUFFile, name string, expectedSize int) ([]float32, error) {
-	_, _, err := gguf.GetTensor(name)
-	if err != nil {
-		return nil, nil // not found — not an error
+	if gguf == nil || gguf.Tensors == nil {
+		return nil, nil
+	}
+	if _, ok := gguf.Tensors[name]; !ok {
+		return nil, nil
 	}
 	return getF32Tensor(gguf, name, expectedSize)
 }
 
-// getRawTensor returns raw bytes + type for a tensor
-func getRawTensor(gguf *GGUFFile, name string) ([]byte, uint32, error) {
+// getRawMatrixTensor returns raw bytes + type for a matrix tensor with GGUF
+// dims ordered as [cols, rows].
+func getRawMatrixTensor(gguf *GGUFFile, name string, rows, cols int) ([]byte, uint32, error) {
 	data, info, err := gguf.GetTensor(name)
 	if err != nil {
 		return nil, 0, err
 	}
+	if err := expectTensorMatrix(info, name, rows, cols); err != nil {
+		return nil, 0, err
+	}
+	if !isSupportedType(info.Type) {
+		return nil, 0, fmt.Errorf("unsupported tensor type %s for %s", ggmlTypeLabel(info.Type), name)
+	}
 	return data, info.Type, nil
+}
+
+func expectTensorVector(info *GGUFTensorInfo, name string, expected int) error {
+	if info == nil {
+		return fmt.Errorf("%s has nil tensor info", name)
+	}
+	if expected <= 0 {
+		return fmt.Errorf("%s has invalid expected vector size %d", name, expected)
+	}
+	if info.NDims != 1 || info.Dims[0] != uint64(expected) {
+		return fmt.Errorf("shape mismatch: got %s want [%d]", tensorShapeString(info), expected)
+	}
+	return nil
+}
+
+func expectTensorMatrix(info *GGUFTensorInfo, name string, rows, cols int) error {
+	if info == nil {
+		return fmt.Errorf("%s has nil tensor info", name)
+	}
+	if rows <= 0 || cols <= 0 {
+		return fmt.Errorf("%s has invalid expected matrix shape rows=%d cols=%d", name, rows, cols)
+	}
+	if info.NDims != 2 || info.Dims[0] != uint64(cols) || info.Dims[1] != uint64(rows) {
+		return fmt.Errorf("shape mismatch: got %s want GGUF dims [%d,%d] for matrix [%d,%d]",
+			tensorShapeString(info), cols, rows, rows, cols)
+	}
+	blockElems := ggmlBlockElements(info.Type)
+	if blockElems <= 0 {
+		return fmt.Errorf("unsupported tensor type %s for matrix shape %s", ggmlTypeLabel(info.Type), tensorShapeString(info))
+	}
+	if cols%blockElems != 0 {
+		return fmt.Errorf("shape mismatch: %s matrix cols=%d are not whole %s row blocks of %d",
+			tensorShapeString(info), cols, ggmlTypeLabel(info.Type), blockElems)
+	}
+	return nil
+}
+
+func tensorShapeString(info *GGUFTensorInfo) string {
+	if info == nil {
+		return "<nil>"
+	}
+	var b strings.Builder
+	b.WriteByte('[')
+	for i := uint32(0); i < info.NDims && i < maxGGUFTensorDims; i++ {
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		fmt.Fprintf(&b, "%d", info.Dims[i])
+	}
+	if info.NDims > maxGGUFTensorDims {
+		if maxGGUFTensorDims > 0 {
+			b.WriteByte(',')
+		}
+		b.WriteString("...")
+	}
+	b.WriteByte(']')
+	return b.String()
 }
 
 // allocState allocates all runtime buffers
