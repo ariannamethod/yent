@@ -165,11 +165,25 @@ func TestLoadGGUFRejectsInvalidTensorInfo(t *testing.T) {
 			tensors: []ggufTestTensor{{name: "unsupported", dims: []uint64{256}, typ: ggmlTypeQ5_K}},
 			want:    "unsupported tensor type",
 		},
+		{
+			name:    "offset beyond tensor data",
+			tensors: []ggufTestTensor{{name: "past", dims: []uint64{1}, typ: ggmlTypeF32, offset: 8}},
+			want:    "offset 8 > data size 4",
+		},
+		{
+			name:    "tensor range beyond tensor data",
+			tensors: []ggufTestTensor{{name: "short", dims: []uint64{2}, typ: ggmlTypeF32, offset: 0}},
+			want:    "offset 0 + size 8 > data size 4",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			path := writeGGUFTestFile(t, tt.tensors, 64)
+			dataBytes := 64
+			if strings.Contains(tt.name, "tensor data") {
+				dataBytes = 4
+			}
+			path := writeGGUFTestFile(t, tt.tensors, dataBytes)
 			defer func() {
 				if r := recover(); r != nil {
 					t.Fatalf("LoadGGUF panicked: %v", r)
@@ -214,10 +228,11 @@ func TestLoadGGUFRejectsAbsurdHeaderCounts(t *testing.T) {
 }
 
 type ggufTestTensor struct {
-	name  string
-	ndims uint32
-	dims  []uint64
-	typ   uint32
+	name   string
+	ndims  uint32
+	dims   []uint64
+	typ    uint32
+	offset uint64
 }
 
 func writeGGUFTestFile(t *testing.T, tensors []ggufTestTensor, dataBytes int) string {
@@ -245,7 +260,7 @@ func writeGGUFTestFile(t *testing.T, tensors []ggufTestTensor, dataBytes int) st
 			writeTestLE(t, f, dim)
 		}
 		writeTestLE(t, f, tensor.typ)
-		writeTestLE(t, f, uint64(0))
+		writeTestLE(t, f, tensor.offset)
 	}
 
 	if pos, err := f.Seek(0, 1); err != nil {

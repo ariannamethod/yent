@@ -6,6 +6,14 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-08-13 - GGUF tensor data range contract
+
+- Go GGUF loading now validates every tensor's offset and computed byte size
+  against the tensor data blob before exposing a parsed model.
+- Malformed files whose tensor-info section points past the data body now fail
+  during `LoadGGUF`, not later when a specific tensor happens to be requested.
+- Added fixture coverage for both offset-past-body and size-past-body cases.
+
 ## 2026-08-13 - GGUF tensor-info parser contract
 
 - Go GGUF loading now caps absurd tensor/metadata counts before allocating
