@@ -309,6 +309,7 @@ func (r *Router) buildEscalationContext(prompt string, fast BodyResult, reason s
 	}
 	fastLabel, deepLabel := bodyPromptLabel(r.fast.Name()), bodyPromptLabel(r.deep.Name())
 	b.WriteString("[router fact]: " + fastLabel + " produced the first-pass answer; " + deepLabel + " is the escalation/final-pass body.\n")
+	b.WriteString("[route answer labels]: first-pass body = " + fastLabel + "; final-pass body = " + deepLabel + ".\n")
 	b.WriteString("[current response role]: " + deepLabel + "\n")
 	b.WriteString("[routing reason: " + reason + "]\n")
 	b.WriteString("[prompt complexity]: " + complexity.Summary() + "\n")

@@ -29,6 +29,7 @@ ARM_NAME ?= disabled or non-arm64
 
 MM      ?= clang++
 MMFLAGS ?= -O2 -Wall -Wextra -std=c++17 -I.
+DOE_SRCS = doe.c gguf.c pixtral_vision.c
 
 .PHONY: all arm-info clean blas openblas metal cuda
 
@@ -38,20 +39,20 @@ arm-info:
 	@printf 'ARM SIMD: %s\n' "$(ARM_NAME)"
 	@printf 'CFLAGS: %s\n' "$(CFLAGS)"
 
-doe_field: doe.c
-	$(CC) $(CFLAGS) $< $(LDFLAGS) -o $@
+doe_field: $(DOE_SRCS)
+	$(CC) $(CFLAGS) $(DOE_SRCS) $(LDFLAGS) -framework Accelerate -o $@
 
-blas: doe.c gguf.c
-	$(CC) $(CFLAGS) -DUSE_BLAS -DACCELERATE doe.c gguf.c $(LDFLAGS) -framework Accelerate -o doe_field
+blas: $(DOE_SRCS)
+	$(CC) $(CFLAGS) -DUSE_BLAS -DACCELERATE $(DOE_SRCS) $(LDFLAGS) -framework Accelerate -o doe_field
 
-openblas: doe.c gguf.c
-	$(CC) $(CFLAGS) -DUSE_BLAS doe.c gguf.c $(LDFLAGS) -lopenblas -o doe_field
+openblas: $(DOE_SRCS)
+	$(CC) $(CFLAGS) -DUSE_BLAS $(DOE_SRCS) $(LDFLAGS) -lopenblas -o doe_field
 
 notorch_metal.o: notorch_metal.mm notorch_metal.h
 	$(MM) $(MMFLAGS) -DUSE_METAL -fobjc-arc -c notorch_metal.mm -o notorch_metal.o
 
-metal: doe.c gguf.c notorch_metal.o notorch_metal.h
-	$(CC) $(CFLAGS) -DUSE_BLAS -DACCELERATE -DUSE_METAL doe.c gguf.c notorch_metal.o $(LDFLAGS) -framework Accelerate -framework Metal -framework Foundation -lc++ -o doe_field
+metal: $(DOE_SRCS) notorch_metal.o notorch_metal.h
+	$(CC) $(CFLAGS) -DUSE_BLAS -DACCELERATE -DUSE_METAL $(DOE_SRCS) notorch_metal.o $(LDFLAGS) -framework Accelerate -framework Metal -framework Foundation -lc++ -o doe_field
 
 cuda: doe.c
 	$(CC) $(CFLAGS) -DUSE_CUBLAS $< $(LDFLAGS) -lcublas -lcudart -o doe_field
