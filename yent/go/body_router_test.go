@@ -231,6 +231,7 @@ func TestRouterDeepContextCarriesLimphaSignals(t *testing.T) {
 	for _, want := range []string{
 		"[deep primer]",
 		"[router fact]: fast mouth produced the first-pass answer; deep cortex is the escalation/final-pass body.",
+		"[route answer labels]: first-pass body = fast mouth; final-pass body = deep cortex.",
 		"[routing reason: low_confidence]",
 		"[prompt complexity]",
 		"[field state]: temp=0.85 destiny=0.35",

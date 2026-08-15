@@ -297,8 +297,11 @@ func TestFormatDOEPromptCapsWrapperInput(t *testing.T) {
 	if strings.Index(seed, "[human prompt]:") < strings.Index(seed, "[context facts]:") {
 		t.Fatalf("human prompt should remain the final section after context: %q", seed[:min(len(seed), 220)])
 	}
-	if !strings.Contains(seed, "use [router fact] literally") {
+	if !strings.Contains(seed, "use [router fact] and [route answer labels] literally") {
 		t.Fatalf("contextual seed must preserve router fact contract: %q", seed[:min(len(seed), 220)])
+	}
+	if !strings.Contains(seed, "do not answer only \"Yent\"") {
+		t.Fatalf("contextual seed must disambiguate first-pass body answers: %q", seed[:min(len(seed), 220)])
 	}
 }
 
