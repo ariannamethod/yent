@@ -328,7 +328,9 @@ func (y *Yent) Generate(prompt string, maxTokens int, temperature, topP float32)
 		// CJK suppression: only when delta is NOT active (English-only mode)
 		if y.DeltaAlpha == 0 {
 			for tok := range y.cjkTokens {
-				y.model.State.Logits[tok] = -1e30
+				if tok >= 0 && tok < len(y.model.State.Logits) {
+					y.model.State.Logits[tok] = -1e30
+				}
 			}
 		}
 
@@ -367,11 +369,9 @@ func (y *Yent) Generate(prompt string, maxTokens int, temperature, topP float32)
 		}
 
 		// Sample next token
-		var next int
-		if topP < 1.0 {
-			next = y.sampleTopP(effectiveTemp, topP)
-		} else {
-			next = y.sampleTopK(effectiveTemp, effectiveTopK)
+		next, err := y.sampleNextToken(effectiveTemp, topP, effectiveTopK)
+		if err != nil {
+			return "", fmt.Errorf("sample token at pos %d: %w", pos, err)
 		}
 
 		recentTokens = append(recentTokens, next)
@@ -415,13 +415,64 @@ func (y *Yent) Generate(prompt string, maxTokens int, temperature, topP float32)
 	return result, nil
 }
 
+func (y *Yent) sampleNextToken(temp, topP float32, topK int) (int, error) {
+	if y.model == nil {
+		return -1, fmt.Errorf("model not initialized")
+	}
+	logits := y.model.State.Logits
+	vocab := y.model.Config.VocabSize
+	if vocab <= 0 {
+		return -1, fmt.Errorf("invalid vocab size %d", vocab)
+	}
+	if len(logits) < vocab {
+		return -1, fmt.Errorf("logit buffer too small: have=%d need=%d", len(logits), vocab)
+	}
+	if math.IsNaN(float64(temp)) || math.IsInf(float64(temp), 0) {
+		return -1, fmt.Errorf("temperature must be finite, got %g", temp)
+	}
+	if math.IsNaN(float64(topP)) || math.IsInf(float64(topP), 0) || topP <= 0 {
+		return -1, fmt.Errorf("top_p must be finite and positive, got %g", topP)
+	}
+	if _, ok := bestFiniteLogit(logits, vocab); !ok {
+		return -1, fmt.Errorf("no finite logits available for sampling")
+	}
+	if topP > 1 {
+		topP = 1
+	}
+
+	var next int
+	if topP < 1.0 {
+		next = y.sampleTopP(temp, topP)
+	} else {
+		next = y.sampleTopK(temp, topK)
+	}
+	if next < 0 || next >= vocab {
+		return -1, fmt.Errorf("sampler produced invalid token %d for vocab %d", next, vocab)
+	}
+	return next, nil
+}
+
 // sampleTopK samples from top-k logits
 func (y *Yent) sampleTopK(temp float32, topK int) int {
 	logits := y.model.State.Logits
-	vocab := y.model.Config.VocabSize
+	vocab := samplingVocab(logits, y.model.Config.VocabSize)
+	if vocab <= 0 {
+		return -1
+	}
 
-	if temp <= 0 {
-		return argmax(logits, vocab)
+	if temp <= 0 || math.IsNaN(float64(temp)) || math.IsInf(float64(temp), 0) {
+		idx, ok := bestFiniteLogit(logits, vocab)
+		if !ok {
+			return -1
+		}
+		return idx
+	}
+	if topK <= 0 {
+		idx, ok := bestFiniteLogit(logits, vocab)
+		if !ok {
+			return -1
+		}
+		return idx
 	}
 	if topK > vocab {
 		topK = vocab
@@ -438,12 +489,18 @@ func (y *Yent) sampleTopK(temp float32, topK int) int {
 	}
 
 	for i := 0; i < vocab; i++ {
+		if !isFiniteFloat32(logits[i]) {
+			continue
+		}
 		if logits[i] > top[topK-1].val {
 			top[topK-1] = idxVal{i, logits[i]}
 			for j := topK - 1; j > 0 && top[j].val > top[j-1].val; j-- {
 				top[j], top[j-1] = top[j-1], top[j]
 			}
 		}
+	}
+	if top[0].idx < 0 {
+		return -1
 	}
 
 	// Softmax over top-k
@@ -455,7 +512,14 @@ func (y *Yent) sampleTopK(temp float32, topK int) int {
 			break
 		}
 		probs[i] = float32(math.Exp(float64((top[i].val - maxVal) / temp)))
-		sum += probs[i]
+		if isFiniteFloat32(probs[i]) && probs[i] > 0 {
+			sum += probs[i]
+		} else {
+			probs[i] = 0
+		}
+	}
+	if !(sum > 0) || !isFiniteFloat32(sum) {
+		return top[0].idx
 	}
 
 	// Sample
@@ -473,30 +537,49 @@ func (y *Yent) sampleTopK(temp float32, topK int) int {
 // sampleTopP samples using nucleus (top-p) sampling
 func (y *Yent) sampleTopP(temp, topP float32) int {
 	logits := y.model.State.Logits
-	vocab := y.model.Config.VocabSize
+	vocab := samplingVocab(logits, y.model.Config.VocabSize)
+	if vocab <= 0 {
+		return -1
+	}
 
-	if temp <= 0 {
-		return argmax(logits, vocab)
+	if temp <= 0 || math.IsNaN(float64(temp)) || math.IsInf(float64(temp), 0) ||
+		math.IsNaN(float64(topP)) || math.IsInf(float64(topP), 0) || topP <= 0 {
+		idx, ok := bestFiniteLogit(logits, vocab)
+		if !ok {
+			return -1
+		}
+		return idx
+	}
+	if topP > 1 {
+		topP = 1
 	}
 
 	// Apply temperature and compute softmax
-	maxVal := logits[0]
-	for i := 1; i < vocab; i++ {
-		if logits[i] > maxVal {
-			maxVal = logits[i]
-		}
+	best, ok := bestFiniteLogit(logits, vocab)
+	if !ok {
+		return -1
 	}
+	maxVal := logits[best]
 
 	type idxProb struct {
 		idx  int
 		prob float32
 	}
-	candidates := make([]idxProb, vocab)
+	candidates := make([]idxProb, 0, vocab)
 	var sum float32
 	for i := 0; i < vocab; i++ {
+		if !isFiniteFloat32(logits[i]) {
+			continue
+		}
 		p := float32(math.Exp(float64((logits[i] - maxVal) / temp)))
-		candidates[i] = idxProb{i, p}
+		if !isFiniteFloat32(p) || p <= 0 {
+			continue
+		}
+		candidates = append(candidates, idxProb{i, p})
 		sum += p
+	}
+	if len(candidates) == 0 || !(sum > 0) || !isFiniteFloat32(sum) {
+		return best
 	}
 
 	// Normalize
@@ -529,12 +612,43 @@ func (y *Yent) sampleTopP(temp, topP float32) int {
 	return candidates[0].idx
 }
 
-func argmax(logits []float32, n int) int {
-	best := 0
-	for i := 1; i < n; i++ {
-		if logits[i] > logits[best] {
-			best = i
+func samplingVocab(logits []float32, vocab int) int {
+	if vocab <= 0 || len(logits) == 0 {
+		return 0
+	}
+	if vocab > len(logits) {
+		return len(logits)
+	}
+	return vocab
+}
+
+func isFiniteFloat32(v float32) bool {
+	return !math.IsNaN(float64(v)) && !math.IsInf(float64(v), 0)
+}
+
+func bestFiniteLogit(logits []float32, n int) (int, bool) {
+	n = samplingVocab(logits, n)
+	if n <= 0 {
+		return -1, false
+	}
+	best := -1
+	var bestVal float32
+	for i := 0; i < n; i++ {
+		if !isFiniteFloat32(logits[i]) {
+			continue
 		}
+		if best < 0 || logits[i] > bestVal {
+			best = i
+			bestVal = logits[i]
+		}
+	}
+	return best, best >= 0
+}
+
+func argmax(logits []float32, n int) int {
+	best, ok := bestFiniteLogit(logits, n)
+	if !ok {
+		return -1
 	}
 	return best
 }
