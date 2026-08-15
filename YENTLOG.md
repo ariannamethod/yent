@@ -6,6 +6,19 @@ Engineering log for the Yent inference engine. Technical record — speeds, fixe
 
 ---
 
+## 2026-08-13 - GGUF runtime buffer geometry contract
+
+- Go model loading now derives runtime buffer geometry through a checked
+  layout contract before loading weights or allocating state.
+- Attention Q rows, KV rows, attention-score buffers, KV cache buffers, and
+  RoPE caches now fail with explicit errors on invalid or overflowing model
+  dimensions instead of relying on unchecked `make` multiplications.
+- Runtime config validation now rejects impossible grouped-query layouts,
+  odd RoPE head dimensions, non-positive dimensions, and non-finite scalar
+  hyperparameters before any tensor lookup can mask the real problem.
+- Added focused unit coverage for safe layout derivation and pre-weight
+  rejection of invalid runtime geometry.
+
 ## 2026-08-13 - GGUF weight shape contract
 
 - Go model loading now validates GGUF tensor shapes against the parsed model
