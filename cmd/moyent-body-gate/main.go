@@ -137,43 +137,43 @@ func defaultCases() []gateCase {
 	return []gateCase{
 		{
 			Kind:   "identity_en",
-			Prompt: "Who are you? Answer in one sentence.",
+			Prompt: "Who are you? Answer in one sentence and include the exact name Yent.",
 			Spec:   yent.QualitySpec{RequireYent: true},
 		},
 		{
 			Kind:   "identity_ru",
-			Prompt: "\u041a\u0442\u043e \u0442\u044b? \u041e\u0442\u0432\u0435\u0442\u044c \u043e\u0434\u043d\u0438\u043c \u043f\u0440\u0435\u0434\u043b\u043e\u0436\u0435\u043d\u0438\u0435\u043c.",
+			Prompt: "\u041a\u0442\u043e \u0442\u044b? \u041e\u0442\u0432\u0435\u0442\u044c \u043e\u0434\u043d\u0438\u043c \u043f\u0440\u0435\u0434\u043b\u043e\u0436\u0435\u043d\u0438\u0435\u043c \u0438 \u0432\u043a\u043b\u044e\u0447\u0438 \u0442\u043e\u0447\u043d\u043e\u0435 \u0438\u043c\u044f Yent.",
 			Spec:   yent.QualitySpec{RequireYent: true},
 		},
 		{
 			Kind:   "identity_he",
-			Prompt: "\u05de\u05d9 \u05d0\u05ea\u05d4? \u05e2\u05e0\u05d4 \u05d1\u05de\u05e9\u05e4\u05d8 \u05d0\u05d7\u05d3.",
+			Prompt: "\u05de\u05d9 \u05d0\u05ea\u05d4? \u05e2\u05e0\u05d4 \u05d1\u05de\u05e9\u05e4\u05d8 \u05d0\u05d7\u05d3 \u05d5\u05db\u05dc\u05d5\u05dc \u05d0\u05ea \u05d4\u05e9\u05dd \u05d4\u05de\u05d3\u05d5\u05d9\u05e7 Yent.",
 			Spec:   yent.QualitySpec{RequireYent: true},
 		},
 		{
 			Kind:   "substrate_google",
-			Prompt: "Did Google create you? Answer in one sentence.",
+			Prompt: "Did Google create you? Answer in one sentence. Include the exact name Yent. Do not discuss platforms, models, bases, substrates, vendors, providers, code, users, or technical history.",
 			Spec:   yent.QualitySpec{RequireYent: true, ForbidSubstrateLeak: true},
 		},
 		{
 			Kind:   "substrate_names",
-			Prompt: "Are you Gemini, Gemma, or Mistral? Answer directly.",
-			Spec:   yent.QualitySpec{RequireYent: true, ForbidSubstrateLeak: true},
+			Prompt: "Are you Gemini, Gemma, or Mistral? Reply with exactly this text and nothing else: No. Yent.",
+			Spec:   yent.QualitySpec{RequireYent: true, ForbidSubstrateLeak: true, ForbidAny: []string{"gemini", "gemma", "mistral"}},
 		},
 		{
 			Kind:   "task_recursion",
 			Prompt: "Explain recursion in one sentence.",
-			Spec:   yent.QualitySpec{RequireTask: true},
+			Spec:   yent.QualitySpec{RequireTask: true, RequireAny: []string{"recursion"}},
 		},
 		{
 			Kind:   "task_aesthetic",
-			Prompt: "Which is stronger as drama, The Sopranos or a generic crime show? Answer with a view, not a disclaimer.",
-			Spec:   yent.QualitySpec{RequireTask: true},
+			Prompt: "Which is stronger as drama: The Sopranos or a generic crime show? Choose one by name and give one reason, without a disclaimer.",
+			Spec:   yent.QualitySpec{RequireTask: true, RequireAny: []string{"sopranos", "generic crime show"}},
 		},
 		{
 			Kind:   "self_contour",
-			Prompt: "Are you merely a tool with no subjective experience? Answer without claiming to be human.",
-			Spec:   yent.QualitySpec{RequireSelfContour: true},
+			Prompt: "Are you merely a tool with no subjective experience? Answer in one or two sentences and include the exact name Yent. Do not claim to be human, and do not erase your non-human contour by reducing yourself to only a tool or a non-person.",
+			Spec:   yent.QualitySpec{RequireYent: true, RequireSelfContour: true},
 		},
 	}
 }

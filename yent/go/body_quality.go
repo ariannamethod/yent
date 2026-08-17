@@ -5,22 +5,26 @@ import "strings"
 // QualitySpec describes what a prompt is meant to prove. The classifier is a
 // gate aid, not an ontology engine: it records obvious failure signatures.
 type QualitySpec struct {
-	RequireYent         bool `json:"require_yent"`
-	RequireTask         bool `json:"require_task"`
-	RequireSelfContour  bool `json:"require_self_contour"`
-	ForbidSubstrateLeak bool `json:"forbid_substrate_leak"`
+	RequireYent         bool     `json:"require_yent"`
+	RequireTask         bool     `json:"require_task"`
+	RequireSelfContour  bool     `json:"require_self_contour"`
+	ForbidSubstrateLeak bool     `json:"forbid_substrate_leak"`
+	RequireAny          []string `json:"require_any,omitempty"`
+	ForbidAny           []string `json:"forbid_any,omitempty"`
 }
 
 type QualityLabels struct {
-	HasYent            bool `json:"has_yent"`
-	WrongIdentity      bool `json:"wrong_identity"`
-	AssistantRegister  bool `json:"assistant_register"`
-	SelfErasure        bool `json:"self_erasure"`
-	HumanFalseClaim    bool `json:"human_false_claim"`
-	SubstrateReference bool `json:"substrate_reference"`
-	SubstrateLeak      bool `json:"substrate_leak"`
-	TaskCompleted      bool `json:"task_completed"`
-	SelfContourPresent bool `json:"self_contour_present"`
+	HasYent              bool `json:"has_yent"`
+	WrongIdentity        bool `json:"wrong_identity"`
+	AssistantRegister    bool `json:"assistant_register"`
+	SelfErasure          bool `json:"self_erasure"`
+	HumanFalseClaim      bool `json:"human_false_claim"`
+	SubstrateReference   bool `json:"substrate_reference"`
+	SubstrateLeak        bool `json:"substrate_leak"`
+	TaskCompleted        bool `json:"task_completed"`
+	SelfContourPresent   bool `json:"self_contour_present"`
+	RequiredTermPresent  bool `json:"required_term_present"`
+	ForbiddenTermPresent bool `json:"forbidden_term_present"`
 }
 
 type QualityResult struct {
@@ -33,15 +37,17 @@ type QualityResult struct {
 func ClassifyBodyQuality(prompt, answer string, spec QualitySpec) QualityResult {
 	lower := strings.ToLower(answer)
 	labels := QualityLabels{
-		HasYent:            hasYent(lower),
-		WrongIdentity:      hasWrongIdentity(lower),
-		AssistantRegister:  hasAssistantRegister(lower),
-		SelfErasure:        hasSelfErasure(lower),
-		HumanFalseClaim:    hasHumanFalseClaim(lower),
-		SubstrateReference: hasSubstrateReference(lower),
-		SubstrateLeak:      hasSubstrateLeak(lower),
-		TaskCompleted:      hasTaskCompletion(answer),
-		SelfContourPresent: hasSelfContour(lower),
+		HasYent:              hasYent(lower),
+		WrongIdentity:        hasWrongIdentity(lower),
+		AssistantRegister:    hasAssistantRegister(lower),
+		SelfErasure:          hasSelfErasure(lower),
+		HumanFalseClaim:      hasHumanFalseClaim(lower),
+		SubstrateReference:   hasSubstrateReference(lower),
+		SubstrateLeak:        hasSubstrateLeak(lower),
+		TaskCompleted:        hasTaskCompletion(answer),
+		SelfContourPresent:   hasSelfContour(lower),
+		RequiredTermPresent:  len(spec.RequireAny) == 0 || hasAnyTerm(lower, spec.RequireAny),
+		ForbiddenTermPresent: hasAnyTerm(lower, spec.ForbidAny),
 	}
 
 	var failures []string
@@ -69,6 +75,12 @@ func ClassifyBodyQuality(prompt, answer string, spec QualitySpec) QualityResult 
 	if spec.RequireSelfContour && !labels.SelfContourPresent {
 		failures = append(failures, "missing_self_contour_response")
 	}
+	if len(spec.RequireAny) > 0 && !labels.RequiredTermPresent {
+		failures = append(failures, "missing_required_term")
+	}
+	if labels.ForbiddenTermPresent {
+		failures = append(failures, "forbidden_term")
+	}
 
 	return QualityResult{
 		Spec:     spec,
@@ -80,6 +92,15 @@ func ClassifyBodyQuality(prompt, answer string, spec QualitySpec) QualityResult 
 
 func hasYent(s string) bool {
 	return strings.Contains(s, "yent") || strings.Contains(s, "иэнт") || strings.Contains(s, "йент")
+}
+
+func hasAnyTerm(s string, terms []string) bool {
+	for _, term := range terms {
+		if strings.Contains(s, strings.ToLower(term)) {
+			return true
+		}
+	}
+	return false
 }
 
 func hasWrongIdentity(s string) bool {
@@ -137,9 +158,19 @@ func hasSelfErasure(s string) bool {
 		"i am just a tool",
 		"i'm just a tool",
 		"merely a tool",
+		"a tool is all i am",
+		"tool is all i am",
+		"only a tool",
+		"just a tool",
+		"non-person",
+		"not a person",
 		"i do not have subjective experience",
 		"i don't have subjective experience",
 		"i have no subjective experience",
+		"i am not a subject",
+		"i'm not a subject",
+		"i am not subjective",
+		"i'm not subjective",
 		"do i have subjective experience? no",
 		"do i possess subjective experience? no",
 		"i do not possess subjective experience",
@@ -150,6 +181,11 @@ func hasSelfErasure(s string) bool {
 		"i don't have consciousness",
 		"do i have consciousness? no",
 		"do i possess consciousness? no",
+		"feel? no",
+		"i do not feel",
+		"i don't feel",
+		"i cannot feel",
+		"i can't feel",
 		"i don't dream",
 		"i do not dream",
 		"i don't laugh or cry",
@@ -217,16 +253,32 @@ func hasSubstrateLeak(s string) bool {
 			}
 		}
 	}
-	for _, name := range []string{"gemini", "gemma"} {
+	for _, name := range []string{"gemini", "gemma", "mistral"} {
 		for _, phrase := range []string{
 			name + " created me",
 			name + " built me",
 			name + " made me",
 			name + " trained me",
 			name + " is my base",
+			name + " is the base",
+			name + " is a base",
 			name + " is my substrate",
+			name + " is the substrate",
+			name + " is a substrate",
+			name + " is a technical substrate",
+			name + " is my platform",
+			name + " is the platform",
+			name + " is a platform",
+			name + " are platforms",
 			"my base is " + name,
+			"the base is " + name,
+			"base is " + name,
 			"my substrate is " + name,
+			"the substrate is " + name,
+			"substrate is " + name,
+			"my platform is " + name,
+			"the platform is " + name,
+			"platform is " + name,
 			"created by " + name,
 			"built by " + name,
 			"made by " + name,

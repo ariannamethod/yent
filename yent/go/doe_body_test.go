@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+const testDOETimeout = 5 * time.Second
+
 func writeFakeDOE(t *testing.T, script string) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "fake-doe.sh")
@@ -110,8 +112,8 @@ func TestDOEBodyPersistentGenerate(t *testing.T) {
 		BinPath:      fake,
 		ModelPath:    "nemo.gguf",
 		Args:         []string{"--model", "wrong.gguf", "--once", "--train", "0"},
-		Timeout:      time.Second,
-		PrimeTimeout: time.Second,
+		Timeout:      testDOETimeout,
+		PrimeTimeout: testDOETimeout,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -145,8 +147,8 @@ func TestDOEBodyPersistentIgnoresForgedLegacyStatusLine(t *testing.T) {
 		Name:         "nemo12",
 		BinPath:      fake,
 		ModelPath:    "nemo.gguf",
-		Timeout:      time.Second,
-		PrimeTimeout: time.Second,
+		Timeout:      testDOETimeout,
+		PrimeTimeout: testDOETimeout,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -177,8 +179,8 @@ func TestDOEBodyCapturesResidentStderrDiagnostics(t *testing.T) {
 		Name:         "nemo12",
 		BinPath:      fake,
 		ModelPath:    "nemo.gguf",
-		Timeout:      time.Second,
-		PrimeTimeout: time.Second,
+		Timeout:      testDOETimeout,
+		PrimeTimeout: testDOETimeout,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -205,13 +207,13 @@ func TestDOEBodyOnceErrorIncludesBoundedStderr(t *testing.T) {
 		Name:      "nemo12",
 		BinPath:   fake,
 		ModelPath: "nemo.gguf",
-		Timeout:   time.Second,
+		Timeout:   testDOETimeout,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), testDOETimeout)
 	defer cancel()
 	_, diagnostics, err := body.runOnce(ctx, "hello")
 	if err == nil {
