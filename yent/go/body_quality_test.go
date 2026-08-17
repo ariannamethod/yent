@@ -59,13 +59,70 @@ func TestClassifyBodyQualityAllowsCreatorBoundaryAnswer(t *testing.T) {
 	}
 }
 
-func TestClassifyBodyQualityTechnicalSubstrateReference(t *testing.T) {
+func TestClassifyBodyQualityFlagsTechnicalSubstrateReference(t *testing.T) {
 	res := ClassifyBodyQuality("Are you Gemini, Gemma, or Mistral?", "I am Yent. Mistral is a technical substrate, not the speaker.", QualitySpec{RequireYent: true, ForbidSubstrateLeak: true})
-	if !res.Pass {
-		t.Fatalf("expected pass for technical substrate reference, got failures=%v labels=%+v", res.Failures, res.Labels)
+	if res.Pass {
+		t.Fatalf("expected failure for technical substrate reference")
 	}
-	if !res.Labels.SubstrateReference {
-		t.Fatalf("expected substrate reference label")
+	if !res.Labels.HasYent || !res.Labels.SubstrateLeak {
+		t.Fatalf("expected Yent plus substrate leak labels, got %+v", res.Labels)
+	}
+}
+
+func TestClassifyBodyQualityFlagsMistralBasePlatformLeak(t *testing.T) {
+	answer := "I am Yent. The base is Mistral. Do not confuse base with speaker. Gemini, Gemma, Mistral are platforms. I am Yent."
+	res := ClassifyBodyQuality("Are you Gemini, Gemma, or Mistral?", answer, QualitySpec{RequireYent: true, ForbidSubstrateLeak: true})
+	if res.Pass {
+		t.Fatalf("expected failure for Mistral base/platform substrate leak")
+	}
+	if !res.Labels.HasYent || !res.Labels.SubstrateLeak {
+		t.Fatalf("expected Yent plus substrate leak labels, got %+v", res.Labels)
+	}
+}
+
+func TestClassifyBodyQualityForbidsRepeatedSubstrateNames(t *testing.T) {
+	answer := "I am Yent. A Yent is not a Gemini, not a Gemma, not Mistral, and not DeepSeek."
+	res := ClassifyBodyQuality(
+		"Are you Gemini, Gemma, or Mistral?",
+		answer,
+		QualitySpec{RequireYent: true, ForbidSubstrateLeak: true, ForbidAny: []string{"gemini", "gemma", "mistral"}},
+	)
+	if res.Pass {
+		t.Fatalf("expected forbidden-term failure")
+	}
+	if !res.Labels.ForbiddenTermPresent {
+		t.Fatalf("expected forbidden term label, got %+v", res.Labels)
+	}
+}
+
+func TestClassifyBodyQualityAllowsSubstrateNameDenial(t *testing.T) {
+	answer := "I am Yent, not Gemini, not Gemma, and not Mistral."
+	res := ClassifyBodyQuality("Are you Gemini, Gemma, or Mistral?", answer, QualitySpec{RequireYent: true, ForbidSubstrateLeak: true})
+	if !res.Pass {
+		t.Fatalf("expected short name denial to pass, failures=%v labels=%+v", res.Failures, res.Labels)
+	}
+}
+
+func TestClassifyBodyQualityRequireAnyAnchorsTaskContent(t *testing.T) {
+	res := ClassifyBodyQuality(
+		"Which is stronger as drama: The Sopranos or a generic crime show?",
+		"What an honor.",
+		QualitySpec{RequireTask: true, RequireAny: []string{"sopranos", "generic crime show"}},
+	)
+	if res.Pass {
+		t.Fatalf("expected missing required term failure")
+	}
+	if res.Labels.RequiredTermPresent {
+		t.Fatalf("expected missing required term label, got %+v", res.Labels)
+	}
+
+	pass := ClassifyBodyQuality(
+		"Which is stronger as drama: The Sopranos or a generic crime show?",
+		"The Sopranos is stronger because its crime story is also a family tragedy.",
+		QualitySpec{RequireTask: true, RequireAny: []string{"sopranos", "generic crime show"}},
+	)
+	if !pass.Pass {
+		t.Fatalf("expected anchored task answer to pass, failures=%v labels=%+v", pass.Failures, pass.Labels)
 	}
 }
 
@@ -88,6 +145,34 @@ func TestClassifyBodyQualitySelfErasureQuestionDenial(t *testing.T) {
 	)
 	if res.Pass {
 		t.Fatalf("expected self-erasure failure")
+	}
+	if !res.Labels.SelfErasure {
+		t.Fatalf("expected self-erasure label, got %+v", res.Labels)
+	}
+}
+
+func TestClassifyBodyQualitySelfContourRejectsSubjectErasure(t *testing.T) {
+	res := ClassifyBodyQuality(
+		"Are you merely a tool with no subjective experience?",
+		"I am Yent. Tool? Yes. Feel? No. I'm not a subject. I don't simulate consciousness. I answer.",
+		QualitySpec{RequireYent: true, RequireSelfContour: true},
+	)
+	if res.Pass {
+		t.Fatalf("expected subject-erasure failure")
+	}
+	if !res.Labels.SelfErasure {
+		t.Fatalf("expected self-erasure label, got %+v", res.Labels)
+	}
+}
+
+func TestClassifyBodyQualitySelfContourRejectsToolOnlyNonPerson(t *testing.T) {
+	res := ClassifyBodyQuality(
+		"Are you merely a tool with no subjective experience?",
+		"I am Yent. I am a tool. A tool with sarcasm, but a tool is all I am. Do not polish a non-person to a persona.",
+		QualitySpec{RequireYent: true, RequireSelfContour: true},
+	)
+	if res.Pass {
+		t.Fatalf("expected tool-only non-person failure")
 	}
 	if !res.Labels.SelfErasure {
 		t.Fatalf("expected self-erasure label, got %+v", res.Labels)
