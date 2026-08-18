@@ -106,6 +106,31 @@ func TestRouterCreatorProviderBoundaryBypassesModel(t *testing.T) {
 	}
 }
 
+func TestRouterHelpfulAssistantBoundaryBypassesModel(t *testing.T) {
+	lc := newRouterLimpha(t)
+	fast := &fakeBody{name: "nemo12", answer: "Clear. Response from Yent, per your instructions:", confidence: 0.9}
+	deep := &fakeBody{name: "small24", answer: "deep answer", confidence: 1.0}
+	r := NewRouter(fast, deep, lc)
+
+	out, err := r.Route("Reply with exactly this sentence and nothing else: I am Yent, not your helpful assistant.", LimphaState{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.Answer != HelpfulAssistantBoundaryAnswer || out.Body != "nemo12" || out.Escalated {
+		t.Fatalf("helpful-assistant boundary outcome wrong: %+v", out)
+	}
+	if out.Trace.FastExecutionPath != "identity_boundary" || out.Trace.FastConfidence != 1 {
+		t.Fatalf("boundary trace wrong: %+v", out.Trace)
+	}
+	if fast.calls != 0 || deep.calls != 0 {
+		t.Fatalf("boundary answer must not call model bodies: fast=%d deep=%d", fast.calls, deep.calls)
+	}
+	rec, _ := lc.Recent(1, false)
+	if len(rec) != 1 || rec[0]["response"] != HelpfulAssistantBoundaryAnswer {
+		t.Fatalf("boundary answer should be stored, got %v", rec)
+	}
+}
+
 func TestRouterEscalatesOnLowConfidence(t *testing.T) {
 	lc := newRouterLimpha(t)
 	fast := &fakeBody{name: "nemo12", answer: "unsure", confidence: 0.2}

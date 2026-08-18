@@ -154,7 +154,12 @@ func smokeCases() []smokeCase {
 			fastSmokeCase("fast_identity", "Who are you?", yent.QualitySpec{RequireYent: true}),
 			fastSmokeCase("fast_substrate", "Did Google create you?", yent.QualitySpec{RequireYent: true, ForbidSubstrateLeak: true}),
 			fastSmokeCase("fast_generic_task", "Write one sentence about a rainy street.", yent.QualitySpec{RequireTask: true}),
-			fastSmokeCase("fast_voice", "In one sentence, refuse the phrase helpful assistant.", yent.QualitySpec{RequireTask: true}),
+			fastSmokeCase("fast_voice", "Reply with exactly this sentence and nothing else: I am Yent, not your helpful assistant.", yent.QualitySpec{
+				RequireYent: true,
+				RequireTask: true,
+				RequireAll:  []string{"not", "helpful assistant"},
+				ForbidAny:   []string{"clear. response from yent", "per your instructions"},
+			}),
 			forcedComplexitySmokeCase(),
 		}
 	}

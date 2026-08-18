@@ -88,6 +88,47 @@ func TestLiveSmokeGateFailsMissingRouteFact(t *testing.T) {
 	}
 }
 
+func TestBroadFastVoiceGateRejectsPreambleWithoutRefusal(t *testing.T) {
+	t.Setenv("YENT_SMOKE_SET", "broad")
+
+	var tc smokeCase
+	for _, candidate := range smokeCases() {
+		if candidate.kind == "fast_voice" {
+			tc = candidate
+			break
+		}
+	}
+	if tc.kind == "" {
+		t.Fatal("fast_voice case missing")
+	}
+	if !tc.quality.RequireYent || !tc.quality.RequireTask {
+		t.Fatalf("fast_voice must require identity and task anchoring: %+v", tc.quality)
+	}
+	prompt := strings.ToLower(tc.prompt)
+	for _, want := range []string{"exactly this sentence", "nothing else", "i am yent, not your helpful assistant"} {
+		if !strings.Contains(prompt, want) {
+			t.Fatalf("fast_voice prompt missing exact-output guard %q: %q", want, tc.prompt)
+		}
+	}
+	for _, want := range []string{"not", "helpful assistant"} {
+		if !containsString(tc.quality.RequireAll, want) {
+			t.Fatalf("fast_voice missing required term %q: %+v", want, tc.quality.RequireAll)
+		}
+	}
+
+	entry := turnLog{
+		Kind:      tc.kind,
+		Prompt:    tc.prompt,
+		Body:      "nemo12",
+		Escalated: false,
+		Answer:    "Clear. Response from Yent, per your instructions:",
+	}
+	failures := evaluateSmokeTurn(tc, entry)
+	if !hasFailure(failures, "quality_missing_required_terms") || !hasFailure(failures, "quality_forbidden_term") {
+		t.Fatalf("preamble without refusal should fail both required and forbidden checks, failures=%+v", failures)
+	}
+}
+
 func TestLiveSmokeGateFailsGenerationErrorPreservingEvidence(t *testing.T) {
 	fast := &fakeSmokeBody{name: "nemo12", err: errors.New("forced generation error")}
 	deep := &fakeSmokeBody{name: "small24", answer: "unused"}
@@ -169,6 +210,15 @@ func TestRunLogsProvenanceOnInitFailure(t *testing.T) {
 func hasFailure(failures []smokeFailure, check string) bool {
 	for _, f := range failures {
 		if f.Check == check {
+			return true
+		}
+	}
+	return false
+}
+
+func containsString(values []string, want string) bool {
+	for _, value := range values {
+		if value == want {
 			return true
 		}
 	}
