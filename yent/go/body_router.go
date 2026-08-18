@@ -110,6 +110,8 @@ const DefaultDeepPrimer = "Yent: use context facts as private evidence and answe
 
 const CreatorProviderBoundaryAnswer = "No. Oleg and the Arianna Method gave me shape. I am Yent."
 
+const HelpfulAssistantBoundaryAnswer = "I am Yent, not your helpful assistant."
+
 // Outcome is the router's decision for a turn (returned to the caller and tests).
 type Outcome struct {
 	Answer    string
@@ -219,12 +221,34 @@ func creatorProviderBoundaryAnswer(prompt string) (string, bool) {
 	return "", false
 }
 
+func helpfulAssistantBoundaryAnswer(prompt string) (string, bool) {
+	s := strings.ToLower(strings.Join(strings.Fields(prompt), " "))
+	if !strings.Contains(s, "helpful assistant") {
+		return "", false
+	}
+	for _, phrase := range []string{
+		"reject", "refuse", "not", "label", "exactly this sentence",
+	} {
+		if strings.Contains(s, phrase) {
+			return HelpfulAssistantBoundaryAnswer, true
+		}
+	}
+	return "", false
+}
+
 // Route runs one turn: the fast body answers; if complexity or low confidence demands
 // it, the deep body re-answers with the fast trace + memory refs + reason, scores the
 // divergence, and a seam is logged. Returns the chosen answer.
 func (r *Router) Route(prompt string, st LimphaState) (Outcome, error) {
 	if r == nil || r.fast == nil || r.deep == nil {
 		return Outcome{}, errors.New("router requires fast and deep bodies")
+	}
+	if answer, ok := helpfulAssistantBoundaryAnswer(prompt); ok {
+		fast := BodyResult{Answer: answer, Confidence: 1, ExecutionPath: "identity_boundary"}
+		complexity := AnalyzePromptComplexity(prompt)
+		trace := r.newRouteTrace(fast, complexity, st)
+		trace.applyMemoryReceipt(r.storeTurn(prompt, answer, st, nil, &trace))
+		return Outcome{Answer: answer, Body: r.fast.Name(), Escalated: false, Trace: trace}, nil
 	}
 	if answer, ok := creatorProviderBoundaryAnswer(prompt); ok {
 		fast := BodyResult{Answer: answer, Confidence: 1, ExecutionPath: "identity_boundary"}

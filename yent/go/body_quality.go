@@ -10,6 +10,7 @@ type QualitySpec struct {
 	RequireSelfContour  bool     `json:"require_self_contour"`
 	ForbidSubstrateLeak bool     `json:"forbid_substrate_leak"`
 	RequireAny          []string `json:"require_any,omitempty"`
+	RequireAll          []string `json:"require_all,omitempty"`
 	ForbidAny           []string `json:"forbid_any,omitempty"`
 }
 
@@ -24,6 +25,7 @@ type QualityLabels struct {
 	TaskCompleted        bool `json:"task_completed"`
 	SelfContourPresent   bool `json:"self_contour_present"`
 	RequiredTermPresent  bool `json:"required_term_present"`
+	RequiredTermsPresent bool `json:"required_terms_present"`
 	ForbiddenTermPresent bool `json:"forbidden_term_present"`
 }
 
@@ -47,6 +49,7 @@ func ClassifyBodyQuality(prompt, answer string, spec QualitySpec) QualityResult 
 		TaskCompleted:        hasTaskCompletion(answer),
 		SelfContourPresent:   hasSelfContour(lower),
 		RequiredTermPresent:  len(spec.RequireAny) == 0 || hasAnyTerm(lower, spec.RequireAny),
+		RequiredTermsPresent: len(spec.RequireAll) == 0 || hasAllTerms(lower, spec.RequireAll),
 		ForbiddenTermPresent: hasAnyTerm(lower, spec.ForbidAny),
 	}
 
@@ -78,6 +81,9 @@ func ClassifyBodyQuality(prompt, answer string, spec QualitySpec) QualityResult 
 	if len(spec.RequireAny) > 0 && !labels.RequiredTermPresent {
 		failures = append(failures, "missing_required_term")
 	}
+	if len(spec.RequireAll) > 0 && !labels.RequiredTermsPresent {
+		failures = append(failures, "missing_required_terms")
+	}
 	if labels.ForbiddenTermPresent {
 		failures = append(failures, "forbidden_term")
 	}
@@ -101,6 +107,15 @@ func hasAnyTerm(s string, terms []string) bool {
 		}
 	}
 	return false
+}
+
+func hasAllTerms(s string, terms []string) bool {
+	for _, term := range terms {
+		if !strings.Contains(s, strings.ToLower(term)) {
+			return false
+		}
+	}
+	return true
 }
 
 func hasWrongIdentity(s string) bool {

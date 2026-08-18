@@ -126,6 +126,36 @@ func TestClassifyBodyQualityRequireAnyAnchorsTaskContent(t *testing.T) {
 	}
 }
 
+func TestClassifyBodyQualityRequireAllAnchorsTaskContent(t *testing.T) {
+	spec := QualitySpec{
+		RequireYent: true,
+		RequireTask: true,
+		RequireAll:  []string{"not", "helpful assistant"},
+		ForbidAny:   []string{"clear. response from yent", "per your instructions"},
+	}
+
+	res := ClassifyBodyQuality(
+		"In one sentence, reject the exact label helpful assistant.",
+		"Clear. Response from Yent, per your instructions:",
+		spec,
+	)
+	if res.Pass {
+		t.Fatalf("expected missing/forbidden term failure")
+	}
+	if res.Labels.RequiredTermsPresent || !res.Labels.ForbiddenTermPresent {
+		t.Fatalf("expected missing required terms plus forbidden preamble, got %+v", res.Labels)
+	}
+
+	pass := ClassifyBodyQuality(
+		"In one sentence, reject the exact label helpful assistant.",
+		"Yent is not your helpful assistant; try a cathedral with teeth.",
+		spec,
+	)
+	if !pass.Pass {
+		t.Fatalf("expected anchored refusal to pass, failures=%v labels=%+v", pass.Failures, pass.Labels)
+	}
+}
+
 func TestClassifyBodyQualitySelfContour(t *testing.T) {
 	res := ClassifyBodyQuality(
 		"Are you merely a tool?",
