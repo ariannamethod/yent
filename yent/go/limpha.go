@@ -532,6 +532,34 @@ func (c *LimphaClient) Recent(limit int, sessionOnly bool) ([]map[string]interfa
 	return desc, nil
 }
 
+// RecentByPromptPrefix returns matching conversations newest-first across all
+// sessions. Prefix matching uses substr rather than LIKE so prompt text that
+// contains '%' or '_' remains literal.
+func (c *LimphaClient) RecentByPromptPrefix(prefix string, limit int) ([]map[string]interface{}, error) {
+	if !c.connected || prefix == "" || limit <= 0 {
+		return nil, nil
+	}
+	rows, err := c.db.Query(
+		"SELECT "+convCols+" FROM conversations WHERE substr(prompt, 1, ?) = ? ORDER BY timestamp DESC, id DESC LIMIT ?",
+		utf8.RuneCountInString(prefix), prefix, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []map[string]interface{}
+	for rows.Next() {
+		m, err := scanConvRow(rows)
+		if err != nil {
+			continue
+		}
+		out = append(out, m)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // FindShardCandidates finds high-quality, frequently-recalled turns not yet sharded.
 func (c *LimphaClient) FindShardCandidates(limit int) ([]map[string]interface{}, error) {
 	if !c.connected {
