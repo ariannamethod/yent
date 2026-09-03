@@ -40,6 +40,71 @@ func TestDurationEnv(t *testing.T) {
 	}
 }
 
+func TestDockModeFromEnv(t *testing.T) {
+	tests := []struct {
+		raw     string
+		want    dockMode
+		wantErr bool
+	}{
+		{"", dockReceipt, false},
+		{"receipt", dockReceipt, false},
+		{" LIVE ", dockLive, false},
+		{"daemon", dockReceipt, true},
+	}
+	for _, tt := range tests {
+		t.Setenv("YENT_DOCK_MODE", tt.raw)
+		got, err := dockModeFromEnv()
+		if (err != nil) != tt.wantErr {
+			t.Fatalf("dockModeFromEnv(%q) error = %v, wantErr %v", tt.raw, err, tt.wantErr)
+		}
+		if got != tt.want {
+			t.Fatalf("dockModeFromEnv(%q) = %v, want %v", tt.raw, got, tt.want)
+		}
+	}
+}
+
+func TestDockLiveLifecycleHasNoSyntheticTurnOrDeadline(t *testing.T) {
+	if dockRunsSyntheticTurn(dockLive) {
+		t.Fatal("live mode must not invent a human turn")
+	}
+	ctx, cancel := dockRunContext(context.Background(), dockLive)
+	if _, ok := ctx.Deadline(); ok {
+		cancel()
+		t.Fatal("live mode must be signal-lived, not deadline-lived")
+	}
+	cancel()
+	select {
+	case <-ctx.Done():
+	case <-time.After(time.Second):
+		t.Fatal("live context did not honor cancellation")
+	}
+}
+
+func TestDockReceiptLifecyclePreservesFiniteDiagnostic(t *testing.T) {
+	if !dockRunsSyntheticTurn(dockReceipt) {
+		t.Fatal("receipt mode must preserve its diagnostic synthetic turn")
+	}
+	ctx, cancel := dockRunContext(context.Background(), dockReceipt)
+	defer cancel()
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		t.Fatal("receipt mode must retain a deadline")
+	}
+	remaining := time.Until(deadline)
+	if remaining < 7*time.Second || remaining > 9*time.Second {
+		t.Fatalf("receipt deadline = %v, want about 8s", remaining)
+	}
+
+	receipt := dockBreath(dockReceipt)
+	if receipt.Tick != 500*time.Millisecond || receipt.Silence != time.Second || receipt.DriftDebt != 0 {
+		t.Fatalf("receipt breath changed: %+v", receipt)
+	}
+	live := dockBreath(dockLive)
+	if live != innerworld.DefaultBreath() {
+		t.Fatalf("live breath = %+v, want DefaultBreath %+v", live, innerworld.DefaultBreath())
+	}
+}
+
 func TestPersistReflectionStoresConversationAndSeam(t *testing.T) {
 	lc, err := yent.NewLimphaClientAt(filepath.Join(t.TempDir(), "limpha.db"))
 	if err != nil {
