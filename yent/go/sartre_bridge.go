@@ -464,6 +464,9 @@ func sartreTraceFromSeam(seam map[string]interface{}) string {
 	if delta, _ := seam["memory_delta"].(string); delta != "" {
 		var receipt SartreReceipt
 		if err := json.Unmarshal([]byte(delta), &receipt); err == nil && receipt.Kind == SartreSeamReason {
+			if !sartreReceiptHasRecallSignal(receipt) {
+				return ""
+			}
 			return compactLine(strings.Join(receipt.Trace, " | "), 260)
 		}
 	}
@@ -474,6 +477,24 @@ func sartreTraceFromSeam(seam map[string]interface{}) string {
 		return compactLine(a, 260)
 	}
 	return ""
+}
+
+// sartreReceiptHasRecallSignal separates durable operational accounting from
+// pressure worth returning to the model. A quiet reach still belongs in the
+// SARTRE ledger, but intention/spawn/no_novelty alone is not experience to
+// rehearse in every future inner seed. Real changes, framing shifts, measured
+// context pressure, and failures remain recallable.
+func sartreReceiptHasRecallSignal(receipt SartreReceipt) bool {
+	if receipt.Changed > 0 || receipt.FramingEventCount > 0 ||
+		receipt.MaxResonance > 0 || receipt.MaxRelevance > 0 || receipt.MaxPulse > 0 {
+		return true
+	}
+	for outcome, count := range receipt.OutcomeCounts {
+		if count > 0 && outcome != "no_novelty" {
+			return true
+		}
+	}
+	return false
 }
 
 func normalizeSartreEvent(ev SartreEvent) SartreEvent {
