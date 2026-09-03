@@ -265,6 +265,54 @@ func TestLimphaRecallerLimitAndNilSafe(t *testing.T) {
 	}
 }
 
+func TestLimphaRecallerReadsNemoOnlyConversation(t *testing.T) {
+	lc, err := yent.NewLimphaClientAt(filepath.Join(t.TempDir(), "limpha.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lc.Close()
+
+	if _, err := lc.StoreTurn("[innerworld/dream] autonomous breath", "circle 0\n  nemo remembers alone", yent.LimphaState{}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := lc.StoreTurn("ordinary router turn", "must not enter inner recall", yent.LimphaState{}); err != nil {
+		t.Fatal(err)
+	}
+
+	got := (limphaRecaller{lc: lc}).Recall(3)
+	if len(got) != 1 || got[0] != "circle 0 nemo remembers alone" {
+		t.Fatalf("Nemo-only reflection was not recalled cleanly: %#v", got)
+	}
+}
+
+func TestLimphaRecallerPrefersLinkedDeepAnswer(t *testing.T) {
+	lc, err := yent.NewLimphaClientAt(filepath.Join(t.TempDir(), "limpha.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lc.Close()
+
+	conversationID, err := lc.StoreTurn("[innerworld/dream] autonomous breath", "circle stream", yent.LimphaState{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := lc.StoreSeam(yent.Seam{
+		ConversationID: conversationID,
+		BodyA:          "nemo12",
+		BodyB:          "small24",
+		AClaim:         "circle stream",
+		BClaim:         "deep answer survives",
+		Reason:         "innerworld_self_answer",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	got := (limphaRecaller{lc: lc}).Recall(1)
+	if len(got) != 1 || got[0] != "deep answer survives" {
+		t.Fatalf("linked deep answer must replace its circle stream: %#v", got)
+	}
+}
+
 func TestOpenRIFromEnv(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "runtime.lines")
 	if err := os.WriteFile(path, []byte(`packet	mode=runtime	input=ri/out/index.lines	count=3

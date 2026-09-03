@@ -148,6 +148,27 @@ func TestLimphaRecent(t *testing.T) {
 	}
 }
 
+func TestLimphaRecentByPromptPrefix(t *testing.T) {
+	c := newTestLimpha(t)
+	c.store("[innerworld/dream] first", "first reflection", LimphaState{})
+	c.store("ordinary router turn", "must stay out", LimphaState{})
+	c.store("[innerworld/dream] second", "second reflection", LimphaState{})
+
+	recent, err := c.RecentByPromptPrefix("[innerworld/", 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(recent) != 2 {
+		t.Fatalf("want 2 inner reflections, got %d: %#v", len(recent), recent)
+	}
+	if recent[0]["response"] != "second reflection" || recent[1]["response"] != "first reflection" {
+		t.Fatalf("inner reflections must be newest-first: %#v", recent)
+	}
+	if got, err := c.RecentByPromptPrefix("", 2); err != nil || got != nil {
+		t.Fatalf("blank prefix must be a nil no-op, got %#v err=%v", got, err)
+	}
+}
+
 func TestLimphaRecallBumpsAccess(t *testing.T) {
 	c := newTestLimpha(t)
 	id, _ := c.store("Hello", "World", LimphaState{})

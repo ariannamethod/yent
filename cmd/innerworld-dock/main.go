@@ -88,41 +88,71 @@ func (d doeBody) Generate(seed string, _ float32) string {
 func (d doeBody) Close() error { return d.b.Close() }
 
 // limphaRecaller is the read side of the memory loop: it recalls Yent's own past
-// inner monologues from limpha — the seams the dock persisted (Codex's write side) —
-// so new overthinking is shaped by what it thought before. Only inner reflections
-// are recalled (reason contains "innerworld"), never router turns; the deep inner
-// answer (b_claim) is preferred over the circle stream (a_claim).
+// inner monologues from the conversations every dock reflection persists, so Nemo-only
+// life remembers too. When a reflection also has a linked deep-body seam, the deep
+// answer (b_claim) is preferred over the circle stream stored in the conversation.
+// Legacy unlinked innerworld seams remain a fallback; router turns never enter.
 type limphaRecaller struct{ lc *yent.LimphaClient }
 
 func (m limphaRecaller) Recall(n int) []string {
 	if m.lc == nil || n <= 0 {
 		return nil
 	}
-	seams, err := m.lc.RecentSeams(n * 3) // over-fetch, then filter to inner seams
+	seams, err := m.lc.RecentSeams(n * 3)
 	if err != nil {
 		return nil
 	}
-	out := make([]string, 0, n)
+	deepByConversation := make(map[int64]string)
+	var legacy []string
 	for _, s := range seams {
 		if reason, _ := s["reason"].(string); !strings.Contains(reason, "innerworld") {
 			continue
 		}
 		thought := ""
 		if b, ok := s["b_claim"].(string); ok && strings.TrimSpace(b) != "" {
-			thought = b // the deep inner answer — the furthest thought of that monologue
+			thought = b
 		} else if a, ok := s["a_claim"].(string); ok {
-			thought = a // fall back to the circle stream
+			thought = a
 		}
-		thought = strings.Join(strings.Fields(thought), " ") // compact whitespace
+		if id, ok := s["conversation_id"].(int64); ok {
+			deepByConversation[id] = thought
+		} else if strings.TrimSpace(thought) != "" {
+			legacy = append(legacy, thought)
+		}
+	}
+
+	conversations, err := m.lc.RecentByPromptPrefix("[innerworld/", n*3)
+	if err != nil {
+		return nil
+	}
+	out := make([]string, 0, n)
+	appendThought := func(thought string) {
+		if len(out) >= n {
+			return
+		}
+		thought = strings.Join(strings.Fields(thought), " ")
 		if r := []rune(thought); len(r) > 240 {
-			thought = string(r[:240]) // rune-safe cap so the seed stays compact
+			thought = string(r[:240])
 		}
 		if thought != "" {
 			out = append(out, thought)
 		}
-		if len(out) >= n {
-			break
+	}
+	for _, conversation := range conversations {
+		thought := ""
+		if id, ok := conversation["id"].(int64); ok {
+			thought = deepByConversation[id]
 		}
+		if strings.TrimSpace(thought) == "" {
+			thought, _ = conversation["response"].(string)
+		}
+		appendThought(thought)
+		if len(out) >= n {
+			return out
+		}
+	}
+	for _, thought := range legacy {
+		appendThought(thought)
 	}
 	return out
 }
