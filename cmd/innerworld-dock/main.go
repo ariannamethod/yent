@@ -224,14 +224,28 @@ func dockRunContext(parent context.Context, mode dockMode) (context.Context, con
 }
 
 func dockBreath(mode dockMode) innerworld.Breath {
-	if mode == dockLive {
-		return innerworld.DefaultBreath()
+	if mode != dockLive {
+		return innerworld.Breath{
+			Tick:      500 * time.Millisecond,
+			Silence:   1 * time.Second,
+			DriftDebt: 0.0,
+		}
 	}
-	return innerworld.Breath{
-		Tick:      500 * time.Millisecond,
-		Silence:   1 * time.Second,
-		DriftDebt: 0.0,
+
+	breath := innerworld.DefaultBreath()
+	if v := durationEnv("YENT_DOCK_BREATH_TICK_SEC"); v > 0 {
+		breath.Tick = v
 	}
+	if v := durationEnv("YENT_DOCK_BREATH_SILENCE_SEC"); v > 0 {
+		breath.Silence = v
+	}
+	if v := durationEnv("YENT_DOCK_BREATH_DRIFT_COOLDOWN_SEC"); v > 0 {
+		breath.Cooldown[0] = v // drift trigger
+	}
+	if v := durationEnv("YENT_DOCK_BREATH_SILENCE_COOLDOWN_SEC"); v > 0 {
+		breath.Cooldown[1] = v // silence trigger
+	}
+	return breath
 }
 
 // scarThresholdEnv reads the prophecy-debt above which a thought scars (default 0.5):
@@ -1227,7 +1241,12 @@ func main() {
 			cancel()
 		}
 	})
-	iw.SetBreath(dockBreath(mode))
+	breath := dockBreath(mode)
+	iw.SetBreath(breath)
+	if mode == dockLive {
+		fmt.Printf("=== autonomous breath paced: tick=%s silence=%s drift_cooldown=%s silence_cooldown=%s ===\n",
+			breath.Tick, breath.Silence, breath.Cooldown[0], breath.Cooldown[1])
+	}
 
 	// When the field reaches deep autumn the organism sleeps and the FlowConsolidator
 	// runs the field's own cooc harvest. Show each stage and the cooc graph before/after.
