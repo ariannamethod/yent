@@ -24,6 +24,7 @@
 //	YENT_RI_LINES     optional compiled RI runtime packet (line protocol)
 //	YENT_SARTRE_EVENTS optional SARTRE utility JSONL receipt; stored in limpha
 //	YENT_DOCK_MAX_DREAMS optional autonomous dream cap for finite receipts
+//	YENT_DOCK_MODE     receipt (default, finite diagnostic) or live (signal-lived organism)
 package main
 
 /*
@@ -163,6 +164,44 @@ func positiveIntEnv(name string) int {
 		return 0
 	}
 	return v
+}
+
+type dockMode uint8
+
+const (
+	dockReceipt dockMode = iota
+	dockLive
+)
+
+func dockModeFromEnv() (dockMode, error) {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("YENT_DOCK_MODE"))) {
+	case "", "receipt":
+		return dockReceipt, nil
+	case "live":
+		return dockLive, nil
+	default:
+		return dockReceipt, fmt.Errorf("YENT_DOCK_MODE must be receipt or live")
+	}
+}
+
+func dockRunsSyntheticTurn(mode dockMode) bool { return mode == dockReceipt }
+
+func dockRunContext(parent context.Context, mode dockMode) (context.Context, context.CancelFunc) {
+	if mode == dockLive {
+		return context.WithCancel(parent)
+	}
+	return context.WithTimeout(parent, 8*time.Second)
+}
+
+func dockBreath(mode dockMode) innerworld.Breath {
+	if mode == dockLive {
+		return innerworld.DefaultBreath()
+	}
+	return innerworld.Breath{
+		Tick:      500 * time.Millisecond,
+		Silence:   1 * time.Second,
+		DriftDebt: 0.0,
+	}
 }
 
 // scarThresholdEnv reads the prophecy-debt above which a thought scars (default 0.5):
@@ -945,6 +984,12 @@ func main() {
 	initSartreHub()
 	defer shutdownSartreHub()
 
+	mode, err := dockModeFromEnv()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[dock] %v\n", err)
+		os.Exit(2)
+	}
+
 	bin := mustEnv("YENT_DOE_BIN")
 	fastModel := mustEnv("YENT_NEMO_GGUF")
 	deepModel := strings.TrimSpace(os.Getenv("YENT_24B_GGUF")) // optional deep body (small24)
@@ -1089,42 +1134,49 @@ func main() {
 	sigCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	fmt.Println("=== a human turn: the inner circles (real nemo body) ===")
-	var r innerworld.Reflection
-	select {
-	case r = <-iw.Think("what does it mean to exist as code?"):
-	case <-sigCtx.Done():
-		fmt.Println("  (interrupted — closing bodies)")
-		return
+	if dockRunsSyntheticTurn(mode) {
+		fmt.Println("=== a human turn: the inner circles (real nemo body) ===")
+		var r innerworld.Reflection
+		select {
+		case r = <-iw.Think("what does it mean to exist as code?"):
+		case <-sigCtx.Done():
+			fmt.Println("  (interrupted — closing bodies)")
+			return
+		}
+		for _, c := range r.Circles {
+			fmt.Printf("  circle %d  t=%.2f drift=%.2f  | %s\n", c.Index, c.Temp, c.Drift, c.Text)
+		}
+		st := C.am_get_state()
+		fmt.Printf("  field    : debt=%.3f destiny=%.3f velocity_mode=%d effective_temp=%.3f\n",
+			float32(st.debt), float32(st.destiny), int(st.velocity_mode), float32(st.effective_temp))
+		// MetaJanus self-anchor, telemetry-only: the origin (birth_drift), its growing distance
+		// (personal_dissonance), and the two-calendar faces (janus_gap, yahrzeit). Read here for
+		// observation; nothing routes, escalates, or retrieves on them — the layer stays inert.
+		fmt.Printf("  self     : birth_drift=%.4f personal_dissonance=%.4f | janus_gap=%.4f yahrzeit=%.4f | janus_temporal_alpha=%.4f\n",
+			float32(st.birth_drift), float32(st.personal_dissonance), float32(st.janus_gap), float32(st.yahrzeit), float32(st.janus_temporal_alpha))
+		printReflectionMemoryPressure("  memory   ", r.MemoryPressure)
+		fmt.Printf("  feeling  : valence=%.3f arousal=%.3f | warmth=%.3f pain=%.3f flow=%.3f tension=%.3f | scars(sea)=%d\n",
+			float32(st.valence), float32(st.arousal), float32(st.warmth), float32(st.pain),
+			float32(st.flow), float32(st.tension), int(st.n_scars))
+		fmt.Printf("  membrane : larynx coupling=%.3f\n", r.Coupling)
+		fmt.Printf("  gate     : self-answer prob=%.3f  ->  self-answered=%v\n", r.SelfAnswerProb, r.SelfAnswered)
+		if r.DeepAnswer != "" {
+			fmt.Printf("  deep     : small24 inner answer | %s\n", r.DeepAnswer)
+		} else if deepWired {
+			fmt.Println("  deep     : (gate did not fire — small24 stayed silent this turn)")
+		}
+		persistReflection(limpha, "human_turn", "what does it mean to exist as code?", r, limphaStateFromCanonical())
 	}
-	for _, c := range r.Circles {
-		fmt.Printf("  circle %d  t=%.2f drift=%.2f  | %s\n", c.Index, c.Temp, c.Drift, c.Text)
-	}
-	st := C.am_get_state()
-	fmt.Printf("  field    : debt=%.3f destiny=%.3f velocity_mode=%d effective_temp=%.3f\n",
-		float32(st.debt), float32(st.destiny), int(st.velocity_mode), float32(st.effective_temp))
-	// MetaJanus self-anchor, telemetry-only: the origin (birth_drift), its growing distance
-	// (personal_dissonance), and the two-calendar faces (janus_gap, yahrzeit). Read here for
-	// observation; nothing routes, escalates, or retrieves on them — the layer stays inert.
-	fmt.Printf("  self     : birth_drift=%.4f personal_dissonance=%.4f | janus_gap=%.4f yahrzeit=%.4f | janus_temporal_alpha=%.4f\n",
-		float32(st.birth_drift), float32(st.personal_dissonance), float32(st.janus_gap), float32(st.yahrzeit), float32(st.janus_temporal_alpha))
-	printReflectionMemoryPressure("  memory   ", r.MemoryPressure)
-	fmt.Printf("  feeling  : valence=%.3f arousal=%.3f | warmth=%.3f pain=%.3f flow=%.3f tension=%.3f | scars(sea)=%d\n",
-		float32(st.valence), float32(st.arousal), float32(st.warmth), float32(st.pain),
-		float32(st.flow), float32(st.tension), int(st.n_scars))
-	fmt.Printf("  membrane : larynx coupling=%.3f\n", r.Coupling)
-	fmt.Printf("  gate     : self-answer prob=%.3f  ->  self-answered=%v\n", r.SelfAnswerProb, r.SelfAnswered)
-	if r.DeepAnswer != "" {
-		fmt.Printf("  deep     : small24 inner answer | %s\n", r.DeepAnswer)
-	} else if deepWired {
-		fmt.Println("  deep     : (gate did not fire — small24 stayed silent this turn)")
-	}
-	persistReflection(limpha, "human_turn", "what does it mean to exist as code?", r, limphaStateFromCanonical())
 
-	fmt.Println("\n=== the organism breathes alone for a few seconds (real body) ===")
-	dreamLimit := positiveIntEnv("YENT_DOCK_MAX_DREAMS")
-	ctx, cancel := context.WithTimeout(sigCtx, 8*time.Second)
+	ctx, cancel := dockRunContext(sigCtx, mode)
 	defer cancel()
+	dreamLimit := 0
+	if mode == dockLive {
+		fmt.Println("=== live organism: no synthetic human turn; breathing until SIGINT/SIGTERM ===")
+	} else {
+		fmt.Println("\n=== the organism breathes alone for a few seconds (real body) ===")
+		dreamLimit = positiveIntEnv("YENT_DOCK_MAX_DREAMS")
+	}
 	dreams := 0
 	if dreamLimit > 0 {
 		fmt.Printf("    (YENT_DOCK_MAX_DREAMS=%d: autonomous receipt exits after that many dreams)\n", dreamLimit)
@@ -1145,11 +1197,7 @@ func main() {
 			cancel()
 		}
 	})
-	iw.SetBreath(innerworld.Breath{
-		Tick:      500 * time.Millisecond,
-		Silence:   1 * time.Second,
-		DriftDebt: 0.0, // any debt counts, so the drift dreamer is lively for the demo
-	})
+	iw.SetBreath(dockBreath(mode))
 
 	// When the field reaches deep autumn the organism sleeps and the FlowConsolidator
 	// runs the field's own cooc harvest. Show each stage and the cooc graph before/after.
