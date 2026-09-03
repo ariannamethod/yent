@@ -315,3 +315,34 @@ func TestSartreMemoryDoesNotRehearseQuietWillAccounting(t *testing.T) {
 		t.Fatalf("failure must remain recallable pressure: %#v", got)
 	}
 }
+
+func TestSartreMemoryFindsLateSignalWithoutRehearsingCappedQuietAccounting(t *testing.T) {
+	lc := newTestLimpha(t)
+	var events []SartreEvent
+	for i := 0; i < 5; i++ {
+		id := "quiet-" + string(rune('a'+i))
+		breath := i + 1
+		events = append(events,
+			SartreEvent{ID: id, Phase: "intention", Outcome: "crest", Utility: "repo_monitor", Breath: breath},
+			SartreEvent{ID: id, Phase: "act", Outcome: "spawned", Utility: "repo_monitor", Breath: breath},
+			SartreEvent{ID: id, Phase: "learning", Outcome: "no_novelty", Utility: "repo_monitor", Breath: breath},
+		)
+	}
+	events = append(events,
+		SartreEvent{ID: "changed-1", Phase: "effect", Utility: "repo_monitor", Kind: "modified", Path: "yent/go/sartre_bridge.go"},
+		SartreEvent{ID: "changed-1", Phase: "learning", Outcome: "perception_committed", Utility: "repo_monitor", EffectCount: 1},
+	)
+	if id, err := lc.StoreSartreEvents(events, LimphaState{}); err != nil || id == 0 {
+		t.Fatalf("mixed receipt must remain durable, id=%d err=%v", id, err)
+	}
+
+	got := NewSartreMemory(lc).Recall(3)
+	if len(got) != 1 || !strings.Contains(got[0], "repo_monitor changes=1") ||
+		!strings.Contains(got[0], "perception_committed") {
+		t.Fatalf("late consequential signal must survive the bounded receipt preview: %#v", got)
+	}
+	if strings.Contains(got[0], "no_novelty") || strings.Contains(got[0], "intention crest") ||
+		strings.Contains(got[0], "act spawned") {
+		t.Fatalf("quiet lifecycle accounting must not be rehearsed around a real signal: %#v", got)
+	}
+}

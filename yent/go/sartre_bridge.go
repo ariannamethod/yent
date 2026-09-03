@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -464,10 +465,7 @@ func sartreTraceFromSeam(seam map[string]interface{}) string {
 	if delta, _ := seam["memory_delta"].(string); delta != "" {
 		var receipt SartreReceipt
 		if err := json.Unmarshal([]byte(delta), &receipt); err == nil && receipt.Kind == SartreSeamReason {
-			if !sartreReceiptHasRecallSignal(receipt) {
-				return ""
-			}
-			return compactLine(strings.Join(receipt.Trace, " | "), 260)
+			return compactLine(strings.Join(sartreRecallLines(receipt), " | "), 260)
 		}
 	}
 	if b, _ := seam["b_claim"].(string); strings.TrimSpace(b) != "" {
@@ -479,22 +477,85 @@ func sartreTraceFromSeam(seam map[string]interface{}) string {
 	return ""
 }
 
-// sartreReceiptHasRecallSignal separates durable operational accounting from
-// pressure worth returning to the model. A quiet reach still belongs in the
-// SARTRE ledger, but intention/spawn/no_novelty alone is not experience to
-// rehearse in every future inner seed. Real changes, framing shifts, measured
-// context pressure, and failures remain recallable.
-func sartreReceiptHasRecallSignal(receipt SartreReceipt) bool {
-	if receipt.Changed > 0 || receipt.FramingEventCount > 0 ||
-		receipt.MaxResonance > 0 || receipt.MaxRelevance > 0 || receipt.MaxPulse > 0 {
-		return true
+// sartreRecallLines separates durable operational accounting from pressure worth
+// returning to the model. Intention and spawn are lifecycle receipts, and a
+// no_novelty learning result closes that lifecycle without becoming experience.
+// Consequential effects, framing shifts, measured context pressure, and failures
+// remain recallable. Aggregate fallbacks preserve signals that landed after the
+// receipt's bounded trace/event preview was already full.
+func sartreRecallLines(receipt SartreReceipt) []string {
+	lines := make([]string, 0, len(receipt.Events)+4)
+	seen := make(map[string]bool)
+	add := func(line string) {
+		line = strings.TrimSpace(line)
+		if line == "" || seen[line] {
+			return
+		}
+		seen[line] = true
+		lines = append(lines, line)
 	}
+
+	representedChanged := 0
+	representedFraming := 0
+	representedOutcomes := make(map[string]int)
+	var representedResonance, representedRelevance, representedPulse float64
+	for _, ev := range receipt.Events {
+		ev = normalizeSartreEvent(ev)
+		actionable := ev.Phase == "" || ev.Phase == "effect"
+		if actionable && ev.Utility == "repo_monitor" && isSartreChangeKind(ev.Kind) {
+			representedChanged++
+		}
+		if actionable && ev.Utility == "whatdotheythinkiam" && isSartreChangeKind(ev.Kind) {
+			representedFraming++
+		}
+		if ev.Phase == "learning" && ev.Outcome != "" {
+			representedOutcomes[ev.Outcome]++
+		}
+		if ev.Phase == "intention" || ev.Phase == "act" ||
+			(ev.Phase == "learning" && ev.Outcome == "no_novelty") {
+			continue
+		}
+		if ev.Resonance > representedResonance {
+			representedResonance = ev.Resonance
+		}
+		if ev.Relevance > representedRelevance {
+			representedRelevance = ev.Relevance
+		}
+		if ev.Pulse > representedPulse {
+			representedPulse = ev.Pulse
+		}
+		add(ev.Trace())
+	}
+
+	if receipt.Changed > representedChanged {
+		line := fmt.Sprintf("repo_monitor changes=%d", receipt.Changed)
+		if receipt.ReadmeChanged {
+			line += " readme_changed=true"
+		}
+		add(line)
+	}
+	if receipt.FramingEventCount > representedFraming {
+		add(fmt.Sprintf("whatdotheythinkiam framing_events=%d reduced=%d recognized=%d",
+			receipt.FramingEventCount, receipt.MaxReduced, receipt.MaxRecognized))
+	}
+
+	outcomes := make([]string, 0, len(receipt.OutcomeCounts))
 	for outcome, count := range receipt.OutcomeCounts {
-		if count > 0 && outcome != "no_novelty" {
-			return true
+		if outcome != "no_novelty" && count > representedOutcomes[outcome] {
+			outcomes = append(outcomes, outcome)
 		}
 	}
-	return false
+	sort.Strings(outcomes)
+	for _, outcome := range outcomes {
+		add(fmt.Sprintf("will learning %s count=%d", outcome, receipt.OutcomeCounts[outcome]))
+	}
+
+	if receipt.MaxResonance > representedResonance || receipt.MaxRelevance > representedRelevance ||
+		receipt.MaxPulse > representedPulse {
+		add(fmt.Sprintf("context pressure resonance=%.2f relevance=%.2f pulse=%.2f",
+			clamp01(receipt.MaxResonance), clamp01(receipt.MaxRelevance), clamp01(receipt.MaxPulse)))
+	}
+	return lines
 }
 
 func normalizeSartreEvent(ev SartreEvent) SartreEvent {
