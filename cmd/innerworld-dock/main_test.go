@@ -105,6 +105,27 @@ func TestDockReceiptLifecyclePreservesFiniteDiagnostic(t *testing.T) {
 	}
 }
 
+func TestDockLiveBreathCanBePacedForAlwaysOnLife(t *testing.T) {
+	t.Setenv("YENT_DOCK_BREATH_TICK_SEC", "15")
+	t.Setenv("YENT_DOCK_BREATH_SILENCE_SEC", "900")
+	t.Setenv("YENT_DOCK_BREATH_DRIFT_COOLDOWN_SEC", "900")
+	t.Setenv("YENT_DOCK_BREATH_SILENCE_COOLDOWN_SEC", "900")
+
+	got := dockBreath(dockLive)
+	if got.Tick != 15*time.Second || got.Silence != 15*time.Minute ||
+		got.Cooldown[0] != 15*time.Minute || got.Cooldown[1] != 15*time.Minute {
+		t.Fatalf("paced live breath = %+v", got)
+	}
+	if got.DriftDebt != innerworld.DefaultBreath().DriftDebt {
+		t.Fatalf("pacing must not rewrite field sensitivity: drift debt %.2f", got.DriftDebt)
+	}
+
+	receipt := dockBreath(dockReceipt)
+	if receipt.Tick != 500*time.Millisecond || receipt.Silence != time.Second {
+		t.Fatalf("live pacing leaked into finite receipt mode: %+v", receipt)
+	}
+}
+
 func TestPersistReflectionStoresConversationAndSeam(t *testing.T) {
 	lc, err := yent.NewLimphaClientAt(filepath.Join(t.TempDir(), "limpha.db"))
 	if err != nil {
