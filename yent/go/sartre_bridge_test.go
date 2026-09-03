@@ -289,3 +289,29 @@ func TestSartreMemoryFiltersOtherSeams(t *testing.T) {
 		t.Fatalf("SARTRE memory should return only sartre seams, got %#v", got)
 	}
 }
+
+func TestSartreMemoryDoesNotRehearseQuietWillAccounting(t *testing.T) {
+	lc := newTestLimpha(t)
+	quiet := []SartreEvent{
+		{ID: "quiet-1", Phase: "intention", Outcome: "crest", Utility: "repo_monitor"},
+		{ID: "quiet-1", Phase: "act", Outcome: "spawned", Utility: "repo_monitor"},
+		{ID: "quiet-1", Phase: "learning", Outcome: "no_novelty", Utility: "repo_monitor"},
+	}
+	if id, err := lc.StoreSartreEvents(quiet, LimphaState{}); err != nil || id == 0 {
+		t.Fatalf("quiet accounting must remain durable, id=%d err=%v", id, err)
+	}
+	if got := NewSartreMemory(lc).Recall(3); len(got) != 0 {
+		t.Fatalf("quiet no-novelty accounting must not enter the model seed: %#v", got)
+	}
+
+	failure := []SartreEvent{{
+		ID: "failed-1", Phase: "learning", Outcome: "sensor_error", Utility: "repo_monitor", Attempts: 2,
+	}}
+	if id, err := lc.StoreSartreEvents(failure, LimphaState{}); err != nil || id == 0 {
+		t.Fatalf("failure receipt must remain durable, id=%d err=%v", id, err)
+	}
+	got := NewSartreMemory(lc).Recall(3)
+	if len(got) != 1 || !strings.Contains(got[0], "sensor_error") {
+		t.Fatalf("failure must remain recallable pressure: %#v", got)
+	}
+}
