@@ -103,10 +103,11 @@ func TestDue(t *testing.T) {
 }
 
 func TestDream(t *testing.T) {
-	iw := NewInnerWorld(fakeBody{}, &fakeField{}, tempDivergence)
+	iw := NewInnerWorld(fakeBody{}, &fakeField{debt: 2.0}, tempDivergence)
 	var got Reflection
 	iw.SetOnDream(func(r Reflection) { got = r }) // dream calls OnDream synchronously
 	before := time.Now()
+	iw.lastActive = before.Add(-10 * time.Second)
 
 	r := iw.dream(trigSilence)
 	if len(r.Circles) != 3 {
@@ -115,9 +116,15 @@ func TestDream(t *testing.T) {
 	if len(got.Circles) != 3 {
 		t.Errorf("OnDream not fired with 3 circles, got %d", len(got.Circles))
 	}
-	// cooldown is measured from completion: lastFire is set after the dream runs
-	if iw.lastFire[trigSilence].Before(before) {
-		t.Errorf("lastFire not set to dream-completion time")
+	// Any autonomous speech starts the refractory for every trigger. Otherwise
+	// drift and silence can alternate into a back-to-back double dream.
+	for trig, fired := range iw.lastFire {
+		if fired.Before(before) {
+			t.Errorf("trigger %d refractory not set to dream-completion time", trig)
+		}
+	}
+	if _, ok := iw.due(time.Now()); ok {
+		t.Error("another autonomous trigger fired immediately after a completed dream")
 	}
 }
 

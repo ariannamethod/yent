@@ -88,7 +88,7 @@ type InnerWorld struct {
 	mu           sync.Mutex // guards circles, lastActive, lastFire, onDream, larynx, roll, asleep, sleepLatched
 	circles      []Circle
 	lastActive   time.Time
-	lastFire     [nTrig]time.Time
+	lastFire     [nTrig]time.Time // each trigger's refractory is measured from the last autonomous speech
 	onDream      func(Reflection)
 	roll         func() float32 // [0,1) draw for the deep-self-answer gate
 	asleep       bool           // guarded by mu: the organism is in the consolidation sleep
@@ -359,8 +359,10 @@ func (iw *InnerWorld) due(now time.Time) (int, bool) {
 }
 
 // dream runs the overthinking unprompted, on the organism's own last thought —
-// the ripple continues with no one speaking. The cooldown starts when the dream
-// completes, not when it begins. Inner only; OnDream receives a copy.
+// the ripple continues with no one speaking. When it completes, every autonomous
+// trigger enters its own configured refractory: drift and silence are different
+// reasons to speak, not two voices entitled to answer back-to-back. Inner only;
+// OnDream receives a copy.
 func (iw *InnerWorld) dream(trigger int) Reflection {
 	iw.mu.Lock()
 	seed := "I keep thinking, with no one here."
@@ -389,7 +391,10 @@ func (iw *InnerWorld) dream(trigger int) Reflection {
 
 	iw.mu.Lock()
 	iw.circles = cloneCircles(circles)
-	iw.lastFire[trigger] = time.Now() // cooldown measured from completion
+	completed := time.Now()
+	for trig := range iw.lastFire {
+		iw.lastFire[trig] = completed // one voice: any dream paces every trigger
+	}
 	onDream := iw.onDream
 	iw.mu.Unlock()
 

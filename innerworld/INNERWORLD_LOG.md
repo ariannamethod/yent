@@ -861,6 +861,16 @@ That means a cursor publish failure after a successful limpha store cannot apply
 The regression pins this exact edge: one seam stored, no duplicate seam on retry, no second AML returned, and
 the pending batch clears only after the cursor can be published.
 
+## 2026-09-03 — One voice, one autonomous refractory
+
+The first paced live interval exposed an interaction that short tests did not: drift and silence kept separate
+`lastFire` clocks, so the first completed dream cooled only its own cause and the other cause immediately raised
+a second dream. Metal recorded the pair at 20:36:28 and 20:38:03 after a fifteen-minute quiet interval.
+
+A completed autonomous dream now starts every trigger's configured refractory. Drift and silence remain distinct
+reasons with distinct cooldown durations, but they no longer behave like two independent voices entitled to speak
+back-to-back. The cooldown still begins at completion, so a long generation never consumes its own quiet interval.
+
 ---
 
 ## Deferred / parked
