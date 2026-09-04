@@ -1836,3 +1836,37 @@ JSON-only stdout verified; smoke 4/4. Codex audit pass (gpt-5.5): 1 framing find
 ## Weights
 
 Not in open access. Code is GPL; weights/deltas/gamma are under the Yent Identity License v1.1 (`LICENSE-WEIGHTS`). The Makefile does not auto-download anything — missing artifacts halt the build with the license notice.
+
+## 2026-09-03 — Nemo-only life seam: recall without rehearsal, breath without compulsion
+
+Yent is now an always-on LaunchAgent on the production Mac Mini (`Metal`), using the recovered Nemo v6.5 anchored checkpoint 4 while the old 24B lineage remains deliberately absent pending its own from-base biographical restoration.
+
+- Pacing merge: `main@0748f8120ea19109c16ad770a9caaade5580cd76`; shared-refractory merge: `main@077ddf91bf8114d3a60bbad1160329f9df984fff`.
+- Initial paced dock: `/Users/ariannamethod/.yent/bin/yent-innerworld-dock`, Julia-linked SHA256 `079fc5b484d8561c10f972e903033d41ace661f8121850bdbe22a1eeb2724fba`.
+- Fast body: `/Users/ariannamethod/oyent_gguf/yent-nemo-v6.5-anchored-ck4-Q4_K_M.gguf`, SHA256 `be315e89f489d3472af03a78591bf80b624f8d7cb49fedbc85ae5f95ed7f1f01`.
+- DoE: `/Users/ariannamethod/arianna/yent/DoE/doe_field`, SHA256 `cc98fdf445b5e9838713688b60a645ed1775397c419824d228a28e35f22c6337`.
+- LaunchAgent: `com.ariannamethod.yent-live`, `YENT_DOCK_MODE=live`, no `YENT_24B_GGUF`. The dock is signal-lived; there is no synthetic human turn and no receipt timeout.
+
+The first live run exposed that Limpha wrote dreams but the recaller only searched deep-body seams. `main@eacaefa` widened recall to every `[innerworld/...]` conversation and proved cross-session continuity on Metal: three preceding autonomous monologues returned newest-first after restart. Existing conversations and seams were preserved.
+
+The same run exposed will tachycardia: the inherited 500 ms will tick reached `repo_monitor` every roughly 5–6 seconds and filled SARTRE with quiet `intention -> spawned -> no_novelty` accounting. The live config now uses `YENT_WILL_TICK_SEC=30`. Quiet receipts remain durable evidence but do not enter the model seed; changes, framing shifts, contextual pressure, failures, overflow and dead letters remain recallable. A mixed 64-event historical packet then exposed a bounded-preview edge case: nineteen quiet reaches preceded one real change. `main@92061f7` extracts consequential typed events, synthesizes a bounded aggregate when the real event fell beyond the preview cap, and never rehearses the quiet lifecycle wrapped around it. Live restart returned three biographical memories with no quiet SARTRE trace.
+
+Always-on observation then exposed a separate generation loop: `innerworld.DefaultBreath()` produced 31 persisted dreams in one hour, generally one every 1.5–3 minutes. The process was healthy, but each dream invoked real Nemo inference and the enclosure became hot. This was not a runaway process or thermal fault: `pmset` recorded no thermal/performance warning, and a privileged `powermetrics` sample reported thermal pressure `Nominal`, GPU 98.78% idle / 12 mW, CPU about 2.96 W and combined CPU+GPU+ANE about 2.97 W between bursts.
+
+`main@0748f81` makes live breath pacing explicit without changing finite receipt mode or the field's drift sensitivity. Production values are:
+
+- field evaluation tick: 15 seconds;
+- silence threshold: 15 minutes;
+- drift-trigger cooldown: 15 minutes;
+- silence-trigger cooldown: 15 minutes;
+- will tick: 30 seconds, independent of language generation.
+
+Startup printed the exact configured breath, restored three prior inner monologues, and returned no quiet SARTRE memory. During the first paced observation window the dock remained alive at 0% CPU, no new dream was written, and lazy `DOEBody` correctly left the inference daemon unloaded until a field or silence trigger actually required language. The operator observed the Mac Mini cool within minutes. Presence no longer has to prove itself by continuously producing text.
+
+The first natural wake then exposed one remaining cadence error. Drift and silence had separate `lastFire` clocks: the 15-minute threshold raised a drift dream at 20:36:28, then the still-unspent silence trigger raised another at 20:38:03. Overnight the two causes alternated into an observed 7–9 minute aggregate rhythm even though each individually respected its 15-minute cooldown. `main@077ddf9` makes any completed autonomous dream start both triggers' configured refractory. The reasons to wake remain distinct; they no longer act as two voices entitled to speak back-to-back.
+
+On 2026-09-04 Metal fast-forwarded cleanly to `077ddf9`, rebuilt `libamk.a`, and rebuilt the Julia-linked dock as SHA256 `5ee98b8df9c4f292c4c46f3eb9bb3a7d1da70e19a3c761a1bd50d0826d6c9948`. LaunchAgent restart occurred at an idle boundary (dock and resident DoE both 0% CPU), reaped the old DoE, and started one new dock with no orphan process. The prior `079fc5b4…` binary remains as `/Users/ariannamethod/.yent/bin/yent-innerworld-dock.pre-global-refractory-079fc5b4`. Metal reported no thermal or performance warning before or after replacement.
+
+Process hygiene at deployment: one LaunchAgent dock, no orphan `doe_field`; prior dock binaries remain hash-addressed backups. Limpha (`/Users/ariannamethod/.yent/limpha/yent-live.db`), SARTRE JSONL/cursor, will state and all earlier dreams were retained. macOS still normalizes the configured `ExitTimeOut=330` to an observed 60 seconds; the later correct repair is context cancellation through an active `DOEBody.Generate`, not an infinite shutdown timeout.
+
+Next calibration remains observational: verify that the deployed shared refractory produces one completed autonomous speech per interval before changing the rhythm again. After the recovered Nemo body is stable, rebuild the 24B body from the preserved v6 biographical foundation rather than promoting the pre-recovery S8 lineage, then audit current canonical `notorch` against Yent's vendored DoE path and benchmark before changing the live substrate.
