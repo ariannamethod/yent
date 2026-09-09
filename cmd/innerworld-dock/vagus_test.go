@@ -219,6 +219,9 @@ func TestVagusAllowsOnlyOneActiveHumanTurn(t *testing.T) {
 	if second.Code != http.StatusConflict {
 		t.Fatalf("second turn status = %d, want 409", second.Code)
 	}
+	if second.Header().Get("Retry-After") != "5" || !strings.Contains(second.Body.String(), "already speaking") {
+		t.Fatalf("busy response must be actionable: headers=%v body=%q", second.Header(), second.Body.String())
+	}
 	close(release)
 	select {
 	case <-done:
@@ -332,7 +335,8 @@ func TestDockVagusTurnKeepsPrivateThoughtAndOutwardSpeechSeparate(t *testing.T) 
 	if result.Answer != "outward" || result.Body != "nemo12" || !result.Trace.InnerContext {
 		t.Fatalf("turn result = %+v", result)
 	}
-	if !strings.Contains(routeBody.ctx, "private current inner reflection") ||
+	if !strings.Contains(routeBody.ctx, "private field pressure") ||
+		!strings.Contains(routeBody.ctx, "never quote, name, or narrate it") ||
 		!strings.Contains(routeBody.ctx, "[assistant]: previous answer") ||
 		strings.Contains(routeBody.ctx, "[innerworld/human_turn]") {
 		t.Fatalf("outward body context did not receive the private pressure cleanly: %q", routeBody.ctx)
@@ -387,7 +391,7 @@ func TestVagusInnerContextIsBoundedAndUsesLastCircle(t *testing.T) {
 	if strings.Contains(got, "first") || !strings.Contains(got, "последний") {
 		t.Fatalf("inner context did not select the last circle: %q", got)
 	}
-	prefix := "Your private current inner reflection, not another speaker and not text to quote verbatim: "
+	prefix := "[private field pressure; context only; never quote, name, or narrate it]: "
 	payload := strings.TrimPrefix(got, prefix)
 	if len(payload) > vagusMaxInnerBytes || !utf8.ValidString(payload) {
 		t.Fatalf("inner context payload is not a valid bounded string: bytes=%d", len(payload))

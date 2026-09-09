@@ -101,6 +101,15 @@ func TestRouterFastOnlyBodyIsACompleteIntentionalRoute(t *testing.T) {
 	}
 }
 
+func TestDefaultFastPrimerProtectsDirectLanguageMatchedSpeech(t *testing.T) {
+	primer := strings.ToLower(DefaultFastPrimer)
+	for _, want := range []string{"language they used", "human asks", "directly", "internal machinery private"} {
+		if !strings.Contains(primer, want) {
+			t.Fatalf("default fast primer lost %q: %s", want, DefaultFastPrimer)
+		}
+	}
+}
+
 func TestRouterFastOnlyNormalizesTypedNilDeepBody(t *testing.T) {
 	lc := newRouterLimpha(t)
 	fast := &fakeBody{name: "nemo12", answer: "still here", confidence: 0.1}
@@ -315,7 +324,8 @@ func TestRouterSendsPrimerToFastBody(t *testing.T) {
 	if _, err := r.Route("hi there", LimphaState{}); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(fast.lastCtx, "Yent: answer the human directly") ||
+	if !strings.Contains(fast.lastCtx, "Yent: answer the current human directly") ||
+		!strings.Contains(fast.lastCtx, "language they used") ||
 		!strings.Contains(fast.lastCtx, "internal machinery private") {
 		t.Fatalf("fast primer not delivered: %q", fast.lastCtx)
 	}

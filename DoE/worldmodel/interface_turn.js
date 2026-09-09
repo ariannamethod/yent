@@ -52,6 +52,7 @@
     let text = '';
     let streamError = null;
     let result = null;
+    let accepted = !!options.replayMode;
 
     try {
       const requestParams = options.paramsDocument ? input.readParams({ document: options.paramsDocument }) : input.readParams();
@@ -67,6 +68,10 @@
         temperature: requestParams.temperature,
         maxTokens: requestParams.maxTokens,
         signal: options.signal,
+        onOpen: info => {
+          accepted = true;
+          if (typeof options.onOpen === 'function') options.onOpen(info);
+        },
         onEvent: options.onEvent,
         onDone: options.onDone,
         onError: options.onError,
@@ -77,9 +82,11 @@
           if (typeof options.onToken === 'function') options.onToken(chunk, data, text);
         }
       });
+      accepted = true;
       result = chat.outcome({ error: null, responseText: text });
     } catch (err) {
       streamError = err;
+      if (text.trim()) accepted = true;
       result = chat.outcome({ error: err, responseText: text });
     }
 
@@ -97,7 +104,8 @@
       text,
       outcome: result,
       error: streamError,
-      committed
+      committed,
+      accepted
     };
   }
 

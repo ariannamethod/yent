@@ -46,6 +46,20 @@
     return endpoint;
   }
 
+  async function responseError(response, status) {
+    let detail = '';
+    if (response && typeof response.text === 'function') {
+      try {
+        detail = String(await response.text()).replace(/\s+/g, ' ').trim().slice(0, 240);
+      } catch (_) {
+        detail = '';
+      }
+    }
+    const error = new Error(detail || `HTTP ${status}`);
+    error.status = status;
+    return error;
+  }
+
   function clampNumber(value, fallback, min, max) {
     const n = Number.isFinite(value) ? value : fallback;
     return Math.max(min, Math.min(max, n));
@@ -111,11 +125,12 @@
 
     if (!response || !response.ok) {
       const status = response && Number.isFinite(response.status) ? response.status : 0;
-      throw new Error(`HTTP ${status}`);
+      throw await responseError(response, status);
     }
     if (!response.body || typeof response.body.getReader !== 'function') {
       throw new Error('response body unavailable');
     }
+    if (typeof options.onOpen === 'function') options.onOpen({ status: response.status || 200 });
 
     const reader = response.body.getReader();
     const decoder = decoderImpl(options);

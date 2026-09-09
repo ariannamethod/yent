@@ -10,6 +10,7 @@ const commonGlobals = [
   'YentTokenTelemetry',
   'YentInterfaceState',
   'YentInterfaceClock',
+  'YentInterfaceProgress',
   'YentInterfaceStatus',
   'YentInterfaceOutput',
   'YentInterfaceTranscript',
@@ -47,6 +48,7 @@ function main() {
     assert.equal(loaded.tokenTelemetry, root.YentTokenTelemetry);
     assert.equal(loaded.interfaceState, root.YentInterfaceState);
     assert.equal(loaded.interfaceClock, root.YentInterfaceClock);
+    assert.equal(loaded.interfaceProgress, root.YentInterfaceProgress);
     assert.equal(loaded.interfaceStatus, root.YentInterfaceStatus);
     assert.equal(loaded.interfaceOutput, root.YentInterfaceOutput);
     assert.equal(loaded.interfaceHud, root.YentInterfaceHud);

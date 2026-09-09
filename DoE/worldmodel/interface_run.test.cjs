@@ -61,6 +61,24 @@ function form() {
 
 {
   const send = button();
+  const run = runHelper.create({
+    button: send,
+    AbortController: FakeAbortController,
+    abortable: false,
+    busyText: 'THINKING'
+  });
+  const current = run.begin();
+  assert.strictEqual(send.textContent, 'THINKING');
+  assert.strictEqual(send.disabled, true);
+  assert.strictEqual(run.abortRunning(), true);
+  assert.strictEqual(current.controller.aborted, 0);
+  run.finish(current);
+  assert.strictEqual(send.textContent, 'SEND');
+  assert.strictEqual(send.disabled, false);
+}
+
+{
+  const send = button();
   const run = runHelper.create({ button: send, AbortController: FakeAbortController });
   const current = run.begin();
   assert.strictEqual(run.abortRunning(), true);

@@ -105,7 +105,7 @@ func vagusInnerContext(reflection innerworld.Reflection) string {
 		return ""
 	}
 	last = compactVagusText(last, vagusMaxInnerBytes)
-	return "Your private current inner reflection, not another speaker and not text to quote verbatim: " + last
+	return "[private field pressure; context only; never quote, name, or narrate it]: " + last
 }
 
 func vagusDialogueContext(history []vagusChatMessage) string {
@@ -277,6 +277,7 @@ func (h *vagusHandler) serveChat(w http.ResponseWriter, r *http.Request) {
 	case h.turn <- struct{}{}:
 		defer func() { <-h.turn }()
 	default:
+		w.Header().Set("Retry-After", "5")
 		http.Error(w, "Yent is already speaking", http.StatusConflict)
 		return
 	}

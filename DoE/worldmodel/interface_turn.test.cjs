@@ -63,6 +63,7 @@ async function main() {
     assert.equal(result.text, 'hello');
     assert.equal(result.outcome.kind, 'complete');
     assert.equal(result.committed, true);
+    assert.equal(result.accepted, true);
     assert.deepEqual(result.messages.at(-1), { role: 'assistant', content: 'hello' });
     assert.deepEqual(seen, [
       { token: 'he', step: 1, text: 'he' },
@@ -91,8 +92,27 @@ async function main() {
     assert.equal(result.outcome.kind, 'fault');
     assert.equal(result.outcome.commitAssistant, false);
     assert.equal(result.error, boom);
+    assert.equal(result.accepted, true);
     assert.equal(result.committed, false);
     assert.equal(sess.commits.length, 0);
+  }
+
+  {
+    const sess = session();
+    const rejected = new Error('Yent is already speaking');
+    rejected.status = 409;
+    const result = await turn.streamAssistant({
+      paramsDocument: { name: 'doc' },
+      interfaceInput: inputFor(async () => { throw rejected; }),
+      chatStream,
+      sessionReceipt: sess,
+      replayRequest: { name: 'boundary' },
+      messages: [{ role: 'user', content: 'hi' }],
+      visibleMessages: [{ role: 'user', content: 'hi' }]
+    });
+    assert.equal(result.outcome.kind, 'fault');
+    assert.equal(result.accepted, false);
+    assert.equal(result.error.status, 409);
   }
 
   {

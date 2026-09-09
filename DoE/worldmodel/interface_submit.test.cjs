@@ -17,13 +17,19 @@ function generationRun() {
 }
 
 function session() {
+  const rollbacks = [];
   return {
+    rollbacks,
     commitUser(messages, visibleMessages, text) {
       return {
         messages: messages.concat({ role: 'user', content: text }),
         visibleMessages: visibleMessages.concat({ role: 'user', content: text }),
         committed: true
       };
+    },
+    rollbackUser(messages, visibleMessages) {
+      rollbacks.push({ messages, visibleMessages });
+      return { messages, visibleMessages, rolledBack: true };
     }
   };
 }
@@ -75,6 +81,36 @@ async function main() {
     assert.equal(result.text, 'ok');
     assert.equal(result.outcome.kind, 'complete');
     assert.deepEqual(result.messages.at(-1), { role: 'assistant', content: 'ok' });
+  }
+
+  {
+    const run = generationRun();
+    const sess = session();
+    const rejected = new Error('Yent is already speaking');
+    rejected.status = 409;
+    const result = await submit.run({
+      generationRun: run,
+      sessionReceipt: sess,
+      interfaceTurn: {
+        async streamAssistant(options) {
+          return {
+            text: '',
+            accepted: false,
+            error: rejected,
+            outcome: { kind: 'fault', fault: true, hasText: false },
+            messages: options.messages,
+            visibleMessages: options.visibleMessages
+          };
+        }
+      },
+      messages: [{ role: 'assistant', content: 'prior' }],
+      visibleMessages: [{ role: 'assistant', content: 'prior' }],
+      text: 'busy attempt'
+    });
+    assert.equal(result.rolledBack, true);
+    assert.deepEqual(result.messages, [{ role: 'assistant', content: 'prior' }]);
+    assert.deepEqual(result.visibleMessages, [{ role: 'assistant', content: 'prior' }]);
+    assert.equal(sess.rollbacks.length, 1);
   }
 
   {

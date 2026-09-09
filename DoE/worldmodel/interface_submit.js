@@ -49,8 +49,10 @@
     const turnHelper = hasOwn(options, 'interfaceTurn') ? options.interfaceTurn : root.YentInterfaceTurn;
     requireMethod(turnHelper, 'YentInterfaceTurn', 'streamAssistant');
 
-    let messages = arrayOrEmpty(options.messages);
-    let visibleMessages = arrayOrEmpty(options.visibleMessages);
+    const priorMessages = arrayOrEmpty(options.messages);
+    const priorVisibleMessages = arrayOrEmpty(options.visibleMessages);
+    let messages = priorMessages;
+    let visibleMessages = priorVisibleMessages;
     const text = typeof options.text === 'string' ? options.text : '';
     const currentRun = generationRun.begin();
 
@@ -74,19 +76,35 @@
         visibleMessages,
         signal: currentRun.signal,
         onEvent: options.onEvent,
+        onOpen: options.onOpen,
         onDone: options.onDone,
         onError: options.onError,
         onToken: options.onToken
       });
 
+      let rolledBack = false;
+      if (turn && turn.accepted === false && turn.outcome && turn.outcome.fault && !turn.outcome.hasText) {
+        const rollback = typeof session.rollbackUser === 'function'
+          ? session.rollbackUser(priorMessages, priorVisibleMessages)
+          : { messages: priorMessages, visibleMessages: priorVisibleMessages, rolledBack: true };
+        messages = arrayOrEmpty(rollback && rollback.messages);
+        visibleMessages = arrayOrEmpty(rollback && rollback.visibleMessages);
+        rolledBack = true;
+        call(options.onRejected, userTurn, turn, currentRun);
+      } else {
+        messages = arrayOrEmpty(turn && turn.messages);
+        visibleMessages = arrayOrEmpty(turn && turn.visibleMessages);
+      }
+
       return {
         currentRun,
         userTurn,
         turn,
-        messages: arrayOrEmpty(turn && turn.messages),
-        visibleMessages: arrayOrEmpty(turn && turn.visibleMessages),
+        messages,
+        visibleMessages,
         text: turn && typeof turn.text === 'string' ? turn.text : '',
-        outcome: turn ? turn.outcome : null
+        outcome: turn ? turn.outcome : null,
+        rolledBack
       };
     } finally {
       generationRun.finish(currentRun);

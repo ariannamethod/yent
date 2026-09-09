@@ -7,10 +7,10 @@
     return Controller;
   }
 
-  function setButton(button, text) {
+  function setButton(button, text, disabled = false) {
     if (!button) return;
     button.textContent = text;
-    if ('disabled' in button) button.disabled = false;
+    if ('disabled' in button) button.disabled = disabled;
   }
 
   function hasOwn(value, key) {
@@ -30,6 +30,7 @@
     const button = options.button || null;
     const idleText = typeof options.idleText === 'string' ? options.idleText : 'SEND';
     const busyText = typeof options.busyText === 'string' ? options.busyText : 'STOP';
+    const abortable = hasOwn(options, 'abortable') ? !!options.abortable : true;
     const Controller = controllerCtor(options);
     let running = false;
     let aborter = null;
@@ -40,7 +41,7 @@
       aborter = new Controller();
       running = true;
       runId++;
-      setButton(button, busyText);
+      setButton(button, busyText, !abortable);
       return {
         id: runId,
         controller: aborter,
@@ -58,6 +59,7 @@
 
     function abortRunning() {
       if (!running) return false;
+      if (!abortable) return true;
       if (aborter && typeof aborter.abort === 'function') aborter.abort();
       return true;
     }
