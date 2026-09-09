@@ -12,16 +12,20 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 	"unicode/utf8"
+
+	"github.com/ariannamethod/yent/bodylease"
 )
 
 const (
 	doeStatusCmd       = "status"
 	defaultDOETimeout  = 45 * time.Second
 	defaultDOEPrime    = 90 * time.Second
+	defaultDOELease    = 5 * time.Second
 	maxDOEPromptBytes  = 1800 // doe.c wraps chat prompts into a 2048-byte buffer.
 	doeScannerMaxBytes = 4 << 20
 )
@@ -55,6 +59,11 @@ type DOEBodyConfig struct {
 
 	Timeout      time.Duration
 	PrimeTimeout time.Duration
+	// LeasePath is the machine-wide single-resident seam. Empty uses
+	// bodylease.DefaultPath; DisableLease is for isolated tests only.
+	LeasePath    string
+	LeaseTimeout time.Duration
+	DisableLease bool
 
 	Confidence func(answer string) float64
 	Verdict    func(answer string) *Verdict
@@ -66,6 +75,7 @@ type DOEBody struct {
 
 	mu     sync.Mutex
 	daemon *doeProcess
+	lease  *bodylease.Lease
 }
 
 // NewDOEBody builds a process-backed router body. The process starts lazily on
@@ -86,6 +96,9 @@ func NewDOEBody(cfg DOEBodyConfig) (*DOEBody, error) {
 	if cfg.PrimeTimeout <= 0 {
 		cfg.PrimeTimeout = defaultDOEPrime
 	}
+	if cfg.LeaseTimeout <= 0 {
+		cfg.LeaseTimeout = defaultDOELease
+	}
 	return &DOEBody{cfg: cfg}, nil
 }
 
@@ -103,6 +116,14 @@ func (b *DOEBody) Generate(prompt, ctx string) (BodyResult, error) {
 	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	defer func() {
+		if b.daemon == nil || b.daemon.dead {
+			_ = b.releaseLeaseLocked()
+		}
+	}()
+	if err := b.acquireLeaseLocked(); err != nil {
+		return BodyResult{}, err
+	}
 
 	daemonDiagnostics, daemonErr := b.ensureDaemonLocked()
 	daemonReady := daemonErr == nil && b.daemon != nil && !b.daemon.dead
@@ -133,13 +154,13 @@ func (b *DOEBody) Close() error {
 		return nil
 	}
 	b.mu.Lock()
+	defer b.mu.Unlock()
 	d := b.daemon
 	b.daemon = nil
-	b.mu.Unlock()
 	if d != nil {
 		d.close()
 	}
-	return nil
+	return b.releaseLeaseLocked()
 }
 
 func (b *DOEBody) result(answer string, diagnostics []string, executionPath string) BodyResult {
@@ -184,6 +205,36 @@ func (b *DOEBody) ensureDaemonLocked() ([]string, error) {
 	}
 	b.daemon = d
 	return nil, nil
+}
+
+func (b *DOEBody) acquireLeaseLocked() error {
+	if b.cfg.DisableLease || b.lease != nil {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), b.cfg.LeaseTimeout)
+	defer cancel()
+	lease, err := bodylease.Acquire(ctx, b.cfg.LeasePath, bodylease.Owner{
+		Body:    b.cfg.Name,
+		Backend: "doe",
+		Detail:  filepath.Base(b.cfg.ModelPath),
+	})
+	if err != nil {
+		return fmt.Errorf("acquire residency for %s: %w", b.cfg.Name, err)
+	}
+	b.lease = lease
+	return nil
+}
+
+func (b *DOEBody) releaseLeaseLocked() error {
+	lease := b.lease
+	b.lease = nil
+	if lease == nil {
+		return nil
+	}
+	if err := lease.Close(); err != nil {
+		return fmt.Errorf("release residency for %s: %w", b.cfg.Name, err)
+	}
+	return nil
 }
 
 func (b *DOEBody) runOnce(ctx context.Context, seed string) (string, []string, error) {
