@@ -108,27 +108,18 @@ func Acquire(ctx context.Context, path string, owner Owner) (*Lease, error) {
 		}
 	}()
 
-	ticker := time.NewTicker(retryInterval)
-	defer ticker.Stop()
-	for {
-		err = retryFlock(unix.Flock, int(f.Fd()), unix.LOCK_EX|unix.LOCK_NB)
-		if err == nil {
-			locked = true
-			break
+	err = waitFlock(ctx, unix.Flock, int(f.Fd()), unix.LOCK_EX|unix.LOCK_NB, retryInterval)
+	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return nil, busyError(path, err)
 		}
-		if !errors.Is(err, unix.EWOULDBLOCK) && !errors.Is(err, unix.EAGAIN) {
-			return nil, fmt.Errorf("lock body lease: %w", err)
-		}
-		select {
-		case <-ctx.Done():
-			return nil, busyError(path, ctx.Err())
-		case <-ticker.C:
-		}
+		return nil, fmt.Errorf("lock body lease: %w", err)
 	}
+	locked = true
 
 	owner = normalizeOwner(owner)
 	if err := writeOwner(f, owner); err != nil {
-		_ = retryFlock(unix.Flock, int(f.Fd()), unix.LOCK_UN)
+		// Closing the owning descriptor in the deferred cleanup releases flock.
 		locked = false
 		return nil, fmt.Errorf("write body lease owner: %w", err)
 	}
@@ -144,9 +135,9 @@ func (l *Lease) Path() string {
 	return l.path
 }
 
-// Close clears the owner receipt, unlocks the file, and releases the in-process
-// slot. The unlock happens only after the body process has been stopped by its
-// caller.
+// Close clears the owner receipt, closes the owning descriptor, and releases
+// the in-process slot. Closing the descriptor is the kernel-authoritative flock
+// release and happens only after the caller has stopped the body process.
 func (l *Lease) Close() error {
 	if l == nil {
 		return nil
@@ -154,9 +145,6 @@ func (l *Lease) Close() error {
 	l.once.Do(func() {
 		if l.file != nil {
 			if err := l.file.Truncate(0); err != nil {
-				l.err = errors.Join(l.err, err)
-			}
-			if err := retryFlock(unix.Flock, int(l.file.Fd()), unix.LOCK_UN); err != nil {
 				l.err = errors.Join(l.err, err)
 			}
 			if err := l.file.Close(); err != nil {
@@ -170,11 +158,29 @@ func (l *Lease) Close() error {
 	return l.err
 }
 
-func retryFlock(call func(fd int, how int) error, fd int, how int) error {
+func waitFlock(ctx context.Context, call func(fd int, how int) error, fd int, how int, retry time.Duration) error {
+	if retry <= 0 {
+		retry = retryInterval
+	}
+	ticker := time.NewTicker(retry)
+	defer ticker.Stop()
 	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
 		err := call(fd, how)
-		if !errors.Is(err, unix.EINTR) {
+		if err == nil {
+			return nil
+		}
+		if !errors.Is(err, unix.EINTR) && !errors.Is(err, unix.EWOULDBLOCK) && !errors.Is(err, unix.EAGAIN) {
 			return err
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
 		}
 	}
 }
