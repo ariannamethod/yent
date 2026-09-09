@@ -8,6 +8,9 @@ function makeResponse(chunks, options = {}) {
   return {
     ok: options.ok !== false,
     status: options.status || 200,
+    async text() {
+      return options.text || '';
+    },
     body: options.noBody ? null : {
       getReader() {
         return {
@@ -288,13 +291,28 @@ async function main() {
 }
 
 {
-  await assert.rejects(
-    () => chat.stream({
+  let error;
+  try {
+    await chat.stream({
       eventStream,
-      fetch: async () => makeResponse([], { ok: false, status: 503 })
-    }),
-    /HTTP 503/
-  );
+      fetch: async () => makeResponse([], { ok: false, status: 409, text: 'Yent is already speaking\n' })
+    });
+  } catch (caught) {
+    error = caught;
+  }
+  assert.ok(error);
+  assert.equal(error.message, 'Yent is already speaking');
+  assert.equal(error.status, 409);
+}
+
+{
+  const opened = [];
+  await chat.stream({
+    eventStream,
+    fetch: async () => makeResponse(['data: {"done":true}\n\n']),
+    onOpen: info => opened.push(info)
+  });
+  assert.deepEqual(opened, [{ status: 200 }]);
 }
 
 {

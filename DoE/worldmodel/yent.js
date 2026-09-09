@@ -10,6 +10,7 @@ const interfaceText = deps.interfaceText;
 const tokenTelemetry = deps.tokenTelemetry;
 const interfaceState = deps.interfaceState;
 const interfaceClock = deps.interfaceClock;
+const interfaceProgress = deps.interfaceProgress;
 const interfaceStatus = deps.interfaceStatus;
 const interfaceOutput = deps.interfaceOutput;
 const interfaceTranscript = deps.interfaceTranscript;
@@ -45,7 +46,7 @@ const maskSurface = interfaceCanvas.createScratch({
 });
 const mask = maskSurface.canvas;
 const mctx = maskSurface.context;
-const generationRun = interfaceRun.create({ button: sendButton });
+const generationRun = interfaceRun.create({ button: sendButton, busyText: 'THINKING', abortable: false });
 const replayRequest = interfaceReplay.request();
 const replayMode = replayRequest.enabled;
 const sessionReceipt = interfaceSession.createAdapter({ replayMode });
@@ -510,46 +511,54 @@ function animate() {
 
 async function generate(text) {
   let assistantBody = null;
+  let progressRun = null;
 
-  const submit = await interfaceSubmit.run({
-    generationRun,
-    interfaceInput,
-    interfaceTurn: deps.interfaceTurn,
-    chatStream,
-    interfaceReplay,
-    replayMode,
-    replayRequest,
-    sessionReceipt,
-    messages,
-    visibleMessages,
-    text,
-    beforeUser: () => {
-      setStatus('GENERATING');
-      tokenClock.reset();
-      state.debt = 0.42;
-      state.consensus = 0.12;
-      state.field = 0.86;
-      state.velocity = 2.4;
-      tokenTelemetry.resetCandidateState(state);
-      state.sidePulse = 0.5;
-      latentTape = seedWords.join('');
-      pushBurst(2.4);
-    },
-    onUser: userTurn => {
-      messages = userTurn.messages;
-      visibleMessages = userTurn.visibleMessages;
-      addTurn('user', text);
-      assistantBody = addTurn('assistant', '');
-    },
-    onToken: (token, data, responseText) => {
-      interfaceOutput.setTextAndScroll({
-        target: assistantBody,
-        text: responseText,
-        scrollTarget: transcript
-      });
-      absorbToken(token, data);
-    }
-  });
+  let submit;
+  try {
+    submit = await interfaceSubmit.run({
+      generationRun,
+      interfaceInput,
+      interfaceTurn: deps.interfaceTurn,
+      chatStream,
+      interfaceReplay,
+      replayMode,
+      replayRequest,
+      sessionReceipt,
+      messages,
+      visibleMessages,
+      text,
+      beforeUser: () => {
+        progressRun = interfaceProgress.start({
+          onTick: tick => setStatus(`THINKING ${tick.label}`)
+        });
+        tokenClock.reset();
+        state.debt = 0.42;
+        state.consensus = 0.12;
+        state.field = 0.86;
+        state.velocity = 2.4;
+        tokenTelemetry.resetCandidateState(state);
+        state.sidePulse = 0.5;
+        latentTape = seedWords.join('');
+        pushBurst(2.4);
+      },
+      onUser: userTurn => {
+        messages = userTurn.messages;
+        visibleMessages = userTurn.visibleMessages;
+        addTurn('user', text);
+        assistantBody = addTurn('assistant', '');
+      },
+      onToken: (token, data, responseText) => {
+        interfaceOutput.setTextAndScroll({
+          target: assistantBody,
+          text: responseText,
+          scrollTarget: transcript
+        });
+        absorbToken(token, data);
+      }
+    });
+  } finally {
+    if (progressRun) progressRun.stop();
+  }
 
   messages = submit.messages;
   visibleMessages = submit.visibleMessages;
@@ -560,12 +569,15 @@ async function generate(text) {
         setStatus(result.hasText ? 'STOPPED' : 'IDLE');
       },
       fault: (turn, result) => {
-        setStatus('FAULT');
+        const busy = turn.error && turn.error.status === 409;
+        setStatus(busy ? 'BUSY' : 'FAULT');
         interfaceOutput.setText({
           target: assistantBody,
-          text: result.hasText
-            ? `${turn.text}\n\n[stream fault: ${result.message}]`
-            : `parliament unreachable: ${result.message}`
+          text: busy
+            ? 'Yent is already speaking. This message was not sent.'
+            : result.hasText
+              ? `${turn.text}\n\n[stream fault: ${result.message}]`
+              : `parliament unreachable: ${result.message}`
         });
       },
       complete: (_turn, result) => {

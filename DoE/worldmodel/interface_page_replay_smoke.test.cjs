@@ -102,6 +102,10 @@ function makeContext(page) {
       return timers.length;
     },
     clearTimeout() {},
+    setInterval() {
+      return 1;
+    },
+    clearInterval() {},
     requestAnimationFrame(fn) {
       if (typeof fn === 'function') frames.push(fn);
       return 1;
@@ -181,6 +185,7 @@ async function runPage(page) {
     'token_telemetry.js',
     'interface_state.js',
     'interface_clock.js',
+    'interface_progress.js',
     'interface_status.js',
     'interface_output.js',
     'interface_transcript.js',

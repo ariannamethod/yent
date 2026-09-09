@@ -14,6 +14,7 @@ const interfaceText = deps.interfaceText;
 const tokenTelemetry = deps.tokenTelemetry;
 const interfaceState = deps.interfaceState;
 const interfaceClock = deps.interfaceClock;
+const interfaceProgress = deps.interfaceProgress;
 const interfaceStatus = deps.interfaceStatus;
 const interfaceOutput = deps.interfaceOutput;
 const interfaceHud = deps.interfaceHud;
@@ -41,7 +42,7 @@ const fieldSurface = interfaceCanvas.bind({
 });
 const canvas = fieldSurface.canvas;
 const ctx = fieldSurface.context;
-const generationRun = interfaceRun.create({ button: sendButton });
+const generationRun = interfaceRun.create({ button: sendButton, busyText: 'THINKING', abortable: false });
 const replayRequest = interfaceReplay.request();
 const replayMode = replayRequest.enabled;
 const sessionReceipt = interfaceSession.createAdapter({ replayMode });
@@ -538,46 +539,56 @@ function restoreInterfaceSession() {
 }
 
 async function generate(text) {
-  const submit = await interfaceSubmit.run({
-    generationRun,
-    interfaceInput,
-    interfaceTurn: deps.interfaceTurn,
-    chatStream,
-    interfaceReplay,
-    replayMode,
-    replayRequest,
-    sessionReceipt,
-    messages,
-    visibleMessages,
-    text,
-    beforeUser: () => {
-      setStatus('FIELD DISTORTED.');
-      setManifestState('GENERATING', true);
-      setManifestText('');
-      chosenText = '';
-      manifestWords = [];
-      tokenClock.reset();
-      state.debt = 0.46;
-      state.consensus = 0.16;
-      state.field = 0.92;
-      state.entropy = Math.max(state.entropy, 3.4);
-      tokenTelemetry.resetCandidateState(state);
-      candidateCloud = [];
-      worldGeometry.resetFromPrompt(geometry, text);
-      syncTopologyFromGeometry();
-      state.cameraY = mix(state.cameraY, (state.topologySeed - 0.5) * 170, 0.22);
-      fieldWords.unshift(...cleanWords(text).slice(0, 18));
-      fieldWords = fieldWords.slice(0, 260);
-    },
-    onUser: userTurn => {
-      messages = userTurn.messages;
-      visibleMessages = userTurn.visibleMessages;
-    },
-    onToken: (token, data, responseText) => {
-      setManifestText(responseText);
-      absorbToken(token, data);
-    }
-  });
+  let progressRun = null;
+  let submit;
+  try {
+    submit = await interfaceSubmit.run({
+      generationRun,
+      interfaceInput,
+      interfaceTurn: deps.interfaceTurn,
+      chatStream,
+      interfaceReplay,
+      replayMode,
+      replayRequest,
+      sessionReceipt,
+      messages,
+      visibleMessages,
+      text,
+      beforeUser: () => {
+        progressRun = interfaceProgress.start({
+          onTick: tick => {
+            setStatus(`FIELD THINKING ${tick.label}.`);
+            setManifestState(`THINKING ${tick.label}`, true);
+          }
+        });
+        setManifestText('');
+        chosenText = '';
+        manifestWords = [];
+        tokenClock.reset();
+        state.debt = 0.46;
+        state.consensus = 0.16;
+        state.field = 0.92;
+        state.entropy = Math.max(state.entropy, 3.4);
+        tokenTelemetry.resetCandidateState(state);
+        candidateCloud = [];
+        worldGeometry.resetFromPrompt(geometry, text);
+        syncTopologyFromGeometry();
+        state.cameraY = mix(state.cameraY, (state.topologySeed - 0.5) * 170, 0.22);
+        fieldWords.unshift(...cleanWords(text).slice(0, 18));
+        fieldWords = fieldWords.slice(0, 260);
+      },
+      onUser: userTurn => {
+        messages = userTurn.messages;
+        visibleMessages = userTurn.visibleMessages;
+      },
+      onToken: (token, data, responseText) => {
+        setManifestText(responseText);
+        absorbToken(token, data);
+      }
+    });
+  } finally {
+    if (progressRun) progressRun.stop();
+  }
 
   messages = submit.messages;
   visibleMessages = submit.visibleMessages;
@@ -588,10 +599,15 @@ async function generate(text) {
         setStatus('MANIFESTATION STOPPED.');
         setManifestState(result.hasText ? 'STOPPED' : 'IDLE', result.hasText);
       },
-      fault: (_turn, result) => {
-        setStatus(`FIELD FAULT: ${result.message}`);
-        setManifestState('FAULT', result.hasText);
-        if (!result.hasText) setManifestText(`FIELD FAULT: ${result.message}`);
+      fault: (turn, result) => {
+        const busy = turn.error && turn.error.status === 409;
+        setStatus(busy ? 'FIELD BUSY.' : `FIELD FAULT: ${result.message}`);
+        setManifestState(busy ? 'BUSY' : 'FAULT', busy || result.hasText);
+        if (!result.hasText) {
+          setManifestText(busy
+            ? 'Yent is already speaking. This message was not sent.'
+            : `FIELD FAULT: ${result.message}`);
+        }
         fieldWords.unshift('fault', 'unreachable');
       },
       complete: (_turn, result) => {

@@ -124,6 +124,14 @@
         this.save(nextVisible, true);
         return { messages: nextModel, visibleMessages: nextVisible, message };
       },
+      rollbackUser(modelMessages, visibleMessages) {
+        const nextModel = Array.isArray(modelMessages) ? modelMessages : [];
+        const nextVisible = normalize(Object.assign({}, options, {
+          messages: Array.isArray(visibleMessages) ? visibleMessages : []
+        }));
+        this.save(nextVisible, true);
+        return { messages: nextModel, visibleMessages: nextVisible, rolledBack: true };
+      },
       previewAssistant(visibleMessages, text) {
         const message = { role: 'assistant', content: typeof text === 'string' ? text : '' };
         return this.save((Array.isArray(visibleMessages) ? visibleMessages : []).concat(message));

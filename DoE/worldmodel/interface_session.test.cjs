@@ -176,6 +176,16 @@ function storage() {
   assert.deepEqual(visible, [{ role: 'user', content: 'what boundary?' }]);
   assert.deepEqual(receipt.load(), visible);
 
+  const rolledBack = receipt.rollbackUser([], []);
+  assert.equal(rolledBack.rolledBack, true);
+  assert.deepEqual(rolledBack.messages, []);
+  assert.deepEqual(rolledBack.visibleMessages, []);
+  assert.deepEqual(receipt.load(), []);
+
+  const userAgain = receipt.commitUser([], [], 'what boundary?');
+  model = userAgain.messages;
+  visible = userAgain.visibleMessages;
+
   now += 20;
   assert.equal(receipt.previewAssistant(visible, 'partial'), false);
   assert.deepEqual(receipt.load(), visible);
