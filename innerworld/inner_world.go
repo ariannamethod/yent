@@ -372,6 +372,8 @@ func (iw *InnerWorld) ThinkAndAnswer(prompt string, answer func(Reflection) (str
 // fast body when single-resident swapping is enabled, and does not raise any
 // private circles. A live runtime can therefore return the answer and schedule
 // Afterwave separately instead of making thought a prerequisite for speech.
+// The callback executes while genMu is held and must not call Think,
+// ThinkAndAnswer, Afterwave, Speak, or any path that waits for the inner voice.
 func (iw *InnerWorld) Speak(answer func() (string, error)) (string, error) {
 	if answer == nil {
 		return "", nil

@@ -82,7 +82,8 @@ func Overthink(prompt string, fast Body, field Field, div Divergence, cfg Config
 // nor retries a generation to manufacture it: drift is observed, not enforced.
 // The caller is responsible for running this off the outward-answer path.
 func Afterwave(spoken string, fast Body, field Field, div Divergence, cfg Config) []Circle {
-	if strings.TrimSpace(spoken) == "" {
+	spoken = strings.TrimSpace(spoken)
+	if spoken == "" {
 		return nil
 	}
 	if cfg.N <= 0 {
@@ -91,7 +92,7 @@ func Afterwave(spoken string, fast Body, field Field, div Divergence, cfg Config
 	cfg.N = 1
 	cfg.TempRamp = 0
 	cfg.MaxRepel = 0
-	seed := "[outward speech already delivered]\n" + strings.TrimSpace(spoken) + "\n[private afterwave]"
+	seed := "[private afterwave; outward speech already delivered]\n" + spoken
 	return ripple(seed, spoken, fast, field, div, cfg, false)
 }
 
