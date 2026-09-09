@@ -198,6 +198,71 @@ func TestCloneIsolation(t *testing.T) {
 	}
 }
 
+func TestThinkAndAnswerCarriesPrivateReflectionWithoutExposingMutableState(t *testing.T) {
+	iw := NewInnerWorld(fakeBody{}, &fakeField{}, tempDivergence)
+	reflection, answer, err := iw.ThinkAndAnswer("a live question", func(private Reflection) (string, error) {
+		if len(private.Circles) != DefaultConfig().N {
+			t.Fatalf("callback circles = %d, want %d", len(private.Circles), DefaultConfig().N)
+		}
+		private.Circles[0].Text = "MUTATED CALLBACK COPY"
+		return "the outward answer", nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if answer != "the outward answer" {
+		t.Fatalf("answer = %q", answer)
+	}
+	if len(reflection.Circles) == 0 || reflection.Circles[0].Text == "MUTATED CALLBACK COPY" {
+		t.Fatalf("callback mutation leaked into returned reflection: %+v", reflection.Circles)
+	}
+	iw.mu.Lock()
+	internal := iw.circles[0].Text
+	iw.mu.Unlock()
+	if internal == "MUTATED CALLBACK COPY" {
+		t.Fatal("callback mutation leaked into inner-world state")
+	}
+}
+
+func TestThinkAndAnswerHoldsSingleVoiceThroughOutwardAnswer(t *testing.T) {
+	iw := NewInnerWorld(fakeBody{}, &fakeField{}, tempDivergence)
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_, _, _ = iw.ThinkAndAnswer("first", func(Reflection) (string, error) {
+			close(entered)
+			<-release
+			return "first answer", nil
+		})
+	}()
+
+	select {
+	case <-entered:
+	case <-time.After(time.Second):
+		t.Fatal("outward answer callback did not begin")
+	}
+	second := iw.Think("second")
+	select {
+	case <-second:
+		t.Fatal("another thought crossed the live turn before its outward answer completed")
+	case <-time.After(20 * time.Millisecond):
+	}
+
+	close(release)
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("live turn did not finish after answer callback was released")
+	}
+	select {
+	case <-second:
+	case <-time.After(time.Second):
+		t.Fatal("waiting thought did not resume after the live turn completed")
+	}
+}
+
 func TestConcurrentSafe(t *testing.T) {
 	iw := NewInnerWorld(fakeBody{}, &fakeField{debt: 2.0}, tempDivergence)
 	iw.br.Tick = time.Millisecond

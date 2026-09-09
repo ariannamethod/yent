@@ -21,7 +21,7 @@ import (
 	"unicode/utf8"
 )
 
-// Body is one Mistral inference body behind the router. The production implementation
+// Body is one inference body behind the router. The production implementation
 // is a persistent doe daemon (model resident, swapped on demand). Tests use fakes.
 type Body interface {
 	// Name identifies the body in logs and seams, e.g. "nemo12" or "small24".
@@ -64,7 +64,8 @@ type Verdict struct {
 	Winner    string  // body name whose answer is used
 }
 
-// Router orchestrates the two bodies over one shared limpha brain.
+// Router orchestrates the fast body and an optional deep body over one shared
+// limpha brain.
 type Router struct {
 	fast   Body          // default mouth, e.g. nemo12
 	deep   Body          // escalation cortex, e.g. small24
@@ -89,7 +90,8 @@ type Router struct {
 	SingleResident bool
 }
 
-// NewRouter wires two bodies to one limpha brain. EscalateBelow defaults to 0.5.
+// NewRouter wires the fast body and an optional deep body to one limpha brain.
+// EscalateBelow defaults to 0.5.
 func NewRouter(fast, deep Body, limpha *LimphaClient) *Router {
 	return &Router{
 		fast:           fast,
@@ -149,6 +151,7 @@ type RouteTrace struct {
 	StateRefs           int              `json:"state_refs,omitempty"`
 	SeamRefs            int              `json:"seam_refs,omitempty"`
 	DeepError           string           `json:"deep_error,omitempty"`
+	InnerContext        bool             `json:"inner_context,omitempty"`
 }
 
 type routeContextBundle struct {
@@ -236,17 +239,26 @@ func helpfulAssistantBoundaryAnswer(prompt string) (string, bool) {
 	return "", false
 }
 
-// Route runs one turn: the fast body answers; if complexity or low confidence demands
-// it, the deep body re-answers with the fast trace + memory refs + reason, scores the
-// divergence, and a seam is logged. Returns the chosen answer.
+// Route runs one turn without an additional private inner-world context.
 func (r *Router) Route(prompt string, st LimphaState) (Outcome, error) {
-	if r == nil || r.fast == nil || r.deep == nil {
-		return Outcome{}, errors.New("router requires fast and deep bodies")
+	return r.RouteWithInnerContext(prompt, st, "")
+}
+
+// RouteWithInnerContext runs one outward turn after innerworld has already raised
+// its private circles. innerContext is body-private pressure: it shapes the
+// answer but is never substituted for the human prompt or stored as that prompt.
+// A nil deep body is an intentional fast-only organism, not a routing failure;
+// when a deep body is present the usual confidence/complexity escalation applies.
+func (r *Router) RouteWithInnerContext(prompt string, st LimphaState, innerContext string) (Outcome, error) {
+	if r == nil || r.fast == nil {
+		return Outcome{}, errors.New("router requires a fast body")
 	}
+	innerContext = strings.TrimSpace(innerContext)
 	if answer, ok := helpfulAssistantBoundaryAnswer(prompt); ok {
 		fast := BodyResult{Answer: answer, Confidence: 1, ExecutionPath: "identity_boundary"}
 		complexity := AnalyzePromptComplexity(prompt)
 		trace := r.newRouteTrace(fast, complexity, st)
+		trace.InnerContext = innerContext != ""
 		trace.applyMemoryReceipt(r.storeTurn(prompt, answer, st, nil, &trace))
 		return Outcome{Answer: answer, Body: r.fast.Name(), Escalated: false, Trace: trace}, nil
 	}
@@ -254,19 +266,24 @@ func (r *Router) Route(prompt string, st LimphaState) (Outcome, error) {
 		fast := BodyResult{Answer: answer, Confidence: 1, ExecutionPath: "identity_boundary"}
 		complexity := AnalyzePromptComplexity(prompt)
 		trace := r.newRouteTrace(fast, complexity, st)
+		trace.InnerContext = innerContext != ""
 		trace.applyMemoryReceipt(r.storeTurn(prompt, answer, st, nil, &trace))
 		return Outcome{Answer: answer, Body: r.fast.Name(), Escalated: false, Trace: trace}, nil
 	}
 	if err := r.prepareBody(r.fast); err != nil {
 		return Outcome{}, err
 	}
-	fast, err := r.fast.Generate(prompt, r.fastContext())
+	fast, err := r.fast.Generate(prompt, r.fastContext(innerContext))
 	if err != nil {
 		return Outcome{}, err
 	}
 	complexity := AnalyzePromptComplexity(prompt)
-	reason := escalationReasonWithComplexity(fast, r.EscalateBelow, complexity)
 	trace := r.newRouteTrace(fast, complexity, st)
+	trace.InnerContext = innerContext != ""
+	reason := ""
+	if r.deep != nil {
+		reason = escalationReasonWithComplexity(fast, r.EscalateBelow, complexity)
+	}
 	if reason == "" {
 		// single-body turn: the fast body answers alone.
 		trace.applyMemoryReceipt(r.storeTurn(prompt, fast.Answer, st, nil, &trace))
@@ -277,6 +294,9 @@ func (r *Router) Route(prompt string, st LimphaState) (Outcome, error) {
 	trace.Escalated = true
 	trace.Reason = reason
 	bundle := r.buildEscalationContext(prompt, fast, reason, st, complexity)
+	if innerContext != "" {
+		bundle.Text = innerContext + "\n" + bundle.Text
+	}
 	trace.MemoryRefs = bundle.MemoryRefs
 	trace.StateRefs = bundle.StateRefs
 	trace.SeamRefs = bundle.SeamRefs
@@ -399,10 +419,9 @@ func (r *Router) newRouteTrace(fast BodyResult, complexity PromptComplexity, st 
 	if validConfidence {
 		confidence = fast.Confidence
 	}
-	return RouteTrace{
+	trace := RouteTrace{
 		Kind:                "route_context",
 		FastBody:            r.fast.Name(),
-		DeepBody:            r.deep.Name(),
 		Winner:              r.fast.Name(),
 		FastConfidence:      confidence,
 		FastConfidenceValid: validConfidence,
@@ -411,13 +430,25 @@ func (r *Router) newRouteTrace(fast BodyResult, complexity PromptComplexity, st 
 		Complexity:          complexity,
 		State:               st,
 	}
+	if r.deep != nil {
+		trace.DeepBody = r.deep.Name()
+	}
+	return trace
 }
 
-func (r *Router) fastContext() string {
+func (r *Router) fastContext(innerContext string) string {
 	if r == nil {
 		return ""
 	}
-	return strings.TrimSpace(r.FastPrimer)
+	primer := strings.TrimSpace(r.FastPrimer)
+	innerContext = strings.TrimSpace(innerContext)
+	if primer == "" {
+		return innerContext
+	}
+	if innerContext == "" {
+		return primer
+	}
+	return primer + "\n" + innerContext
 }
 
 func (r *Router) searchStateNeighbors(st LimphaState) ([]map[string]interface{}, error) {
