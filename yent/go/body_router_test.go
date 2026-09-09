@@ -101,6 +101,31 @@ func TestRouterFastOnlyBodyIsACompleteIntentionalRoute(t *testing.T) {
 	}
 }
 
+func TestRouterFastOnlyNormalizesTypedNilDeepBody(t *testing.T) {
+	lc := newRouterLimpha(t)
+	fast := &fakeBody{name: "nemo12", answer: "still here", confidence: 0.1}
+	var absentDeep *fakeBody
+	r := NewRouter(fast, absentDeep, lc)
+	out, err := r.Route("a complex architecture question", LimphaState{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.Escalated || out.Body != "nemo12" || out.Answer != "still here" {
+		t.Fatalf("typed-nil deep body must remain an intentional fast-only route: %+v", out)
+	}
+	if out.Trace.DeepBody != "" {
+		t.Fatalf("typed-nil deep body leaked into trace: %+v", out.Trace)
+	}
+}
+
+func TestRouterRejectsTypedNilFastBodyWithoutPanic(t *testing.T) {
+	var absentFast *fakeBody
+	r := NewRouter(absentFast, nil, nil)
+	if _, err := r.Route("hello", LimphaState{}); err == nil {
+		t.Fatal("typed-nil fast body must be rejected")
+	}
+}
+
 func TestRouterInnerContextShapesBodyButDoesNotReplaceStoredHumanPrompt(t *testing.T) {
 	lc := newRouterLimpha(t)
 	fast := &fakeBody{name: "nemo12", answer: "shaped answer", confidence: 0.9}
