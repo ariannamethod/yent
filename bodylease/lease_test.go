@@ -122,7 +122,7 @@ func TestLeaseHelperProcess(t *testing.T) {
 	time.Sleep(time.Hour)
 }
 
-func TestRetryFlockRetriesOnlyEINTR(t *testing.T) {
+func TestWaitFlockRetriesInterruptAndBusy(t *testing.T) {
 	tests := []struct {
 		name      string
 		how       int
@@ -131,29 +131,23 @@ func TestRetryFlockRetriesOnlyEINTR(t *testing.T) {
 		wantErr   error
 	}{
 		{
-			name:      "acquire interrupted twice",
+			name:      "interrupted and busy eventually acquire",
 			how:       unix.LOCK_EX | unix.LOCK_NB,
-			results:   []error{unix.EINTR, unix.EINTR, nil},
+			results:   []error{unix.EINTR, unix.EWOULDBLOCK, nil},
 			wantCalls: 3,
 		},
 		{
-			name:      "unlock interrupted once",
-			how:       unix.LOCK_UN,
-			results:   []error{unix.EINTR, nil},
-			wantCalls: 2,
-		},
-		{
-			name:      "busy remains caller-visible",
+			name:      "hard error remains caller-visible",
 			how:       unix.LOCK_EX | unix.LOCK_NB,
-			results:   []error{unix.EWOULDBLOCK},
+			results:   []error{unix.EBADF},
 			wantCalls: 1,
-			wantErr:   unix.EWOULDBLOCK,
+			wantErr:   unix.EBADF,
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			calls := 0
-			err := retryFlock(func(fd int, how int) error {
+			err := waitFlock(context.Background(), func(fd int, how int) error {
 				if fd != 17 || how != tc.how {
 					t.Fatalf("forwarded flock args = (%d, %d), want (17, %d)", fd, how, tc.how)
 				}
@@ -163,7 +157,7 @@ func TestRetryFlockRetriesOnlyEINTR(t *testing.T) {
 				result := tc.results[calls]
 				calls++
 				return result
-			}, 17, tc.how)
+			}, 17, tc.how, time.Nanosecond)
 			if calls != tc.wantCalls {
 				t.Fatalf("calls = %d, want %d", calls, tc.wantCalls)
 			}
@@ -171,5 +165,37 @@ func TestRetryFlockRetriesOnlyEINTR(t *testing.T) {
 				t.Fatalf("error = %v, want %v", err, tc.wantErr)
 			}
 		})
+	}
+}
+
+func TestWaitFlockHonorsCancellationDuringSustainedEINTR(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	calls := 0
+	err := waitFlock(ctx, func(fd int, how int) error {
+		calls++
+		cancel()
+		return unix.EINTR
+	}, 17, unix.LOCK_EX|unix.LOCK_NB, time.Hour)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("error = %v, want context cancellation", err)
+	}
+	if calls != 1 {
+		t.Fatalf("flock calls after cancellation = %d, want 1", calls)
+	}
+}
+
+func TestWaitFlockDoesNotCallAfterPriorCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	calls := 0
+	err := waitFlock(ctx, func(fd int, how int) error {
+		calls++
+		return nil
+	}, 17, unix.LOCK_EX|unix.LOCK_NB, time.Nanosecond)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("error = %v, want context cancellation", err)
+	}
+	if calls != 0 {
+		t.Fatalf("flock called %d time(s) after prior cancellation", calls)
 	}
 }
