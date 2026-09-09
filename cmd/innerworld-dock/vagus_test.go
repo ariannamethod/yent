@@ -170,6 +170,23 @@ func TestVagusRejectsMalformedOrNonCurrentHumanTurns(t *testing.T) {
 	}
 }
 
+func TestVagusReturnsEntityTooLargeForOversizedJSONBody(t *testing.T) {
+	h, err := newVagusHandler(vagusTestRoot(t), vagusTurnFunc(func(context.Context, vagusTurn) (vagusTurnResult, error) {
+		return vagusTurnResult{}, errors.New("must not run")
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := `{"messages":[{"role":"user","content":"` + strings.Repeat("x", vagusMaxBodyBytes) + `"}]}`
+	r := vagusRequest(http.MethodPost, "/chat/completions", []byte(body))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	if w.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("oversized body status = %d, want 413; body=%q", w.Code, w.Body.String())
+	}
+}
+
 func TestVagusAllowsOnlyOneActiveHumanTurn(t *testing.T) {
 	entered := make(chan struct{})
 	release := make(chan struct{})

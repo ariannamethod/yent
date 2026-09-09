@@ -342,7 +342,9 @@ func (iw *InnerWorld) Think(prompt string) <-chan Reflection {
 // produces the outward text before autonomous dreaming can resume. The callback
 // is deliberately supplied by the runtime so innerworld stays independent of a
 // particular router or transport. A nil callback records the thought and returns
-// no outward text.
+// no outward text. The callback executes while genMu is held: it must not call
+// Think, ThinkAndAnswer, or any other path that waits for the inner voice, and it
+// should do only the bounded outward generation needed to complete this turn.
 func (iw *InnerWorld) ThinkAndAnswer(prompt string, answer func(Reflection) (string, error)) (Reflection, string, error) {
 	iw.mu.Lock()
 	iw.lastActive = time.Now()

@@ -285,11 +285,11 @@ func (h *vagusHandler) serveChat(w http.ResponseWriter, r *http.Request) {
 	reader := http.MaxBytesReader(w, r.Body, vagusMaxBodyBytes)
 	decoder := json.NewDecoder(reader)
 	if err := decoder.Decode(&request); err != nil {
-		http.Error(w, "invalid chat request", http.StatusBadRequest)
+		writeVagusJSONError(w, err, "invalid chat request")
 		return
 	}
 	if err := requireJSONEOF(decoder); err != nil {
-		http.Error(w, "invalid trailing chat data", http.StatusBadRequest)
+		writeVagusJSONError(w, err, "invalid trailing chat data")
 		return
 	}
 	turn, err := currentVagusTurn(request.Messages)
@@ -331,6 +331,15 @@ func (h *vagusHandler) serveChat(w http.ResponseWriter, r *http.Request) {
 		"trace":    result.Trace,
 	})
 	flushResponse(w)
+}
+
+func writeVagusJSONError(w http.ResponseWriter, err error, fallback string) {
+	var tooLarge *http.MaxBytesError
+	if errors.As(err, &tooLarge) {
+		http.Error(w, "chat request body is too large", http.StatusRequestEntityTooLarge)
+		return
+	}
+	http.Error(w, fallback, http.StatusBadRequest)
 }
 
 func currentVagusTurn(messages []vagusChatMessage) (vagusTurn, error) {
