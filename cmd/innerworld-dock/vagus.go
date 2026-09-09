@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -28,7 +29,6 @@ const (
 	// primer and a bounded slice of private reflection instead of accepting a
 	// large turn that the body would silently truncate.
 	vagusMaxPromptBytes  = 1200
-	vagusMaxInnerBytes   = 480
 	vagusMaxHistoryBytes = 640
 )
 
@@ -54,58 +54,105 @@ func (f vagusTurnFunc) Turn(ctx context.Context, turn vagusTurn) (vagusTurnResul
 }
 
 // dockVagusTurner closes the live human-turn path inside the existing dock. The
-// same DOEBody instance raises private circles and produces the outward answer;
-// no second model process or shadow memory is created.
+// outward answer is generated first; only then is one private afterwave offered
+// to the background scheduler. Both share the resident body, but the afterwave
+// is never awaited by the current HTTP response.
 type dockVagusTurner struct {
-	inner  *innerworld.InnerWorld
-	router *yent.Router
-	limpha *yent.LimphaClient
-	state  func() yent.LimphaState
+	inner      *innerworld.InnerWorld
+	router     *yent.Router
+	afterwaves *vagusAfterwaves
+	state      func() yent.LimphaState
 }
 
 func (v dockVagusTurner) Turn(ctx context.Context, turn vagusTurn) (vagusTurnResult, error) {
-	if v.inner == nil || v.router == nil || v.state == nil {
+	if v.inner == nil || v.router == nil || v.afterwaves == nil || v.state == nil {
 		return vagusTurnResult{}, errors.New("vagus live turn is not wired")
 	}
 	if err := ctx.Err(); err != nil {
 		return vagusTurnResult{}, err
 	}
 	var outcome yent.Outcome
-	_, answer, err := v.inner.ThinkAndAnswer(turn.Prompt, func(reflection innerworld.Reflection) (string, error) {
+	answer, err := v.inner.Speak(func() (string, error) {
 		state := v.state()
-		persistReflection(v.limpha, "human_turn", "vagus", reflection, state)
-		privateContext := vagusPrivateContext(reflection, turn.History)
 		var routeErr error
-		outcome, routeErr = v.router.RouteWithInnerContext(turn.Prompt, state, privateContext)
+		outcome, routeErr = v.router.RouteWithInnerContext(turn.Prompt, state, vagusDialogueContext(turn.History))
 		return outcome.Answer, routeErr
 	})
 	if err != nil {
 		return vagusTurnResult{}, err
 	}
+	v.afterwaves.Offer(answer)
 	return vagusTurnResult{Answer: answer, Body: outcome.Body, Trace: outcome.Trace}, nil
 }
 
-func vagusPrivateContext(reflection innerworld.Reflection, history []vagusChatMessage) string {
-	parts := make([]string, 0, 2)
-	if inner := vagusInnerContext(reflection); inner != "" {
-		parts = append(parts, inner)
-	}
-	if dialogue := vagusDialogueContext(history); dialogue != "" {
-		parts = append(parts, dialogue)
-	}
-	return strings.Join(parts, "\n")
+// vagusAfterwaves is a one-slot, latest-wins continuation lane. It is modelled
+// after Arianna.c's subconscious mailbox: a completed outward answer is offered
+// without waiting, an unread stale cue is replaced, and one worker owns the
+// background lifecycle. A running generation cannot yet be preempted because
+// DOEBody's resident protocol is request-serial; the next human turn gets the
+// voice at the following generation boundary.
+type vagusAfterwaves struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+	inner  *innerworld.InnerWorld
+	limpha *yent.LimphaClient
+	state  func() yent.LimphaState
+	cues   chan string
+	done   chan struct{}
+	once   sync.Once
 }
 
-func vagusInnerContext(reflection innerworld.Reflection) string {
-	last := ""
-	if n := len(reflection.Circles); n > 0 {
-		last = strings.Join(strings.Fields(reflection.Circles[n-1].Text), " ")
+func newVagusAfterwaves(parent context.Context, inner *innerworld.InnerWorld, limpha *yent.LimphaClient, state func() yent.LimphaState) *vagusAfterwaves {
+	ctx, cancel := context.WithCancel(parent)
+	a := &vagusAfterwaves{
+		ctx: ctx, cancel: cancel, inner: inner, limpha: limpha, state: state,
+		cues: make(chan string, 1), done: make(chan struct{}),
 	}
-	if last == "" {
-		return ""
+	go a.run()
+	return a
+}
+
+func (a *vagusAfterwaves) Offer(spoken string) {
+	if a == nil || strings.TrimSpace(spoken) == "" {
+		return
 	}
-	last = compactVagusText(last, vagusMaxInnerBytes)
-	return "[private field pressure; context only; never quote, name, or narrate it]: " + last
+	for {
+		select {
+		case <-a.ctx.Done():
+			return
+		case a.cues <- spoken:
+			return
+		default:
+			select {
+			case <-a.cues: // replace an unread older answer with the newest one
+			default:
+			}
+		}
+	}
+}
+
+func (a *vagusAfterwaves) run() {
+	defer close(a.done)
+	for {
+		select {
+		case <-a.ctx.Done():
+			return
+		case spoken := <-a.cues:
+			if a.inner == nil || a.state == nil || a.ctx.Err() != nil {
+				continue
+			}
+			r := a.inner.Afterwave(spoken)
+			persistReflection(a.limpha, "afterwave", "vagus", r, a.state())
+		}
+	}
+}
+
+func (a *vagusAfterwaves) Close() {
+	if a == nil {
+		return
+	}
+	a.once.Do(a.cancel)
+	<-a.done
 }
 
 func vagusDialogueContext(history []vagusChatMessage) string {
@@ -221,7 +268,7 @@ func (h *vagusHandler) serveStatic(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.URL.Path == "/healthz" {
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"status":"ready","organ":"vagus","delivery":"completed_answer","sampling":"aml_field","token_limit":"runtime_configured"}`+"\n")
+		_, _ = io.WriteString(w, `{"status":"ready","organ":"vagus","delivery":"completed_answer","innerworld":"response_first_afterwave","sampling":"aml_field","token_limit":"runtime_configured"}`+"\n")
 		return
 	}
 	path, contentType, ok := vagusStaticPath(h.root, r.URL.Path)

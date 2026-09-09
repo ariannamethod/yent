@@ -179,6 +179,17 @@ type emptyBody struct{}
 
 func (emptyBody) Generate(string, float32) string { return "" }
 
+type afterwaveRecordingBody struct {
+	calls int
+	seeds []string
+}
+
+func (b *afterwaveRecordingBody) Generate(seed string, temp float32) string {
+	b.calls++
+	b.seeds = append(b.seeds, seed)
+	return fmt.Sprintf("afterwave<t=%.2f>", temp)
+}
+
 func TestOverthinkEmptyStops(t *testing.T) {
 	// a body that returns "" must not produce empty circles or drive the field —
 	// the ripple ends instead of cascading garbage (the metal-run cascade fix).
@@ -189,5 +200,26 @@ func TestOverthinkEmptyStops(t *testing.T) {
 	}
 	if scripts := field.scriptList(); len(scripts) != 0 {
 		t.Errorf("an empty body must not drive the field, got %d commands", len(scripts))
+	}
+}
+
+func TestAfterwaveIsOneUnforcedRippleFromSpokenAnswer(t *testing.T) {
+	body := &afterwaveRecordingBody{}
+	field := &fakeField{}
+	circles := Afterwave("I already said this aloud.", body, field, tempDivergence, DefaultConfig())
+	if len(circles) != 1 {
+		t.Fatalf("afterwave circles = %d, want exactly one", len(circles))
+	}
+	if body.calls != 1 {
+		t.Fatalf("afterwave generations = %d, want exactly one (no repel retries)", body.calls)
+	}
+	if strings.Contains(body.seeds[0], "Turn the question inward") {
+		t.Fatalf("afterwave reused the pre-answer coercive seed: %q", body.seeds[0])
+	}
+	if !strings.Contains(body.seeds[0], "I already said this aloud.") {
+		t.Fatalf("afterwave seed lost the spoken answer: %q", body.seeds[0])
+	}
+	if circles[0].Temp != DefaultConfig().TempBase {
+		t.Fatalf("afterwave temp = %.2f, want base %.2f", circles[0].Temp, DefaultConfig().TempBase)
 	}
 }

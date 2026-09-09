@@ -58,10 +58,10 @@ type Memory interface {
 }
 
 // InnerWorld hosts Yent's inner life over the fast body, the shared AML field,
-// and the Larynx membrane. Think runs the overthinking for a human turn off the
-// answer path; Breathe keeps the organism dreaming between turns. Only one inner
-// monologue runs at a time — the body has a single voice — so Think and the
-// autonomous dream are serialized.
+// and the Larynx membrane. Speak protects the outward voice, Afterwave lets a
+// delivered answer continue inward, and Breathe keeps the organism dreaming
+// between turns. Only one generation runs at a time — the body has a single
+// voice — so speech, afterwaves, and autonomous dreams are serialized.
 type InnerWorld struct {
 	fast       Body
 	deep       Body // the deep body (small24); nil = no deep self-answer, gate stays a boolean
@@ -365,6 +365,60 @@ func (iw *InnerWorld) ThinkAndAnswer(prompt string, answer func(Reflection) (str
 		MemoryPressure: reflection.MemoryPressure,
 	})
 	return reflection, text, err
+}
+
+// Speak gives the outward answer first while holding the organism's single
+// voice. It records human activity before waiting for that voice, restores the
+// fast body when single-resident swapping is enabled, and does not raise any
+// private circles. A live runtime can therefore return the answer and schedule
+// Afterwave separately instead of making thought a prerequisite for speech.
+func (iw *InnerWorld) Speak(answer func() (string, error)) (string, error) {
+	if answer == nil {
+		return "", nil
+	}
+	iw.mu.Lock()
+	iw.lastActive = time.Now()
+	iw.mu.Unlock()
+
+	iw.genMu.Lock()
+	defer iw.genMu.Unlock()
+	iw.ensureFastResidentLocked()
+	return answer()
+}
+
+// Afterwave continues inward from text that has already been spoken. It is one
+// unforced fast-body generation: no monotonic-drift retry and no deep-body
+// self-answer. The method is synchronous so ownership and shutdown are explicit;
+// live runtimes must call it from a bounded background scheduler, never inline
+// on the outward response path.
+func (iw *InnerWorld) Afterwave(spoken string) Reflection {
+	iw.genMu.Lock()
+	defer iw.genMu.Unlock()
+
+	iw.ensureFastResidentLocked()
+	traces := iw.memoryTracesLocked()
+	memoryPressure, _ := iw.applyMemoryPressureLocked(traces)
+	iw.applySenseLocked()
+	// Recalled biography has already changed the field above. Keep the textual
+	// seed rooted in what was actually spoken instead of restaging old monologue
+	// as part of the just-delivered answer.
+	seed := iw.coocBias(iw.scarSurface(spoken))
+	circles := Afterwave(seed, iw.fast, iw.field, iw.div, iw.cfg)
+	debt := iw.fieldDebt()
+	iw.observeLocked(circles)
+	iw.scarLocked(circles, debt)
+	iw.highFeelLocked(circles)
+	iw.publishMetricsLocked("afterwave", circles, debt, memoryPressure)
+	iw.mu.Lock()
+	larynx := iw.larynx
+	iw.mu.Unlock()
+	r := Reflection{Circles: circles, Coupling: larynx.Couple(circles), MemoryPressure: memoryPressure}
+
+	iw.mu.Lock()
+	iw.circles = cloneCircles(circles)
+	iw.mu.Unlock()
+	r.Circles = cloneCircles(circles)
+	return r
 }
 
 // due reports which autonomous trigger, if any, should fire at time now. The

@@ -12,6 +12,25 @@ import (
 // fakeMemory returns canned past monologues for the recall path.
 type fakeMemory struct{ past []string }
 
+type countingBody struct {
+	mu    sync.Mutex
+	calls int
+}
+
+func (b *countingBody) Generate(string, float32) string {
+	b.mu.Lock()
+	b.calls++
+	b.mu.Unlock()
+	return "one private afterwave"
+}
+
+func (b *countingBody) count() int {
+	b.mu.Lock()
+	v := b.calls
+	b.mu.Unlock()
+	return v
+}
+
 func (m fakeMemory) Recall(n int) []string {
 	if n < len(m.past) {
 		return m.past[:n]
@@ -260,6 +279,32 @@ func TestThinkAndAnswerHoldsSingleVoiceThroughOutwardAnswer(t *testing.T) {
 	case <-second:
 	case <-time.After(time.Second):
 		t.Fatal("waiting thought did not resume after the live turn completed")
+	}
+}
+
+func TestSpeakDoesNotRaiseThoughtBeforeOutwardAnswer(t *testing.T) {
+	body := &countingBody{}
+	deep := &countingBody{}
+	iw := NewInnerWorld(body, &fakeField{}, tempDivergence)
+	iw.SetDeep(deep)
+	answer, err := iw.Speak(func() (string, error) {
+		if body.count() != 0 {
+			t.Fatalf("private generation ran before outward speech")
+		}
+		return "spoken first", nil
+	})
+	if err != nil || answer != "spoken first" {
+		t.Fatalf("Speak() = %q, %v", answer, err)
+	}
+	if body.count() != 0 {
+		t.Fatalf("Speak itself raised %d private generations", body.count())
+	}
+	iw.Afterwave(answer)
+	if body.count() != 1 {
+		t.Fatalf("one afterwave raised %d generations", body.count())
+	}
+	if deep.count() != 0 {
+		t.Fatalf("bounded afterwave woke the deep body %d times", deep.count())
 	}
 }
 
