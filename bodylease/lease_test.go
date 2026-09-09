@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 func TestLeaseExcludesSecondOwnerInProcess(t *testing.T) {
@@ -118,4 +120,56 @@ func TestLeaseHelperProcess(t *testing.T) {
 	defer lease.Close()
 	fmt.Println("READY")
 	time.Sleep(time.Hour)
+}
+
+func TestRetryFlockRetriesOnlyEINTR(t *testing.T) {
+	tests := []struct {
+		name      string
+		how       int
+		results   []error
+		wantCalls int
+		wantErr   error
+	}{
+		{
+			name:      "acquire interrupted twice",
+			how:       unix.LOCK_EX | unix.LOCK_NB,
+			results:   []error{unix.EINTR, unix.EINTR, nil},
+			wantCalls: 3,
+		},
+		{
+			name:      "unlock interrupted once",
+			how:       unix.LOCK_UN,
+			results:   []error{unix.EINTR, nil},
+			wantCalls: 2,
+		},
+		{
+			name:      "busy remains caller-visible",
+			how:       unix.LOCK_EX | unix.LOCK_NB,
+			results:   []error{unix.EWOULDBLOCK},
+			wantCalls: 1,
+			wantErr:   unix.EWOULDBLOCK,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			calls := 0
+			err := retryFlock(func(fd int, how int) error {
+				if fd != 17 || how != tc.how {
+					t.Fatalf("forwarded flock args = (%d, %d), want (17, %d)", fd, how, tc.how)
+				}
+				if calls >= len(tc.results) {
+					t.Fatalf("unexpected flock retry %d", calls+1)
+				}
+				result := tc.results[calls]
+				calls++
+				return result
+			}, 17, tc.how)
+			if calls != tc.wantCalls {
+				t.Fatalf("calls = %d, want %d", calls, tc.wantCalls)
+			}
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("error = %v, want %v", err, tc.wantErr)
+			}
+		})
+	}
 }

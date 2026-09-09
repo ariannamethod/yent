@@ -111,7 +111,7 @@ func Acquire(ctx context.Context, path string, owner Owner) (*Lease, error) {
 	ticker := time.NewTicker(retryInterval)
 	defer ticker.Stop()
 	for {
-		err = unix.Flock(int(f.Fd()), unix.LOCK_EX|unix.LOCK_NB)
+		err = retryFlock(unix.Flock, int(f.Fd()), unix.LOCK_EX|unix.LOCK_NB)
 		if err == nil {
 			locked = true
 			break
@@ -128,7 +128,7 @@ func Acquire(ctx context.Context, path string, owner Owner) (*Lease, error) {
 
 	owner = normalizeOwner(owner)
 	if err := writeOwner(f, owner); err != nil {
-		_ = unix.Flock(int(f.Fd()), unix.LOCK_UN)
+		_ = retryFlock(unix.Flock, int(f.Fd()), unix.LOCK_UN)
 		locked = false
 		return nil, fmt.Errorf("write body lease owner: %w", err)
 	}
@@ -156,7 +156,7 @@ func (l *Lease) Close() error {
 			if err := l.file.Truncate(0); err != nil {
 				l.err = errors.Join(l.err, err)
 			}
-			if err := unix.Flock(int(l.file.Fd()), unix.LOCK_UN); err != nil {
+			if err := retryFlock(unix.Flock, int(l.file.Fd()), unix.LOCK_UN); err != nil {
 				l.err = errors.Join(l.err, err)
 			}
 			if err := l.file.Close(); err != nil {
@@ -168,6 +168,15 @@ func (l *Lease) Close() error {
 		}
 	})
 	return l.err
+}
+
+func retryFlock(call func(fd int, how int) error, fd int, how int) error {
+	for {
+		err := call(fd, how)
+		if !errors.Is(err, unix.EINTR) {
+			return err
+		}
+	}
 }
 
 // CurrentOwner reads the best-effort receipt. A stale receipt may remain only
