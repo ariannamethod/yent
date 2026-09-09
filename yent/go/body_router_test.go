@@ -137,6 +137,12 @@ func TestRouterCarriesInnerContextIntoDeepEscalation(t *testing.T) {
 	if !strings.Contains(deep.lastCtx, private) {
 		t.Fatalf("deep body lost the current inner reflection: %q", deep.lastCtx)
 	}
+	primerAt := strings.Index(deep.lastCtx, "[deep primer]:")
+	privateAt := strings.Index(deep.lastCtx, "[private inner context]:")
+	routerAt := strings.Index(deep.lastCtx, "[router fact]:")
+	if primerAt != 0 || privateAt <= primerAt || routerAt <= privateAt {
+		t.Fatalf("deep prompt order must be primer -> private inner context -> router facts: %q", deep.lastCtx)
+	}
 }
 
 func TestRouterCreatorProviderBoundaryBypassesModel(t *testing.T) {

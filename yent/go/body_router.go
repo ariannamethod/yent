@@ -295,7 +295,7 @@ func (r *Router) RouteWithInnerContext(prompt string, st LimphaState, innerConte
 	trace.Reason = reason
 	bundle := r.buildEscalationContext(prompt, fast, reason, st, complexity)
 	if innerContext != "" {
-		bundle.Text = innerContext + "\n" + bundle.Text
+		bundle.Text = insertInnerContextAfterDeepPrimer(bundle.Text, innerContext)
 	}
 	trace.MemoryRefs = bundle.MemoryRefs
 	trace.StateRefs = bundle.StateRefs
@@ -337,6 +337,20 @@ func (r *Router) RouteWithInnerContext(prompt string, st LimphaState, innerConte
 	receipt := r.storeTurn(prompt, answer, st, seam, &trace)
 	trace.applyMemoryReceipt(receipt)
 	return Outcome{Answer: answer, Body: winner, Escalated: true, Reason: reason, SeamID: receipt.SeamID, Trace: trace}, nil
+}
+
+func insertInnerContextAfterDeepPrimer(routeContext, innerContext string) string {
+	innerContext = strings.TrimSpace(innerContext)
+	if innerContext == "" {
+		return routeContext
+	}
+	private := "[private inner context]: " + innerContext + "\n"
+	if strings.HasPrefix(routeContext, "[deep primer]:") {
+		if lineEnd := strings.IndexByte(routeContext, '\n'); lineEnd >= 0 {
+			return routeContext[:lineEnd+1] + private + routeContext[lineEnd+1:]
+		}
+	}
+	return private + routeContext
 }
 
 // escalationContext is what the deep body receives: the fast body's trace, the routing
