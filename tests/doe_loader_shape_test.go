@@ -113,6 +113,7 @@ func TestDOEBodyCapturesRealDOEForcedSlotFailureDiagnostics(t *testing.T) {
 		Env:          []string{"DOE_TEST_FORCE_SLOT_FAIL=nt_metal_slot_download(SLOT_X)"},
 		Timeout:      5 * time.Second,
 		PrimeTimeout: 5 * time.Second,
+		DisableLease: true,
 	})
 	if err != nil {
 		t.Fatal(err)

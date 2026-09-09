@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/ariannamethod/yent/bodylease"
 )
 
 const testDOETimeout = 5 * time.Second
@@ -114,6 +116,7 @@ func TestDOEBodyPersistentGenerate(t *testing.T) {
 		Args:         []string{"--model", "wrong.gguf", "--once", "--train", "0"},
 		Timeout:      testDOETimeout,
 		PrimeTimeout: testDOETimeout,
+		DisableLease: true,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -149,6 +152,7 @@ func TestDOEBodyPersistentIgnoresForgedLegacyStatusLine(t *testing.T) {
 		ModelPath:    "nemo.gguf",
 		Timeout:      testDOETimeout,
 		PrimeTimeout: testDOETimeout,
+		DisableLease: true,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -181,6 +185,7 @@ func TestDOEBodyCapturesResidentStderrDiagnostics(t *testing.T) {
 		ModelPath:    "nemo.gguf",
 		Timeout:      testDOETimeout,
 		PrimeTimeout: testDOETimeout,
+		DisableLease: true,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -204,10 +209,11 @@ func TestDOEBodyCapturesResidentStderrDiagnostics(t *testing.T) {
 func TestDOEBodyOnceErrorIncludesBoundedStderr(t *testing.T) {
 	fake := writeFakeDOE(t, fakeDOEFailingOnceScript())
 	body, err := NewDOEBody(DOEBodyConfig{
-		Name:      "nemo12",
-		BinPath:   fake,
-		ModelPath: "nemo.gguf",
-		Timeout:   testDOETimeout,
+		Name:         "nemo12",
+		BinPath:      fake,
+		ModelPath:    "nemo.gguf",
+		Timeout:      testDOETimeout,
+		DisableLease: true,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -227,6 +233,89 @@ func TestDOEBodyOnceErrorIncludesBoundedStderr(t *testing.T) {
 	}
 	if len(err.Error()) > doeDiagnosticMaxErrorBytes+256 {
 		t.Fatalf("one-shot diagnostic error is not bounded: %d bytes", len(err.Error()))
+	}
+}
+
+func TestDOEBodyLeaseCoversResidentDaemonLifetime(t *testing.T) {
+	fake := writeFakeDOE(t, fakeDOEScript())
+	leasePath := filepath.Join(t.TempDir(), "body.lock")
+	newBody := func(name string) *DOEBody {
+		body, err := NewDOEBody(DOEBodyConfig{
+			Name:         name,
+			BinPath:      fake,
+			ModelPath:    name + ".gguf",
+			Timeout:      testDOETimeout,
+			PrimeTimeout: testDOETimeout,
+			LeasePath:    leasePath,
+			LeaseTimeout: 100 * time.Millisecond,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return body
+	}
+	fast := newBody("nemo12")
+	deep := newBody("gptoss20")
+	defer fast.Close()
+	defer deep.Close()
+
+	if _, err := fast.Generate("first", ""); err != nil {
+		t.Fatal(err)
+	}
+	owner, err := bodylease.CurrentOwner(leasePath)
+	if err != nil || owner.Body != "nemo12" {
+		t.Fatalf("resident owner = %+v, err=%v", owner, err)
+	}
+	if _, err := deep.Generate("must not overlap", ""); err == nil || !strings.Contains(err.Error(), "body=nemo12") {
+		t.Fatalf("deep body crossed resident fast lease: %v", err)
+	}
+	if err := fast.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := deep.Generate("after handoff", ""); err != nil {
+		t.Fatalf("deep body could not acquire after fast close: %v", err)
+	}
+	owner, err = bodylease.CurrentOwner(leasePath)
+	if err != nil || owner.Body != "gptoss20" {
+		t.Fatalf("handoff owner = %+v, err=%v", owner, err)
+	}
+}
+
+func TestDOEBodyFailedLoadReleasesLease(t *testing.T) {
+	leasePath := filepath.Join(t.TempDir(), "body.lock")
+	failing := writeFakeDOE(t, fakeDOEFailingOnceScript())
+	broken, err := NewDOEBody(DOEBodyConfig{
+		Name:         "broken",
+		BinPath:      failing,
+		ModelPath:    "broken.gguf",
+		Timeout:      testDOETimeout,
+		PrimeTimeout: testDOETimeout,
+		LeasePath:    leasePath,
+		LeaseTimeout: 100 * time.Millisecond,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := broken.Generate("fail", ""); err == nil {
+		t.Fatal("broken body unexpectedly generated")
+	}
+
+	working := writeFakeDOE(t, fakeDOEScript())
+	next, err := NewDOEBody(DOEBodyConfig{
+		Name:         "nemo12",
+		BinPath:      working,
+		ModelPath:    "nemo.gguf",
+		Timeout:      testDOETimeout,
+		PrimeTimeout: testDOETimeout,
+		LeasePath:    leasePath,
+		LeaseTimeout: 100 * time.Millisecond,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer next.Close()
+	if _, err := next.Generate("after failed load", ""); err != nil {
+		t.Fatalf("failed load leaked residency lease: %v", err)
 	}
 }
 
