@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"reflect"
 	"strings"
 	"unicode/utf8"
 )
@@ -93,6 +94,16 @@ type Router struct {
 // NewRouter wires the fast body and an optional deep body to one limpha brain.
 // EscalateBelow defaults to 0.5.
 func NewRouter(fast, deep Body, limpha *LimphaClient) *Router {
+	// An optional concrete pointer passed through the Body interface can carry a
+	// nil value while the interface itself compares non-nil. Normalize that
+	// boundary here so a Nemo-only organism never tries to call methods on a
+	// missing deep body.
+	if bodyIsNil(fast) {
+		fast = nil
+	}
+	if bodyIsNil(deep) {
+		deep = nil
+	}
 	return &Router{
 		fast:           fast,
 		deep:           deep,
@@ -103,6 +114,19 @@ func NewRouter(fast, deep Body, limpha *LimphaClient) *Router {
 		MemoryRefs:     3,
 		StateRefs:      2,
 		SingleResident: true,
+	}
+}
+
+func bodyIsNil(body Body) bool {
+	if body == nil {
+		return true
+	}
+	v := reflect.ValueOf(body)
+	switch v.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
+		return v.IsNil()
+	default:
+		return false
 	}
 }
 
@@ -473,12 +497,12 @@ func (r *Router) searchStateNeighbors(st LimphaState) ([]map[string]interface{},
 }
 
 func (r *Router) prepareBody(target Body) error {
-	if r == nil || !r.SingleResident || target == nil {
+	if r == nil || !r.SingleResident || bodyIsNil(target) {
 		return nil
 	}
 	targetName := target.Name()
 	for _, body := range []Body{r.fast, r.deep} {
-		if body == nil || body.Name() == targetName {
+		if bodyIsNil(body) || body.Name() == targetName {
 			continue
 		}
 		closer, ok := body.(ClosableBody)
