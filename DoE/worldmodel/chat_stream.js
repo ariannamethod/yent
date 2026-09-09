@@ -127,10 +127,10 @@
       const status = response && Number.isFinite(response.status) ? response.status : 0;
       throw await responseError(response, status);
     }
+    if (typeof options.onOpen === 'function') options.onOpen({ status: response.status || 200 });
     if (!response.body || typeof response.body.getReader !== 'function') {
       throw new Error('response body unavailable');
     }
-    if (typeof options.onOpen === 'function') options.onOpen({ status: response.status || 200 });
 
     const reader = response.body.getReader();
     const decoder = decoderImpl(options);

@@ -316,13 +316,16 @@ async function main() {
 }
 
 {
+  const opened = [];
   await assert.rejects(
     () => chat.stream({
       eventStream,
-      fetch: async () => makeResponse([], { noBody: true })
+      fetch: async () => makeResponse([], { noBody: true }),
+      onOpen: info => opened.push(info)
     }),
     /response body unavailable/
   );
+  assert.deepEqual(opened, [{ status: 200 }]);
 }
 
 }
