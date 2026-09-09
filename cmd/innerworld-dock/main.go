@@ -1259,11 +1259,13 @@ func main() {
 			root = "."
 		}
 		router := yent.NewRouter(fast, deep, limpha)
+		afterwaves := newVagusAfterwaves(ctx, iw, limpha, limphaStateFromCanonical)
+		defer afterwaves.Close()
 		listening, startErr := startVagus(ctx, addr, root, dockVagusTurner{
-			inner:  iw,
-			router: router,
-			limpha: limpha,
-			state:  limphaStateFromCanonical,
+			inner:      iw,
+			router:     router,
+			afterwaves: afterwaves,
+			state:      limphaStateFromCanonical,
 		})
 		if startErr != nil {
 			fmt.Fprintf(os.Stderr, "[dock] Vagus: %v\n", startErr)

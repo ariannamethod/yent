@@ -14,7 +14,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-	"unicode/utf8"
 
 	"github.com/ariannamethod/yent/innerworld"
 	yent "github.com/ariannamethod/yent/yent/go"
@@ -259,7 +258,9 @@ func TestStartVagusServesAndStopsWithDockContext(t *testing.T) {
 	}
 	body, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
-	if err != nil || resp.StatusCode != http.StatusOK || !strings.Contains(string(body), `"organ":"vagus"`) {
+	if err != nil || resp.StatusCode != http.StatusOK ||
+		!strings.Contains(string(body), `"organ":"vagus"`) ||
+		!strings.Contains(string(body), `"innerworld":"response_first_afterwave"`) {
 		cancel()
 		t.Fatalf("health response status=%d body=%q err=%v", resp.StatusCode, body, err)
 	}
@@ -281,12 +282,23 @@ func TestStartVagusServesAndStopsWithDockContext(t *testing.T) {
 type vagusInnerBody struct {
 	mu    sync.Mutex
 	calls int
+	seeds []string
+	start chan struct{}
+	once  sync.Once
+	hold  <-chan struct{}
 }
 
 func (b *vagusInnerBody) Generate(seed string, _ float32) string {
 	b.mu.Lock()
-	defer b.mu.Unlock()
 	b.calls++
+	b.seeds = append(b.seeds, seed)
+	b.mu.Unlock()
+	if b.start != nil {
+		b.once.Do(func() { close(b.start) })
+	}
+	if b.hold != nil {
+		<-b.hold
+	}
 	return seed + " -> private"
 }
 
@@ -307,20 +319,23 @@ func (b *vagusRouteBody) Generate(_ string, ctx string) (yent.BodyResult, error)
 	return yent.BodyResult{Answer: "outward", Confidence: 0.9, ExecutionPath: "fake"}, nil
 }
 
-func TestDockVagusTurnKeepsPrivateThoughtAndOutwardSpeechSeparate(t *testing.T) {
+func TestDockVagusTurnAnswersBeforeOneAsynchronousAfterwave(t *testing.T) {
 	lc, err := yent.NewLimphaClientAt(filepath.Join(t.TempDir(), "vagus.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer lc.Close()
-	innerBody := &vagusInnerBody{}
+	release := make(chan struct{})
+	innerBody := &vagusInnerBody{start: make(chan struct{}), hold: release}
 	iw := innerworld.NewInnerWorld(innerBody, vagusField{}, func(string, string) float32 { return 0.5 })
 	routeBody := &vagusRouteBody{}
+	ctx, cancel := context.WithCancel(context.Background())
+	afterwaves := newVagusAfterwaves(ctx, iw, lc, func() yent.LimphaState { return yent.LimphaState{Destiny: 0.4} })
 	turner := dockVagusTurner{
-		inner:  iw,
-		router: yent.NewRouter(routeBody, nil, lc),
-		limpha: lc,
-		state:  func() yent.LimphaState { return yent.LimphaState{Destiny: 0.4} },
+		inner:      iw,
+		router:     yent.NewRouter(routeBody, nil, lc),
+		afterwaves: afterwaves,
+		state:      func() yent.LimphaState { return yent.LimphaState{Destiny: 0.4} },
 	}
 	result, err := turner.Turn(context.Background(), vagusTurn{
 		Prompt: "human words",
@@ -335,25 +350,80 @@ func TestDockVagusTurnKeepsPrivateThoughtAndOutwardSpeechSeparate(t *testing.T) 
 	if result.Answer != "outward" || result.Body != "nemo12" || !result.Trace.InnerContext {
 		t.Fatalf("turn result = %+v", result)
 	}
-	if !strings.Contains(routeBody.ctx, "private field pressure") ||
-		!strings.Contains(routeBody.ctx, "never quote, name, or narrate it") ||
-		!strings.Contains(routeBody.ctx, "[assistant]: previous answer") ||
-		strings.Contains(routeBody.ctx, "[innerworld/human_turn]") {
-		t.Fatalf("outward body context did not receive the private pressure cleanly: %q", routeBody.ctx)
+	if strings.Contains(routeBody.ctx, "private field pressure") ||
+		!strings.Contains(routeBody.ctx, "[assistant]: previous answer") {
+		t.Fatalf("outward body received current private thought or lost dialogue continuity: %q", routeBody.ctx)
+	}
+	select {
+	case <-innerBody.start:
+	case <-time.After(time.Second):
+		t.Fatal("afterwave did not begin after the outward turn returned")
 	}
 	recent, err := lc.Recent(10, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(recent) != 2 {
-		t.Fatalf("want one private and one outward memory, got %d: %+v", len(recent), recent)
+	if len(recent) != 1 || recent[0]["prompt"] != "human words" || recent[0]["response"] != "outward" {
+		t.Fatalf("afterwave blocked or preceded outward persistence: %+v", recent)
 	}
-	if !strings.HasPrefix(recent[0]["prompt"].(string), "[innerworld/human_turn] vagus") {
-		t.Fatalf("first memory is not the private reflection: %+v", recent[0])
+	close(release)
+	deadline := time.Now().Add(time.Second)
+	for {
+		recent, err = lc.Recent(10, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(recent) == 2 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("afterwave was not persisted after release: %+v", recent)
+		}
+		time.Sleep(time.Millisecond)
 	}
-	if recent[1]["prompt"] != "human words" || recent[1]["response"] != "outward" {
-		t.Fatalf("second memory is not the outward turn: %+v", recent[1])
+	if !strings.HasPrefix(recent[1]["prompt"].(string), "[innerworld/afterwave] vagus") {
+		t.Fatalf("second memory is not the post-answer afterwave: %+v", recent[1])
 	}
+	cancel()
+	afterwaves.Close()
+}
+
+func TestVagusAfterwavesKeepOnlyLatestUnreadAnswer(t *testing.T) {
+	release := make(chan struct{})
+	body := &vagusInnerBody{start: make(chan struct{}), hold: release}
+	iw := innerworld.NewInnerWorld(body, vagusField{}, func(string, string) float32 { return 0.5 })
+	ctx, cancel := context.WithCancel(context.Background())
+	afterwaves := newVagusAfterwaves(ctx, iw, nil, func() yent.LimphaState { return yent.LimphaState{} })
+
+	afterwaves.Offer("first spoken answer")
+	select {
+	case <-body.start:
+	case <-time.After(time.Second):
+		t.Fatal("first afterwave did not begin")
+	}
+	afterwaves.Offer("stale unread answer")
+	afterwaves.Offer("latest unread answer")
+	close(release)
+
+	deadline := time.Now().Add(time.Second)
+	for {
+		body.mu.Lock()
+		calls := body.calls
+		seeds := append([]string(nil), body.seeds...)
+		body.mu.Unlock()
+		if calls == 2 {
+			if strings.Contains(seeds[1], "stale unread answer") || !strings.Contains(seeds[1], "latest unread answer") {
+				t.Fatalf("latest-wins mailbox processed the wrong cue: %q", seeds[1])
+			}
+			break
+		}
+		if calls > 2 || time.Now().After(deadline) {
+			t.Fatalf("afterwave calls = %d, want first running + latest unread", calls)
+		}
+		time.Sleep(time.Millisecond)
+	}
+	cancel()
+	afterwaves.Close()
 }
 
 func TestVagusDialogueContextKeepsNearestHistoryAndIsBounded(t *testing.T) {
@@ -379,21 +449,5 @@ func TestVagusRejectsPromptThatDOEWouldSilentlyTruncate(t *testing.T) {
 	_, err := currentVagusTurn([]vagusChatMessage{{Role: "user", Content: strings.Repeat("x", vagusMaxPromptBytes+1)}})
 	if err == nil || !strings.Contains(err.Error(), "too large") {
 		t.Fatalf("oversized current turn error = %v", err)
-	}
-}
-
-func TestVagusInnerContextIsBoundedAndUsesLastCircle(t *testing.T) {
-	reflection := innerworld.Reflection{Circles: []innerworld.Circle{
-		{Text: "first"},
-		{Text: strings.Repeat("последний ", 100)},
-	}}
-	got := vagusInnerContext(reflection)
-	if strings.Contains(got, "first") || !strings.Contains(got, "последний") {
-		t.Fatalf("inner context did not select the last circle: %q", got)
-	}
-	prefix := "[private field pressure; context only; never quote, name, or narrate it]: "
-	payload := strings.TrimPrefix(got, prefix)
-	if len(payload) > vagusMaxInnerBytes || !utf8.ValidString(payload) {
-		t.Fatalf("inner context payload is not a valid bounded string: bytes=%d", len(payload))
 	}
 }

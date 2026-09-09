@@ -1,7 +1,7 @@
-// Package innerworld is Yent's inner life — the layer that runs when no one is
-// speaking. Strike 1 is "circles on the water": every human turn raises three
-// inner circles of thought on the fast body, each drifting further from the last,
-// shaping the AML field before the deep body is consulted.
+// Package innerworld is Yent's inner life — the layer that continues around and
+// after outward speech. It retains the original multi-circle Overthink primitive
+// for autonomous/development paths and provides a single unforced Afterwave for
+// response-first live conversation.
 //
 // The package is pure logic over two interfaces — Body (an inference voice) and
 // Field (the shared AML physics). Production wires the real fast body and the
@@ -74,6 +74,28 @@ func innerSeed(prompt string) string {
 // (and the field) will consume. The circles are inner; nothing here is shown to
 // the user. A nil fast body or nil divergence yields no circles (no panic).
 func Overthink(prompt string, fast Body, field Field, div Divergence, cfg Config) []Circle {
+	return ripple(innerSeed(prompt), prompt, fast, field, div, cfg, true)
+}
+
+// Afterwave raises one private ripple from an answer that has already been
+// spoken. Unlike pre-answer Overthink, it neither demands increasing distance
+// nor retries a generation to manufacture it: drift is observed, not enforced.
+// The caller is responsible for running this off the outward-answer path.
+func Afterwave(spoken string, fast Body, field Field, div Divergence, cfg Config) []Circle {
+	if strings.TrimSpace(spoken) == "" {
+		return nil
+	}
+	if cfg.N <= 0 {
+		cfg = DefaultConfig()
+	}
+	cfg.N = 1
+	cfg.TempRamp = 0
+	cfg.MaxRepel = 0
+	seed := "[outward speech already delivered]\n" + strings.TrimSpace(spoken) + "\n[private afterwave]"
+	return ripple(seed, spoken, fast, field, div, cfg, false)
+}
+
+func ripple(seed, previous string, fast Body, field Field, div Divergence, cfg Config, repel bool) []Circle {
 	if fast == nil || div == nil {
 		return nil
 	}
@@ -82,12 +104,17 @@ func Overthink(prompt string, fast Body, field Field, div Divergence, cfg Config
 	}
 	circles := make([]Circle, 0, cfg.N)
 
-	seed := innerSeed(prompt)
-	prev := prompt        // circle 0 drifts measured from the prompt itself
+	prev := previous         // circle 0 drifts measured from the originating text
 	prevDrift := float32(-1) // circle 0 has no monotonic constraint
 	for i := 0; i < cfg.N; i++ {
 		baseTemp := cfg.TempBase + cfg.TempRamp*float32(i)
-		text, drift, temp := generateDivergent(fast, seed, prev, div, baseTemp, prevDrift, cfg)
+		text, drift, temp := "", float32(0), baseTemp
+		if repel {
+			text, drift, temp = generateDivergent(fast, seed, prev, div, baseTemp, prevDrift, cfg)
+		} else {
+			text = fast.Generate(seed, baseTemp)
+			drift = div(prev, text)
+		}
 
 		// a body that returns nothing (timeout/error) stops the ripple — do not
 		// append empty circles, do not drive the field with garbage, do not seed the
