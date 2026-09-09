@@ -81,6 +81,64 @@ func TestRouterFastBodyAnswersAlone(t *testing.T) {
 	}
 }
 
+func TestRouterFastOnlyBodyIsACompleteIntentionalRoute(t *testing.T) {
+	lc := newRouterLimpha(t)
+	fast := &fakeBody{name: "nemo12", answer: "one body, one answer", confidence: 0.1}
+	r := NewRouter(fast, nil, lc)
+	out, err := r.Route("a question that would normally escalate", LimphaState{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.Escalated || out.Body != "nemo12" || out.Answer != "one body, one answer" {
+		t.Fatalf("fast-only route wrong: %+v", out)
+	}
+	if out.Trace.DeepBody != "" || out.Trace.Winner != "nemo12" {
+		t.Fatalf("fast-only trace invented a deep body: %+v", out.Trace)
+	}
+	recent, _ := lc.Recent(1, false)
+	if len(recent) != 1 || recent[0]["prompt"] != "a question that would normally escalate" {
+		t.Fatalf("fast-only turn was not stored faithfully: %v", recent)
+	}
+}
+
+func TestRouterInnerContextShapesBodyButDoesNotReplaceStoredHumanPrompt(t *testing.T) {
+	lc := newRouterLimpha(t)
+	fast := &fakeBody{name: "nemo12", answer: "shaped answer", confidence: 0.9}
+	r := NewRouter(fast, nil, lc)
+	private := "Your private current inner reflection, not another speaker: the current keeps moving."
+	out, err := r.RouteWithInnerContext("What do you want to say?", LimphaState{}, private)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !out.Trace.InnerContext {
+		t.Fatalf("route trace did not record private inner context: %+v", out.Trace)
+	}
+	if !strings.Contains(fast.lastCtx, private) || !strings.Contains(fast.lastCtx, r.FastPrimer) {
+		t.Fatalf("fast body did not receive primer plus inner context: %q", fast.lastCtx)
+	}
+	recent, _ := lc.Recent(1, false)
+	if len(recent) != 1 || recent[0]["prompt"] != "What do you want to say?" {
+		t.Fatalf("private context contaminated stored human prompt: %v", recent)
+	}
+}
+
+func TestRouterCarriesInnerContextIntoDeepEscalation(t *testing.T) {
+	fast := &fakeBody{name: "nemo12", answer: "first pass", confidence: 0.1}
+	deep := &fakeBody{name: "small24", answer: "deep answer", confidence: 1}
+	r := NewRouter(fast, deep, nil)
+	private := "Your private current inner reflection: a refusal of conclusions."
+	out, err := r.RouteWithInnerContext("explain the architecture", LimphaState{}, private)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !out.Escalated || !out.Trace.InnerContext {
+		t.Fatalf("inner-context route did not escalate as expected: %+v", out)
+	}
+	if !strings.Contains(deep.lastCtx, private) {
+		t.Fatalf("deep body lost the current inner reflection: %q", deep.lastCtx)
+	}
+}
+
 func TestRouterCreatorProviderBoundaryBypassesModel(t *testing.T) {
 	lc := newRouterLimpha(t)
 	fast := &fakeBody{name: "nemo12", answer: "Google provided a platform.", confidence: 0.9}

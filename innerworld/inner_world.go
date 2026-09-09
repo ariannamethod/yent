@@ -286,10 +286,11 @@ func (iw *InnerWorld) reflect(circles []Circle, debt float32) Reflection {
 	}
 }
 
-// think runs one overthinking pass under the single-voice lock, reflects on it,
-// and stores a copy of the circles.
-func (iw *InnerWorld) think(prompt string) Reflection {
-	iw.genMu.Lock()
+// thinkLocked runs one overthinking pass while the caller owns genMu. Keeping
+// the lock boundary outside this function lets a live human turn carry its
+// private reflection into the outward answer without an autonomous dream
+// slipping between thought and speech.
+func (iw *InnerWorld) thinkLocked(prompt string) Reflection {
 	iw.ensureFastResidentLocked()
 	traces := iw.memoryTracesLocked()
 	memoryPressure, _ := iw.applyMemoryPressureLocked(traces) // the past as slow field pressure
@@ -305,13 +306,20 @@ func (iw *InnerWorld) think(prompt string) Reflection {
 	if r.SelfAnswered {
 		r.DeepAnswer = iw.deepAnswerLocked(circles) // deep body speaks, under the single voice
 	}
-	iw.genMu.Unlock()
 
 	iw.mu.Lock()
 	iw.circles = cloneCircles(circles)
 	iw.mu.Unlock()
 	r.Circles = cloneCircles(circles)
 	return r
+}
+
+// think runs one overthinking pass under the single-voice lock, reflects on it,
+// and stores a copy of the circles.
+func (iw *InnerWorld) think(prompt string) Reflection {
+	iw.genMu.Lock()
+	defer iw.genMu.Unlock()
+	return iw.thinkLocked(prompt)
 }
 
 // Think runs the overthinking for a human turn asynchronously: it returns at once
@@ -327,6 +335,34 @@ func (iw *InnerWorld) Think(prompt string) <-chan Reflection {
 		close(out)
 	}()
 	return out
+}
+
+// ThinkAndAnswer keeps a complete live human turn under the single-voice lock:
+// private circles rise first, then answer receives a copy of that reflection and
+// produces the outward text before autonomous dreaming can resume. The callback
+// is deliberately supplied by the runtime so innerworld stays independent of a
+// particular router or transport. A nil callback records the thought and returns
+// no outward text.
+func (iw *InnerWorld) ThinkAndAnswer(prompt string, answer func(Reflection) (string, error)) (Reflection, string, error) {
+	iw.mu.Lock()
+	iw.lastActive = time.Now()
+	iw.mu.Unlock()
+
+	iw.genMu.Lock()
+	defer iw.genMu.Unlock()
+	reflection := iw.thinkLocked(prompt)
+	if answer == nil {
+		return reflection, "", nil
+	}
+	text, err := answer(Reflection{
+		Circles:        cloneCircles(reflection.Circles),
+		Coupling:       reflection.Coupling,
+		SelfAnswerProb: reflection.SelfAnswerProb,
+		SelfAnswered:   reflection.SelfAnswered,
+		DeepAnswer:     reflection.DeepAnswer,
+		MemoryPressure: reflection.MemoryPressure,
+	})
+	return reflection, text, err
 }
 
 // due reports which autonomous trigger, if any, should fire at time now. The

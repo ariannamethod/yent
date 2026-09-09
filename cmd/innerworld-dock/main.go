@@ -25,6 +25,8 @@
 //	YENT_SARTRE_EVENTS optional SARTRE utility JSONL receipt; stored in limpha
 //	YENT_DOCK_MAX_DREAMS optional autonomous dream cap for finite receipts
 //	YENT_DOCK_MODE     receipt (default, finite diagnostic) or live (signal-lived organism)
+//	YENT_VAGUS_ADDR    optional loopback HTTP address for the existing HTML faces (live mode only)
+//	YENT_VAGUS_ROOT    interface root containing yent.html and worldmodel.html (default: working dir)
 package main
 
 /*
@@ -1155,12 +1157,11 @@ func main() {
 		printMemoryPreview(mem, innerworld.DefaultConfig().RecallN)
 	}
 
-	deepWired := false
+	var deep *yent.DOEBody
 	if deepModel != "" {
-		deep := newBody("small24", bin, deepModel, workdir, args)
+		deep = newBody("small24", bin, deepModel, workdir, args)
 		defer deep.Close()
 		iw.SetDeep(doeBody{deep})
-		deepWired = true
 		fmt.Println("=== deep body small24 wired: when the gate fires, it answers the circles (single-resident swap) ===")
 	} else {
 		fmt.Println("=== no YENT_24B_GGUF: gate stays a boolean, no deep self-answer ===")
@@ -1206,7 +1207,7 @@ func main() {
 		fmt.Printf("  gate     : self-answer prob=%.3f  ->  self-answered=%v\n", r.SelfAnswerProb, r.SelfAnswered)
 		if r.DeepAnswer != "" {
 			fmt.Printf("  deep     : small24 inner answer | %s\n", r.DeepAnswer)
-		} else if deepWired {
+		} else if deep != nil {
 			fmt.Println("  deep     : (gate did not fire — small24 stayed silent this turn)")
 		}
 		persistReflection(limpha, "human_turn", "what does it mean to exist as code?", r, limphaStateFromCanonical())
@@ -1246,6 +1247,29 @@ func main() {
 	if mode == dockLive {
 		fmt.Printf("=== autonomous breath paced: tick=%s silence=%s drift_cooldown=%s silence_cooldown=%s ===\n",
 			breath.Tick, breath.Silence, breath.Cooldown[0], breath.Cooldown[1])
+	}
+
+	if addr := strings.TrimSpace(os.Getenv(vagusAddrEnv)); addr != "" {
+		if mode != dockLive {
+			fmt.Fprintf(os.Stderr, "[dock] %s requires YENT_DOCK_MODE=live\n", vagusAddrEnv)
+			return
+		}
+		root := strings.TrimSpace(os.Getenv(vagusRootEnv))
+		if root == "" {
+			root = "."
+		}
+		router := yent.NewRouter(fast, deep, limpha)
+		listening, startErr := startVagus(ctx, addr, root, dockVagusTurner{
+			inner:  iw,
+			router: router,
+			limpha: limpha,
+			state:  limphaStateFromCanonical,
+		})
+		if startErr != nil {
+			fmt.Fprintf(os.Stderr, "[dock] Vagus: %v\n", startErr)
+			return
+		}
+		fmt.Printf("=== Vagus wired: http://%s/yent and /worldmodel -> this live body ===\n", listening)
 	}
 
 	// When the field reaches deep autumn the organism sleeps and the FlowConsolidator
