@@ -359,8 +359,8 @@ func TestDockVagusTurnAnswersBeforeOneAsynchronousAfterwave(t *testing.T) {
 	if result.Answer != "outward" || result.Body != "nemo12" || result.Trace.InnerContext {
 		t.Fatalf("turn result = %+v", result)
 	}
-	if routeBody.ctx != "" || !routeBody.opts.MatchCurrentLanguage ||
-		len(routeBody.opts.Dialogue) != 2 || routeBody.opts.Dialogue[1].Content != "previous answer" {
+	if routeBody.ctx != "" || len(routeBody.opts.Dialogue) != 2 ||
+		routeBody.opts.Dialogue[1].Content != "previous answer" {
 		t.Fatalf("outward body received flattened context or lost typed dialogue: ctx=%q opts=%+v", routeBody.ctx, routeBody.opts)
 	}
 	select {

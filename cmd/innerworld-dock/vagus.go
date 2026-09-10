@@ -88,7 +88,6 @@ func (v dockVagusTurner) Turn(ctx context.Context, turn vagusTurn) (vagusTurnRes
 		voiceAcquired = time.Now()
 		state := v.state()
 		turn.Options.Dialogue = vagusDialogueMessages(turn.History)
-		turn.Options.MatchCurrentLanguage = true
 		var routeErr error
 		outcome, routeErr = v.router.RouteWithInnerContextOptions(turn.Prompt, state, "", turn.Options)
 		return outcome.Answer, routeErr
