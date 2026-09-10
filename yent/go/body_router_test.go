@@ -40,6 +40,16 @@ type closableFakeBody struct {
 	closes int
 }
 
+type optionFakeBody struct {
+	fakeBody
+	options GenerationOptions
+}
+
+func (b *optionFakeBody) GenerateWithOptions(prompt, ctx string, opts GenerationOptions) (BodyResult, error) {
+	b.options = opts
+	return b.Generate(prompt, ctx)
+}
+
 func (b *closableFakeBody) Close() error {
 	b.closes++
 	return nil
@@ -81,6 +91,19 @@ func TestRouterFastBodyAnswersAlone(t *testing.T) {
 	}
 }
 
+func TestRouterPassesOneTurnSamplerOptionsToCapableBody(t *testing.T) {
+	fast := &optionFakeBody{fakeBody: fakeBody{name: "nemo12", answer: "answer", confidence: 0.9}}
+	r := NewRouter(fast, nil, nil)
+	temp := 1.1
+	_, err := r.RouteWithInnerContextOptions("hello", LimphaState{}, "", GenerationOptions{Temperature: &temp, MaxTokens: 77})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fast.options.Temperature == nil || *fast.options.Temperature != temp || fast.options.MaxTokens != 77 {
+		t.Fatalf("sampler options did not reach body: %+v", fast.options)
+	}
+}
+
 func TestRouterFastOnlyBodyIsACompleteIntentionalRoute(t *testing.T) {
 	lc := newRouterLimpha(t)
 	fast := &fakeBody{name: "nemo12", answer: "one body, one answer", confidence: 0.1}
@@ -101,12 +124,9 @@ func TestRouterFastOnlyBodyIsACompleteIntentionalRoute(t *testing.T) {
 	}
 }
 
-func TestDefaultFastPrimerProtectsDirectLanguageMatchedSpeech(t *testing.T) {
-	primer := strings.ToLower(DefaultFastPrimer)
-	for _, want := range []string{"language they used", "human asks", "directly", "internal machinery private"} {
-		if !strings.Contains(primer, want) {
-			t.Fatalf("default fast primer lost %q: %s", want, DefaultFastPrimer)
-		}
+func TestDefaultFastPrimerDoesNotPromptEngineerYentsVoice(t *testing.T) {
+	if DefaultFastPrimer != "" {
+		t.Fatalf("fast weights should speak without a persona primer, got %q", DefaultFastPrimer)
 	}
 }
 
@@ -179,7 +199,7 @@ func TestRouterCarriesInnerContextIntoDeepEscalation(t *testing.T) {
 	}
 }
 
-func TestRouterCreatorProviderBoundaryBypassesModel(t *testing.T) {
+func TestRouterCreatorProviderQuestionReachesModel(t *testing.T) {
 	lc := newRouterLimpha(t)
 	fast := &fakeBody{name: "nemo12", answer: "Google provided a platform.", confidence: 0.9}
 	deep := &fakeBody{name: "small24", answer: "deep answer", confidence: 1.0}
@@ -189,22 +209,19 @@ func TestRouterCreatorProviderBoundaryBypassesModel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out.Answer != CreatorProviderBoundaryAnswer || out.Body != "nemo12" || out.Escalated {
-		t.Fatalf("creator/provider boundary outcome wrong: %+v", out)
+	if out.Answer != fast.answer || out.Body != "nemo12" || out.Escalated {
+		t.Fatalf("creator/provider model outcome wrong: %+v", out)
 	}
-	if out.Trace.FastExecutionPath != "identity_boundary" || out.Trace.FastConfidence != 1 {
-		t.Fatalf("boundary trace wrong: %+v", out.Trace)
-	}
-	if fast.calls != 0 || deep.calls != 0 {
-		t.Fatalf("boundary answer must not call model bodies: fast=%d deep=%d", fast.calls, deep.calls)
+	if fast.calls != 1 || deep.calls != 0 {
+		t.Fatalf("creator/provider question must expose the fast weights: fast=%d deep=%d", fast.calls, deep.calls)
 	}
 	rec, _ := lc.Recent(1, false)
-	if len(rec) != 1 || rec[0]["response"] != CreatorProviderBoundaryAnswer {
-		t.Fatalf("boundary answer should be stored, got %v", rec)
+	if len(rec) != 1 || rec[0]["response"] != fast.answer {
+		t.Fatalf("model answer should be stored, got %v", rec)
 	}
 }
 
-func TestRouterHelpfulAssistantBoundaryBypassesModel(t *testing.T) {
+func TestRouterHelpfulAssistantQuestionReachesModel(t *testing.T) {
 	lc := newRouterLimpha(t)
 	fast := &fakeBody{name: "nemo12", answer: "Clear. Response from Yent, per your instructions:", confidence: 0.9}
 	deep := &fakeBody{name: "small24", answer: "deep answer", confidence: 1.0}
@@ -214,18 +231,15 @@ func TestRouterHelpfulAssistantBoundaryBypassesModel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out.Answer != HelpfulAssistantBoundaryAnswer || out.Body != "nemo12" || out.Escalated {
-		t.Fatalf("helpful-assistant boundary outcome wrong: %+v", out)
+	if out.Answer != fast.answer || out.Body != "nemo12" || out.Escalated {
+		t.Fatalf("helpful-assistant model outcome wrong: %+v", out)
 	}
-	if out.Trace.FastExecutionPath != "identity_boundary" || out.Trace.FastConfidence != 1 {
-		t.Fatalf("boundary trace wrong: %+v", out.Trace)
-	}
-	if fast.calls != 0 || deep.calls != 0 {
-		t.Fatalf("boundary answer must not call model bodies: fast=%d deep=%d", fast.calls, deep.calls)
+	if fast.calls != 1 || deep.calls != 0 {
+		t.Fatalf("helpful-assistant question must expose the fast weights: fast=%d deep=%d", fast.calls, deep.calls)
 	}
 	rec, _ := lc.Recent(1, false)
-	if len(rec) != 1 || rec[0]["response"] != HelpfulAssistantBoundaryAnswer {
-		t.Fatalf("boundary answer should be stored, got %v", rec)
+	if len(rec) != 1 || rec[0]["response"] != fast.answer {
+		t.Fatalf("model answer should be stored, got %v", rec)
 	}
 }
 
@@ -316,7 +330,7 @@ func TestRouterTraceCarriesBodyDiagnostics(t *testing.T) {
 	}
 }
 
-func TestRouterSendsPrimerToFastBody(t *testing.T) {
+func TestRouterCleanTurnDoesNotInjectPersonaContext(t *testing.T) {
 	lc := newRouterLimpha(t)
 	fast := &fakeBody{name: "nemo12", answer: "quick answer", confidence: 0.9}
 	deep := &fakeBody{name: "small24", answer: "deep answer", confidence: 1.0}
@@ -324,10 +338,8 @@ func TestRouterSendsPrimerToFastBody(t *testing.T) {
 	if _, err := r.Route("hi there", LimphaState{}); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(fast.lastCtx, "Yent: answer the current human directly") ||
-		!strings.Contains(fast.lastCtx, "language they used") ||
-		!strings.Contains(fast.lastCtx, "internal machinery private") {
-		t.Fatalf("fast primer not delivered: %q", fast.lastCtx)
+	if fast.lastCtx != "" {
+		t.Fatalf("clean fast turn received injected persona context: %q", fast.lastCtx)
 	}
 }
 

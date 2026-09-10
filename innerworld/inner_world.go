@@ -404,8 +404,8 @@ func (iw *InnerWorld) Afterwave(spoken string) Reflection {
 	// Recalled biography has already changed the field above. Keep the textual
 	// seed rooted in what was actually spoken instead of restaging old monologue
 	// as part of the just-delivered answer.
-	seed := iw.coocBias(iw.scarSurface(spoken))
-	circles := Afterwave(seed, iw.fast, iw.field, iw.div, iw.cfg)
+	pressure := iw.coocBias(iw.scarSurface(spoken))
+	circles := afterwaveWithPressure(spoken, pressure, iw.fast, iw.field, iw.div, iw.cfg)
 	debt := iw.fieldDebt()
 	iw.observeLocked(circles)
 	iw.scarLocked(circles, debt)

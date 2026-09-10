@@ -146,6 +146,11 @@ static int g_sampler_nonfinite_warned = 0;
 static int g_softmax_nonfinite_warned = 0;
 static int g_tokenizer_zero_fallback_warned = 0;
 static float g_gen_temp_override = -1.0f; /* <0 uses field effective temperature */
+/* Nonces make these resident-REPL controls a protocol seam rather than prompt
+ * text. Values are consumed by exactly one following generation. */
+static int g_next_max_new = -1;       /* -1 = command-line/runtime default */
+static float g_next_temp = -1.0f;     /* -1 = field temperature */
+static int g_next_temp_set = 0;
 static int g_once = 0; /* exit after one generated answer; useful for artifact isolation */
 static int g_load_spore = 1;
 static int g_save_spore = 1;
@@ -5285,6 +5290,35 @@ static int doe_control_nonce_valid(const char *s) {
     return 1;
 }
 
+static int doe_parse_float_arg(const char *flag, const char *value, float *out);
+
+static int doe_generation_options(const char *input) {
+    static const char prefix[] = "generate-options ";
+    if (!input || strncmp(input, prefix, sizeof(prefix) - 1) != 0) return 0;
+
+    char nonce[129], temp_s[64], extra;
+    long max_new = -1;
+    int fields = sscanf(input + sizeof(prefix) - 1, "%128s %ld %63s %c",
+                        nonce, &max_new, temp_s, &extra);
+    if (fields != 3 || !doe_control_nonce_valid(nonce) || max_new < 0 || max_new > 512) {
+        return -1;
+    }
+
+    float temp = -1.0f;
+    int temp_set = 0;
+    if (strcmp(temp_s, "field") != 0) {
+        if (!doe_parse_float_arg("generate-options temperature", temp_s, &temp) || temp < 0.0f || temp > 2.0f) {
+            return -1;
+        }
+        temp_set = 1;
+    }
+    g_next_max_new = max_new > 0 ? (int)max_new : -1;
+    g_next_temp = temp;
+    g_next_temp_set = temp_set;
+    printf("[generation-options] nonce=%s max=%ld temp=%s\n", nonce, max_new, temp_s);
+    return 1;
+}
+
 static void chat(GGUFIndex *ps) {
     int max_seq = 1536;  /* room for ~1022 image tokens / long contexts */
     InferState is = alloc_infer(ps, max_seq);
@@ -5310,6 +5344,11 @@ static void chat(GGUFIndex *ps) {
         while (len > 0 && (input[len-1]=='\n' || input[len-1]=='\r')) input[--len] = '\0';
         if (!len) continue;
         if (strcmp(input,"quit")==0 || strcmp(input,"exit")==0) break;
+        int options_control = doe_generation_options(input);
+        if (options_control != 0) {
+            if (options_control < 0) fprintf(stderr, "[doe] rejected malformed generate-options command\n");
+            continue;
+        }
         if (strncmp(input, "status ", 7) == 0 && doe_control_nonce_valid(input + 7)) {
             const char *nonce = input + 7;
             printf("[field-control] nonce=%s step=%d debt=%.3f entropy=%.3f resonance=%.3f emergence=%.3f\n",
@@ -5334,6 +5373,12 @@ static void chat(GGUFIndex *ps) {
                 printf("[prophecy] avg_debt=%.4f total_debt=%.4f\n", debt_sum/debt_count, F.debt);
             continue;
         }
+
+        int turn_max_new = g_next_max_new > 0 ? g_next_max_new : g_gen_max_new;
+        float turn_temp = g_next_temp_set ? g_next_temp : g_gen_temp_override;
+        g_next_max_new = -1;
+        g_next_temp = -1.0f;
+        g_next_temp_set = 0;
 
         /* Reset KV cache */
         memset(is.key_cache, 0, is.kv_bytes);
@@ -5510,7 +5555,7 @@ static void chat(GGUFIndex *ps) {
         struct timespec _gt0, _gt1; clock_gettime(CLOCK_MONOTONIC, &_gt0); int _gi = 0;
         g_prof_mv_ns = 0; g_resident_ns = 0; g_head_ns = 0; /* reset: profile over decode loop only (exclude prefill) */
         for (int _g = 0; _g < MVG_N; _g++) { g_ps_ns[_g] = 0; g_ps_cnt[_g] = 0; }
-        for (int i = 0; i < g_gen_max_new && pos < max_seq; i++, pos++) {
+        for (int i = 0; i < turn_max_new && pos < max_seq; i++, pos++) {
             _gi = i + 1;
             float *lg = doe_forward(ps, &is, prev, pos);
 
@@ -5553,7 +5598,7 @@ skip_logitdump:
                 }
             }
 
-            float sample_temp = g_gen_temp_override >= 0.0f ? g_gen_temp_override : F.effective_temp;
+            float sample_temp = turn_temp >= 0.0f ? turn_temp : F.effective_temp;
             int next = sample(lg, ps->host_vocab, sample_temp, g_gen_top_k);
             if (n_rep < 256) rep_hist[n_rep++] = next;
 

@@ -105,6 +105,9 @@ func TestVagusChatUsesOnlyCurrentHumanTurnAndEmitsHonestSSE(t *testing.T) {
 	if len(gotTurn.History) != 2 || gotTurn.History[0].Content != "old question" || gotTurn.History[1].Content != "old answer" {
 		t.Fatalf("turner history = %+v", gotTurn.History)
 	}
+	if gotTurn.Options.Temperature == nil || *gotTurn.Options.Temperature != 0.8 || gotTurn.Options.MaxTokens != 512 {
+		t.Fatalf("turner sampler options = %+v", gotTurn.Options)
+	}
 	if ct := w.Header().Get("Content-Type"); !strings.HasPrefix(ct, "text/event-stream") {
 		t.Fatalf("content type = %q", ct)
 	}
@@ -351,7 +354,7 @@ func TestDockVagusTurnAnswersBeforeOneAsynchronousAfterwave(t *testing.T) {
 		t.Fatalf("turn result = %+v", result)
 	}
 	if strings.Contains(routeBody.ctx, "private field pressure") ||
-		!strings.Contains(routeBody.ctx, "[assistant]: previous answer") {
+		!strings.Contains(routeBody.ctx, "[Yent said earlier]: previous answer") {
 		t.Fatalf("outward body received current private thought or lost dialogue continuity: %q", routeBody.ctx)
 	}
 	select {
@@ -434,16 +437,35 @@ func TestVagusDialogueContextKeepsNearestHistoryAndIsBounded(t *testing.T) {
 		{Role: "assistant", Content: "nearest answer"},
 	}
 	got := vagusDialogueContext(history)
-	if strings.Contains(got, "first question") || !strings.Contains(got, strings.Repeat("x", 100)) {
-		t.Fatalf("bounded history did not retain the nearest messages first")
+	if !strings.Contains(got, strings.Repeat("x", 100)) {
+		t.Fatalf("bounded history did not retain a compact slice of the nearest long message: %q", got)
 	}
-	if !strings.Contains(got, "[assistant]: nearest answer") {
+	if !strings.Contains(got, "[Yent said earlier]: nearest answer") {
 		t.Fatalf("bounded history lost the nearest fitting message: %q", got)
+	}
+	if strings.Index(got, "xxxxxxxx") > strings.Index(got, "nearest answer") {
+		t.Fatalf("dialogue history is not chronological: %q", got)
 	}
 	if len(got) > vagusMaxHistoryBytes+180 {
 		t.Fatalf("history context exceeded its bounded payload: %d", len(got))
 	}
 }
+
+func TestVagusRejectsInvalidSamplerControls(t *testing.T) {
+	for _, request := range []vagusChatRequest{
+		{Messages: []vagusChatMessage{{Role: "user", Content: "hello"}}, Temperature: float64Ptr(-0.1)},
+		{Messages: []vagusChatMessage{{Role: "user", Content: "hello"}}, Temperature: float64Ptr(2.1)},
+		{Messages: []vagusChatMessage{{Role: "user", Content: "hello"}}, MaxTokens: intPtr(0)},
+		{Messages: []vagusChatMessage{{Role: "user", Content: "hello"}}, MaxTokens: intPtr(513)},
+	} {
+		if _, err := currentVagusRequest(request); err == nil {
+			t.Fatalf("invalid sampler controls accepted: %+v", request)
+		}
+	}
+}
+
+func float64Ptr(v float64) *float64 { return &v }
+func intPtr(v int) *int             { return &v }
 
 func TestVagusRejectsPromptThatDOEWouldSilentlyTruncate(t *testing.T) {
 	_, err := currentVagusTurn([]vagusChatMessage{{Role: "user", Content: strings.Repeat("x", vagusMaxPromptBytes+1)}})

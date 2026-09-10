@@ -163,14 +163,14 @@ function docElements(elements) {
     })
   }), {
     temperature: 0.8,
-    maxTokens: 512
+    maxTokens: 200
   });
 }
 
 {
   assert.deepEqual(input.readParams(null), {
     temperature: 0.8,
-    maxTokens: 512
+    maxTokens: 200
   });
 }
 

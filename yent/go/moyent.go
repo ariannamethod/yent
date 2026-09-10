@@ -32,7 +32,9 @@ const (
 )
 
 const (
-	defaultFastPrimerFile = "prompts/nemo12_fast_v1.txt"
+	// Fast personality lives in Nemo's weights. A fast primer is opt-in through
+	// YENT_FAST_PRIMER(_FILE), never loaded silently by production.
+	defaultFastPrimerFile = ""
 	defaultDeepPrimerFile = "prompts/small24_deep_v1.txt"
 )
 

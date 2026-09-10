@@ -180,8 +180,14 @@ type emptyBody struct{}
 func (emptyBody) Generate(string, float32) string { return "" }
 
 type afterwaveRecordingBody struct {
-	calls int
-	seeds []string
+	calls     int
+	seeds     []string
+	maxTokens int
+}
+
+func (b *afterwaveRecordingBody) GenerateBounded(seed string, temp float32, maxTokens int) string {
+	b.maxTokens = maxTokens
+	return b.Generate(seed, temp)
 }
 
 func (b *afterwaveRecordingBody) Generate(seed string, temp float32) string {
@@ -218,10 +224,13 @@ func TestAfterwaveIsOneUnforcedRippleFromSpokenAnswer(t *testing.T) {
 	if body.calls != 1 {
 		t.Fatalf("afterwave generations = %d, want exactly one (no repel retries)", body.calls)
 	}
+	if body.maxTokens != DefaultConfig().AfterwaveMaxTokens {
+		t.Fatalf("afterwave max tokens = %d, want %d", body.maxTokens, DefaultConfig().AfterwaveMaxTokens)
+	}
 	if strings.Contains(body.seeds[0], "Turn the question inward") {
 		t.Fatalf("afterwave reused the pre-answer coercive seed: %q", body.seeds[0])
 	}
-	if !strings.HasPrefix(body.seeds[0], "[private afterwave; outward speech already delivered]") {
+	if !strings.HasPrefix(body.seeds[0], "[private afterwave; these are my own words, already spoken aloud]") {
 		t.Fatalf("afterwave contract is not protected at the start of its seed: %q", body.seeds[0])
 	}
 	if !strings.Contains(body.seeds[0], "I already said this aloud.") {
@@ -232,5 +241,25 @@ func TestAfterwaveIsOneUnforcedRippleFromSpokenAnswer(t *testing.T) {
 	}
 	if circles[0].Temp != DefaultConfig().TempBase {
 		t.Fatalf("afterwave temp = %.2f, want base %.2f", circles[0].Temp, DefaultConfig().TempBase)
+	}
+}
+
+func TestAfterwaveKeepsSpokenWordsDistinctFromInnerPressure(t *testing.T) {
+	body := &afterwaveRecordingBody{}
+	var origin string
+	circles := afterwaveWithPressure("literal outward words", "scar-shaped pressure", body, nil, func(a, _ string) float32 {
+		origin = a
+		return 0.25
+	}, DefaultConfig())
+	if len(circles) != 1 {
+		t.Fatalf("afterwave circles = %d", len(circles))
+	}
+	seed := body.seeds[0]
+	if !strings.Contains(seed, "[what I just said]: literal outward words") ||
+		!strings.Contains(seed, "[inner pressure, not speech]: scar-shaped pressure") {
+		t.Fatalf("spoken words and pressure were conflated: %q", seed)
+	}
+	if origin != "literal outward words" {
+		t.Fatalf("drift origin = %q, want literal outward words", origin)
 	}
 }

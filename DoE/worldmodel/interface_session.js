@@ -1,7 +1,10 @@
 (function (root) {
   'use strict';
 
-  const DEFAULT_KEY = 'yent.interface.session.v1';
+  // v2 begins at the truthful response-first/runtime-options seam. The old v1
+  // transcript remains recoverable in sessionStorage but is not replayed into
+  // the repaired prompt chronology.
+  const DEFAULT_KEY = 'yent.interface.session.v2';
   const DEFAULT_LIMIT = 12;
   const DEFAULT_CONTENT_LIMIT = 12000;
 

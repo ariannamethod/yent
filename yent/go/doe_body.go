@@ -23,12 +23,30 @@ import (
 
 const (
 	doeStatusCmd       = "status"
+	doeOptionsCmd      = "generate-options"
 	defaultDOETimeout  = 45 * time.Second
 	defaultDOEPrime    = 90 * time.Second
 	defaultDOELease    = 5 * time.Second
 	maxDOEPromptBytes  = 1800 // doe.c wraps chat prompts into a 2048-byte buffer.
 	doeScannerMaxBytes = 4 << 20
 )
+
+// GenerationOptions are one-turn sampler controls. Zero values preserve the
+// body's command-line/runtime defaults; an explicit temperature of zero means
+// greedy sampling, so Temperature is a pointer.
+type GenerationOptions struct {
+	Temperature *float64 `json:"temperature,omitempty"`
+	MaxTokens   int      `json:"max_tokens,omitempty"`
+}
+
+// BodyTiming separates residency/queue costs from actual prompt generation.
+// Durations are milliseconds so route receipts remain language-neutral JSON.
+type BodyTiming struct {
+	QueueWaitMS  int64 `json:"queue_wait_ms,omitempty"`
+	PrimeMS      int64 `json:"prime_ms,omitempty"`
+	GenerationMS int64 `json:"generation_ms,omitempty"`
+	TotalMS      int64 `json:"total_ms,omitempty"`
+}
 
 const (
 	doeDiagnosticMaxLines      = 24
@@ -40,7 +58,7 @@ const (
 	doeAnswerContractMarker = "[answer contract]:"
 	doeHumanPromptMarker    = "[human prompt]: "
 	doeHumanNowMarker       = "Human now: "
-	doeHumanAsksMarker      = "Human asks: "
+	doeHumanAsksMarker      = "[CURRENT HUMAN]: "
 	doeCurrentAnswerMarker  = "Answer the current human turn as Yent."
 )
 
@@ -107,14 +125,27 @@ func (b *DOEBody) Name() string { return b.cfg.Name }
 // Generate sends one prompt through the resident doe REPL. If the daemon dies
 // before the status sentinel, the same prompt is attempted once through --once.
 func (b *DOEBody) Generate(prompt, ctx string) (BodyResult, error) {
+	return b.GenerateWithOptions(prompt, ctx, GenerationOptions{})
+}
+
+// GenerateWithOptions applies sampler controls to exactly one generation. The
+// resident REPL acknowledges a nonce-bound control command before the prompt;
+// --once fallback receives equivalent command-line overrides.
+func (b *DOEBody) GenerateWithOptions(prompt, ctx string, opts GenerationOptions) (BodyResult, error) {
 	if b == nil {
 		return BodyResult{}, errors.New("nil doe body")
 	}
+	if err := validateGenerationOptions(opts); err != nil {
+		return BodyResult{}, err
+	}
+	started := time.Now()
 	seed := formatDOEPrompt(prompt, ctx)
 	if seed == "" {
 		return BodyResult{}, errors.New("empty doe prompt")
 	}
+	queueStarted := time.Now()
 	b.mu.Lock()
+	queueWait := time.Since(queueStarted)
 	defer b.mu.Unlock()
 	defer func() {
 		if b.daemon == nil || b.daemon.dead {
@@ -125,15 +156,23 @@ func (b *DOEBody) Generate(prompt, ctx string) (BodyResult, error) {
 		return BodyResult{}, err
 	}
 
+	primeStarted := time.Now()
 	daemonDiagnostics, daemonErr := b.ensureDaemonLocked()
+	primeDuration := time.Since(primeStarted)
 	daemonReady := daemonErr == nil && b.daemon != nil && !b.daemon.dead
 	genCtx, cancel := context.WithTimeout(context.Background(), b.cfg.Timeout)
 	defer cancel()
 
 	if daemonReady {
-		if raw, ok := b.daemon.exchange(genCtx, seed); ok {
+		generationStarted := time.Now()
+		if raw, ok := b.daemon.exchange(genCtx, seed, opts); ok {
 			if answer := parseDOEReply(raw); answer != "" {
-				return b.result(answer, b.daemon.diagnostics(), "doe_resident"), nil
+				return b.result(answer, b.daemon.diagnostics(), "doe_resident", BodyTiming{
+					QueueWaitMS:  durationMillis(queueWait),
+					PrimeMS:      durationMillis(primeDuration),
+					GenerationMS: durationMillis(time.Since(generationStarted)),
+					TotalMS:      durationMillis(time.Since(started)),
+				}), nil
 			}
 		}
 		daemonDiagnostics = b.daemon.diagnostics()
@@ -141,11 +180,17 @@ func (b *DOEBody) Generate(prompt, ctx string) (BodyResult, error) {
 	if genCtx.Err() != nil {
 		return BodyResult{}, genCtx.Err()
 	}
-	answer, diagnostics, err := b.runOnce(genCtx, seed)
+	generationStarted := time.Now()
+	answer, diagnostics, err := b.runOnce(genCtx, seed, opts)
 	if err != nil {
 		return BodyResult{}, err
 	}
-	return b.result(answer, mergeDOEDiagnostics(daemonDiagnostics, diagnostics), "doe_once"), nil
+	return b.result(answer, mergeDOEDiagnostics(daemonDiagnostics, diagnostics), "doe_once", BodyTiming{
+		QueueWaitMS:  durationMillis(queueWait),
+		PrimeMS:      durationMillis(primeDuration),
+		GenerationMS: durationMillis(time.Since(generationStarted)),
+		TotalMS:      durationMillis(time.Since(started)),
+	}), nil
 }
 
 // Close stops the resident doe process, if one was started.
@@ -163,7 +208,7 @@ func (b *DOEBody) Close() error {
 	return b.releaseLeaseLocked()
 }
 
-func (b *DOEBody) result(answer string, diagnostics []string, executionPath string) BodyResult {
+func (b *DOEBody) result(answer string, diagnostics []string, executionPath string, timing BodyTiming) BodyResult {
 	conf := EstimateBodyConfidence(answer)
 	if b.cfg.Confidence != nil {
 		conf = b.cfg.Confidence(answer)
@@ -173,6 +218,7 @@ func (b *DOEBody) result(answer string, diagnostics []string, executionPath stri
 		Confidence:    conf,
 		ExecutionPath: executionPath,
 		Diagnostics:   cloneDiagnostics(diagnostics),
+		Timing:        timing,
 		Verdict:       parseVerdictHook(b.cfg.Verdict, answer),
 	}
 }
@@ -198,7 +244,7 @@ func (b *DOEBody) ensureDaemonLocked() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := d.exchange(ctx, ""); !ok {
+	if _, ok := d.exchange(ctx, "", GenerationOptions{}); !ok {
 		diagnostics := d.diagnostics()
 		d.close()
 		return diagnostics, errors.New("doe daemon did not reach status sentinel")
@@ -237,8 +283,8 @@ func (b *DOEBody) releaseLeaseLocked() error {
 	return nil
 }
 
-func (b *DOEBody) runOnce(ctx context.Context, seed string) (string, []string, error) {
-	cmd := exec.CommandContext(ctx, b.cfg.BinPath, b.commandArgs(true)...)
+func (b *DOEBody) runOnce(ctx context.Context, seed string, opts GenerationOptions) (string, []string, error) {
+	cmd := exec.CommandContext(ctx, b.cfg.BinPath, b.commandArgsWithOptions(true, opts)...)
 	if b.cfg.WorkDir != "" {
 		cmd.Dir = b.cfg.WorkDir
 	}
@@ -310,6 +356,17 @@ func (b *DOEBody) commandArgs(once bool) []string {
 	return args
 }
 
+func (b *DOEBody) commandArgsWithOptions(once bool, opts GenerationOptions) []string {
+	args := b.commandArgs(once)
+	if opts.MaxTokens > 0 {
+		args = append(args, "--max-new", fmt.Sprintf("%d", opts.MaxTokens))
+	}
+	if opts.Temperature != nil {
+		args = append(args, "--temp", fmt.Sprintf("%.8g", *opts.Temperature))
+	}
+	return args
+}
+
 type doeProcess struct {
 	cmd    *exec.Cmd
 	in     io.WriteCloser
@@ -319,12 +376,16 @@ type doeProcess struct {
 	reaped sync.Once
 }
 
-func (d *doeProcess) exchange(ctx context.Context, seed string) (string, bool) {
+func (d *doeProcess) exchange(ctx context.Context, seed string, opts GenerationOptions) (string, bool) {
 	if d == nil || d.dead {
 		return "", false
 	}
 	nonce := newDOEStatusNonce()
-	if _, err := fmt.Fprintf(d.in, "%s\n%s\n", neutralizeDOEPrompt(seed), doeStatusCommand(nonce)); err != nil {
+	optionsCommand := ""
+	if generationOptionsSet(opts) {
+		optionsCommand = doeOptionsCommand(nonce, opts) + "\n"
+	}
+	if _, err := fmt.Fprintf(d.in, "%s%s\n%s\n", optionsCommand, neutralizeDOEPrompt(seed), doeStatusCommand(nonce)); err != nil {
 		d.dead = true
 		d.reap()
 		return "", false
@@ -337,10 +398,15 @@ func (d *doeProcess) exchange(ctx context.Context, seed string) (string, bool) {
 	go func() {
 		var b strings.Builder
 		ok := false
+		optionsAcknowledged := !generationOptionsSet(opts)
 		for d.out.Scan() {
 			line := d.out.Text()
+			if isDOEOptionsAcknowledgement(line, nonce, opts) {
+				optionsAcknowledged = true
+				continue
+			}
 			if isDOEStatusSentinel(line, nonce) {
-				ok = true
+				ok = optionsAcknowledged
 				break
 			}
 			b.WriteString(line)
@@ -352,6 +418,7 @@ func (d *doeProcess) exchange(ctx context.Context, seed string) (string, bool) {
 	case r := <-ch:
 		if !r.ok {
 			d.dead = true
+			d.kill()
 			d.reap()
 			return "", false
 		}
@@ -364,6 +431,50 @@ func (d *doeProcess) exchange(ctx context.Context, seed string) (string, bool) {
 		d.reap()
 		return "", false
 	}
+}
+
+func validateGenerationOptions(opts GenerationOptions) error {
+	if opts.MaxTokens < 0 || opts.MaxTokens > 512 {
+		return fmt.Errorf("max tokens must be 0 or 1..512")
+	}
+	if opts.Temperature != nil && (math.IsNaN(*opts.Temperature) || math.IsInf(*opts.Temperature, 0) || *opts.Temperature < 0 || *opts.Temperature > 2) {
+		return fmt.Errorf("temperature must be finite and within 0..2")
+	}
+	return nil
+}
+
+func generationOptionsSet(opts GenerationOptions) bool {
+	return opts.MaxTokens > 0 || opts.Temperature != nil
+}
+
+func doeOptionsCommand(nonce string, opts GenerationOptions) string {
+	maxTokens := opts.MaxTokens
+	if maxTokens <= 0 {
+		maxTokens = 0
+	}
+	temperature := "field"
+	if opts.Temperature != nil {
+		temperature = fmt.Sprintf("%.8g", *opts.Temperature)
+	}
+	return fmt.Sprintf("%s %s %d %s", doeOptionsCmd, nonce, maxTokens, temperature)
+}
+
+func isDOEOptionsAcknowledgement(line, nonce string, opts GenerationOptions) bool {
+	t := strings.TrimLeft(line, "> \t")
+	temperature := "field"
+	if opts.Temperature != nil {
+		temperature = fmt.Sprintf("%.8g", *opts.Temperature)
+	}
+	return strings.HasPrefix(t, "[generation-options] nonce="+nonce+" ") &&
+		strings.Contains(t, fmt.Sprintf("max=%d", opts.MaxTokens)) &&
+		strings.Contains(t, "temp="+temperature)
+}
+
+func durationMillis(d time.Duration) int64 {
+	if d <= 0 {
+		return 0
+	}
+	return d.Milliseconds()
 }
 
 func (d *doeProcess) close() {
@@ -585,7 +696,7 @@ func neutralizeDOEPrompt(seed string) string {
 	case doeStatusCmd, "quit", "exit":
 		return " " + seed
 	default:
-		if strings.HasPrefix(seed, doeStatusCmd+" ") {
+		if strings.HasPrefix(seed, doeStatusCmd+" ") || seed == doeOptionsCmd || strings.HasPrefix(seed, doeOptionsCmd+" ") {
 			return " " + seed
 		}
 		return seed
@@ -616,8 +727,8 @@ func isRouteContext(ctx string) bool {
 }
 
 func formatPrimerDOEPrompt(prompt, primer string) string {
-	const promptPrefix = " Human asks: "
-	suffix := promptPrefix + prompt
+	const promptPrefix = " [CURRENT HUMAN]: "
+	suffix := promptPrefix + prompt + " [YENT NOW]:"
 	budget := maxDOEPromptBytes - len(suffix) - 1
 	if budget <= 0 {
 		return prompt

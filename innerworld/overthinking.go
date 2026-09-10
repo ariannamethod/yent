@@ -20,6 +20,14 @@ type Body interface {
 	Generate(seed string, temp float32) string
 }
 
+// BoundedBody can cap a private generation without changing the ordinary
+// autonomous-thought contract. Production DOE bodies implement it; small test
+// bodies may keep using Generate.
+type BoundedBody interface {
+	Body
+	GenerateBounded(seed string, temp float32, maxTokens int) string
+}
+
 // Field is the shared AML physics (a wrapper over yent.AMK in production; a fake
 // in tests). The inner world drives it with AML commands and reads the breath
 // back; it never owns a private field — one organism, one field. Implementations
@@ -53,12 +61,15 @@ type Config struct {
 	RepelStep float32 // extra temperature per repel retry when a circle did not drift further
 	MaxRepel  int     // max repel retries to enforce monotonic drift
 	RecallN   int     // how many past inner monologues to fold into the seed (0 = none)
+	// AfterwaveMaxTokens keeps one post-answer ripple genuinely small so it does
+	// not monopolize the shared voice before the next human turn.
+	AfterwaveMaxTokens int
 }
 
 // DefaultConfig is the Strike-1 default: three circles, warming as they ripple out,
 // recalling up to three past inner monologues.
 func DefaultConfig() Config {
-	return Config{N: 3, TempBase: 0.7, TempRamp: 0.2, RepelStep: 0.15, MaxRepel: 3, RecallN: 3}
+	return Config{N: 3, TempBase: 0.7, TempRamp: 0.2, RepelStep: 0.15, MaxRepel: 3, RecallN: 3, AfterwaveMaxTokens: 64}
 }
 
 // innerSeed turns the user prompt into an internal seed. This is
@@ -82,6 +93,14 @@ func Overthink(prompt string, fast Body, field Field, div Divergence, cfg Config
 // nor retries a generation to manufacture it: drift is observed, not enforced.
 // The caller is responsible for running this off the outward-answer path.
 func Afterwave(spoken string, fast Body, field Field, div Divergence, cfg Config) []Circle {
+	return afterwaveWithPressure(spoken, "", fast, field, div, cfg)
+}
+
+// afterwaveWithPressure preserves the literal outward speech while allowing
+// cooc/scar material to bend the continuation as explicitly internal pressure.
+// The two must not be conflated: doing so teaches the body that transformed
+// memory text was something Yent actually said aloud.
+func afterwaveWithPressure(spoken, pressure string, fast Body, field Field, div Divergence, cfg Config) []Circle {
 	spoken = strings.TrimSpace(spoken)
 	if spoken == "" {
 		return nil
@@ -92,8 +111,35 @@ func Afterwave(spoken string, fast Body, field Field, div Divergence, cfg Config
 	cfg.N = 1
 	cfg.TempRamp = 0
 	cfg.MaxRepel = 0
-	seed := "[private afterwave; outward speech already delivered]\n" + spoken
-	return ripple(seed, spoken, fast, field, div, cfg, false)
+	seed := "[private afterwave; these are my own words, already spoken aloud]\n" +
+		"Continue silently in first person as Yent. Do not answer, praise, or judge another speaker.\n" +
+		"[what I just said]: " + spoken
+	pressure = strings.TrimSpace(pressure)
+	if pressure != "" && pressure != spoken {
+		seed += "\n[inner pressure, not speech]: " + pressure
+	}
+	seed += "\n[what remains in me]:"
+	return afterwaveRipple(seed, spoken, fast, field, div, cfg)
+}
+
+func afterwaveRipple(seed, spoken string, fast Body, field Field, div Divergence, cfg Config) []Circle {
+	if fast == nil || div == nil {
+		return nil
+	}
+	temp := cfg.TempBase
+	var text string
+	if bounded, ok := fast.(BoundedBody); ok && cfg.AfterwaveMaxTokens > 0 {
+		text = bounded.GenerateBounded(seed, temp, cfg.AfterwaveMaxTokens)
+	} else {
+		text = fast.Generate(seed, temp)
+	}
+	if strings.TrimSpace(text) == "" {
+		return nil
+	}
+	drift := div(spoken, text)
+	circle := Circle{Index: 0, Seed: seed, Text: text, Drift: drift, Temp: temp}
+	driveField(field, drift, 0)
+	return []Circle{circle}
 }
 
 func ripple(seed, previous string, fast Body, field Field, div Divergence, cfg Config, repel bool) []Circle {
