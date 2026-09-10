@@ -39,9 +39,8 @@ type GenerationOptions struct {
 	MaxTokens   int      `json:"max_tokens,omitempty"`
 	// Dialogue is trusted, typed transport context supplied by a local caller.
 	// It is never accepted from the public sampler-control JSON directly.
-	Dialogue             []DialogueMessage `json:"-"`
-	MatchCurrentLanguage bool              `json:"-"`
-	rawPrompt            bool
+	Dialogue  []DialogueMessage `json:"-"`
+	rawPrompt bool
 }
 
 // DialogueMessage preserves speaker ownership until the body-specific chat
@@ -749,45 +748,43 @@ type preparedDOEPrompt struct {
 
 func (b *DOEBody) preparePrompt(prompt, ctx string, opts GenerationOptions) preparedDOEPrompt {
 	if b != nil && b.cfg.ChatTemplate == DOEChatTemplateMistral &&
-		(len(opts.Dialogue) > 0 || opts.MatchCurrentLanguage) {
+		len(opts.Dialogue) > 0 {
 		return preparedDOEPrompt{
-			Text: formatMistralDialoguePrompt(prompt, ctx, opts.Dialogue, opts.MatchCurrentLanguage),
+			Text: formatMistralDialoguePrompt(prompt, ctx, opts.Dialogue),
 			Raw:  true,
 		}
 	}
 	return preparedDOEPrompt{Text: formatDOEPrompt(prompt, ctx)}
 }
 
-const doeReplyLanguageContract = "Reply in the language of the current human turn unless it explicitly requests another language."
-
 // formatMistralDialoguePrompt renders actual alternating Mistral turns. DoE
-// still prepends the GGUF BOS token, so the text begins at [INST]. Completed
-// historical pairs end at </s>; the current human turn owns the final [INST].
-func formatMistralDialoguePrompt(prompt, ctx string, dialogue []DialogueMessage, matchLanguage bool) string {
+// still prepends the first GGUF BOS token, so the text begins at [INST]. Every
+// later turn reproduces the <s>[INST] ... [/INST] ... </s> boundary used by
+// Yent's SFT and DPO corpora; the current human owns the final open turn.
+// Transport policy must not be written into the human's words: even a benign
+// prose instruction becomes a false speaker and can steal a short referent.
+func formatMistralDialoguePrompt(prompt, ctx string, dialogue []DialogueMessage) string {
 	prompt = sanitizeMistralContent(prompt)
 	ctx = sanitizeMistralContent(ctx)
-	prefix := ""
-	if matchLanguage {
-		prefix = doeReplyLanguageContract + " "
-	}
 	const (
 		openTurn      = "[INST] "
 		closeTurn     = " [/INST]"
+		bosTurn       = "<s>"
 		contextPrefix = "Private context, not dialogue to continue or quote: "
 		currentPrefix = " Current human: "
 	)
 	// The current human turn is protected. Context is admitted only from the
 	// remaining budget, so an oversized private bundle cannot erase the prompt.
-	promptBudget := maxDOEPromptBytes - len(openTurn) - len(closeTurn) - len(prefix)
+	promptBudget := maxDOEPromptBytes - len(openTurn) - len(closeTurn)
 	if len(prompt) > promptBudget {
 		prompt = truncateAtWord(prompt, promptBudget)
 	}
-	current := prefix + prompt
+	current := prompt
 	if ctx != "" {
-		contextBudget := maxDOEPromptBytes - len(openTurn) - len(closeTurn) - len(prefix) -
+		contextBudget := maxDOEPromptBytes - len(openTurn) - len(closeTurn) -
 			len(contextPrefix) - len(currentPrefix) - len(prompt)
 		if contextBudget > 0 {
-			current = prefix + contextPrefix + truncateAtWord(ctx, contextBudget) + currentPrefix + prompt
+			current = contextPrefix + truncateAtWord(ctx, contextBudget) + currentPrefix + prompt
 		}
 	}
 	currentTurn := openTurn + current + closeTurn
@@ -797,21 +794,26 @@ func formatMistralDialoguePrompt(prompt, ctx string, dialogue []DialogueMessage,
 	}
 
 	pairs := completeDialoguePairs(dialogue)
-	remaining := maxDOEPromptBytes - len(currentTurn) - 1
+	remaining := maxDOEPromptBytes - len(currentTurn)
 	selected := make([]string, 0, len(pairs))
 	for i := len(pairs) - 1; i >= 0; i-- {
 		turn := "[INST] " + pairs[i][0] + " [/INST] " + pairs[i][1] + "</s>"
-		if len(turn)+1 > remaining {
+		if len(turn)+len(bosTurn) > remaining {
 			break
 		}
 		selected = append(selected, turn)
-		remaining -= len(turn) + 1
+		remaining -= len(turn) + len(bosTurn)
 	}
 
 	var out strings.Builder
 	for i := len(selected) - 1; i >= 0; i-- {
+		if out.Len() > 0 {
+			out.WriteString(bosTurn)
+		}
 		out.WriteString(selected[i])
-		out.WriteByte(' ')
+	}
+	if out.Len() > 0 {
+		out.WriteString(bosTurn)
 	}
 	out.WriteString(currentTurn)
 	return neutralizeDOEPrompt(out.String())

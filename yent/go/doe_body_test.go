@@ -91,7 +91,7 @@ func TestDOEGenerationOptionsValidationAndControlNeutralization(t *testing.T) {
 	}
 }
 
-func TestMistralDialogueUsesNativeTurnsAndLanguageTransport(t *testing.T) {
+func TestMistralDialogueMatchesTrainedTurnBoundaries(t *testing.T) {
 	body, err := NewDOEBody(DOEBodyConfig{
 		Name: "nemo12", BinPath: "doe", ModelPath: "nemo.gguf",
 		ChatTemplate: DOEChatTemplateMistral,
@@ -104,21 +104,49 @@ func TestMistralDialogueUsesNativeTurnsAndLanguageTransport(t *testing.T) {
 			{Role: "user", Content: "i am Oleg"},
 			{Role: "assistant", Content: "Oleg, huh? The name rings a bell."},
 		},
-		MatchCurrentLanguage: true,
 	})
 	if !prepared.Raw {
 		t.Fatal("typed Mistral dialogue was not marked preformatted")
 	}
-	want := "[INST] i am Oleg [/INST] Oleg, huh? The name rings a bell.</s> [INST] " +
-		doeReplyLanguageContract + " привет Иэнт [/INST]"
+	want := "[INST] i am Oleg [/INST] Oleg, huh? The name rings a bell.</s><s>[INST] привет Иэнт [/INST]"
 	if prepared.Text != want {
 		t.Fatalf("native dialogue = %q, want %q", prepared.Text, want)
 	}
 	if strings.Contains(prepared.Text, "[CURRENT HUMAN]") || strings.Contains(prepared.Text, "[YENT NOW]") {
 		t.Fatalf("flat pseudo-roles leaked into native dialogue: %q", prepared.Text)
 	}
+	if strings.Contains(prepared.Text, "Reply in the language") {
+		t.Fatalf("transport policy leaked into the human turn: %q", prepared.Text)
+	}
 	if got := strings.Count(prepared.Text, "[INST]"); got != 2 {
 		t.Fatalf("native dialogue has %d user turns, want 2: %q", got, prepared.Text)
+	}
+}
+
+func TestMistralCleanTurnUsesSingleTurnAutoTemplateWithoutContract(t *testing.T) {
+	body := &DOEBody{cfg: DOEBodyConfig{ChatTemplate: DOEChatTemplateMistral}}
+	prepared := body.preparePrompt("привет Иэнт", "", GenerationOptions{})
+	if prepared.Raw {
+		t.Fatal("clean single turn bypassed DoE's native GGUF chat template")
+	}
+	if prepared.Text != "привет Иэнт" {
+		t.Fatalf("clean turn gained hidden prose: %q", prepared.Text)
+	}
+}
+
+func TestMistralDialogueUsesBOSForEveryHistoricalPair(t *testing.T) {
+	body := &DOEBody{cfg: DOEBodyConfig{ChatTemplate: DOEChatTemplateMistral}}
+	prepared := body.preparePrompt("third question", "", GenerationOptions{Dialogue: []DialogueMessage{
+		{Role: "user", Content: "first question"},
+		{Role: "assistant", Content: "first answer"},
+		{Role: "user", Content: "second question"},
+		{Role: "assistant", Content: "second answer"},
+	}})
+	want := "[INST] first question [/INST] first answer</s><s>" +
+		"[INST] second question [/INST] second answer</s><s>" +
+		"[INST] third question [/INST]"
+	if prepared.Text != want {
+		t.Fatalf("multi-turn boundary = %q, want %q", prepared.Text, want)
 	}
 }
 
@@ -129,7 +157,6 @@ func TestMistralDialogueProtectsCurrentTurnAndTemplateBoundary(t *testing.T) {
 			{Role: "user", Content: "old question"},
 			{Role: "assistant", Content: strings.Repeat("old answer ", 500)},
 		},
-		MatchCurrentLanguage: true,
 	})
 	if len(prepared.Text) > maxDOEPromptBytes {
 		t.Fatalf("preformatted prompt exceeds DoE cap: %d", len(prepared.Text))
