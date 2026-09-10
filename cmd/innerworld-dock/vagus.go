@@ -87,8 +87,10 @@ func (v dockVagusTurner) Turn(ctx context.Context, turn vagusTurn) (vagusTurnRes
 	answer, err := v.inner.Speak(func() (string, error) {
 		voiceAcquired = time.Now()
 		state := v.state()
+		turn.Options.Dialogue = vagusDialogueMessages(turn.History)
+		turn.Options.MatchCurrentLanguage = true
 		var routeErr error
-		outcome, routeErr = v.router.RouteWithInnerContextOptions(turn.Prompt, state, vagusDialogueContext(turn.History), turn.Options)
+		outcome, routeErr = v.router.RouteWithInnerContextOptions(turn.Prompt, state, "", turn.Options)
 		return outcome.Answer, routeErr
 	})
 	if err != nil {
@@ -175,11 +177,11 @@ func (a *vagusAfterwaves) Close() {
 	<-a.done
 }
 
-func vagusDialogueContext(history []vagusChatMessage) string {
+func vagusDialogueMessages(history []vagusChatMessage) []yent.DialogueMessage {
 	if len(history) == 0 {
-		return ""
+		return nil
 	}
-	var reversed []string
+	var reversed []yent.DialogueMessage
 	total := 0
 	for i := len(history) - 1; i >= 0; i-- {
 		role := strings.ToLower(strings.TrimSpace(history[i].Role))
@@ -187,11 +189,7 @@ func vagusDialogueContext(history []vagusChatMessage) string {
 		if (role != "user" && role != "assistant") || content == "" {
 			continue
 		}
-		prefix := "[past human]: "
-		if role == "assistant" {
-			prefix = "[Yent said earlier]: "
-		}
-		available := vagusMaxHistoryBytes - total - len(prefix)
+		available := vagusMaxHistoryBytes - total
 		if available <= 0 {
 			break
 		}
@@ -199,20 +197,17 @@ func vagusDialogueContext(history []vagusChatMessage) string {
 			available = vagusMaxHistoryMessageBytes
 		}
 		content = compactVagusText(content, available)
-		line := prefix + content
-		reversed = append(reversed, line)
-		total += len(line) + 1
+		reversed = append(reversed, yent.DialogueMessage{Role: role, Content: content})
+		total += len(content) + 1
 	}
 	if len(reversed) == 0 {
-		return ""
+		return nil
 	}
-	lines := make([]string, len(reversed))
+	messages := make([]yent.DialogueMessage, len(reversed))
 	for i := range reversed {
-		lines[len(reversed)-1-i] = reversed[i]
+		messages[len(reversed)-1-i] = reversed[i]
 	}
-	return "[BEFORE]\n" +
-		strings.Join(lines, "\n") +
-		"\n[END BEFORE]"
+	return messages
 }
 
 func finishedMillis(d time.Duration) int64 {

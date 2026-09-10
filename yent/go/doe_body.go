@@ -37,7 +37,27 @@ const (
 type GenerationOptions struct {
 	Temperature *float64 `json:"temperature,omitempty"`
 	MaxTokens   int      `json:"max_tokens,omitempty"`
+	// Dialogue is trusted, typed transport context supplied by a local caller.
+	// It is never accepted from the public sampler-control JSON directly.
+	Dialogue             []DialogueMessage `json:"-"`
+	MatchCurrentLanguage bool              `json:"-"`
+	rawPrompt            bool
 }
+
+// DialogueMessage preserves speaker ownership until the body-specific chat
+// template is rendered. Flattening both speakers into one user instruction
+// makes an instruct model continue its old answer instead of answering now.
+type DialogueMessage struct {
+	Role    string
+	Content string
+}
+
+type DOEChatTemplate uint8
+
+const (
+	DOEChatTemplateAuto DOEChatTemplate = iota
+	DOEChatTemplateMistral
+)
 
 // BodyTiming separates residency/queue costs from actual prompt generation.
 // Durations are milliseconds so route receipts remain language-neutral JSON.
@@ -74,6 +94,9 @@ type DOEBodyConfig struct {
 	WorkDir   string
 	Args      []string
 	Env       []string
+	// ChatTemplate selects the body-native multi-turn renderer when typed
+	// Dialogue is present. Auto preserves DoE's GGUF-detected single-turn path.
+	ChatTemplate DOEChatTemplate
 
 	Timeout      time.Duration
 	PrimeTimeout time.Duration
@@ -108,6 +131,9 @@ func NewDOEBody(cfg DOEBodyConfig) (*DOEBody, error) {
 	if strings.TrimSpace(cfg.ModelPath) == "" {
 		return nil, errors.New("doe body model path is required")
 	}
+	if cfg.ChatTemplate != DOEChatTemplateAuto && cfg.ChatTemplate != DOEChatTemplateMistral {
+		return nil, errors.New("unsupported doe chat template")
+	}
 	if cfg.Timeout <= 0 {
 		cfg.Timeout = defaultDOETimeout
 	}
@@ -139,7 +165,9 @@ func (b *DOEBody) GenerateWithOptions(prompt, ctx string, opts GenerationOptions
 		return BodyResult{}, err
 	}
 	started := time.Now()
-	seed := formatDOEPrompt(prompt, ctx)
+	prepared := b.preparePrompt(prompt, ctx, opts)
+	seed := prepared.Text
+	opts.rawPrompt = prepared.Raw
 	if seed == "" {
 		return BodyResult{}, errors.New("empty doe prompt")
 	}
@@ -364,6 +392,9 @@ func (b *DOEBody) commandArgsWithOptions(once bool, opts GenerationOptions) []st
 	if opts.Temperature != nil {
 		args = append(args, "--temp", fmt.Sprintf("%.8g", *opts.Temperature))
 	}
+	if opts.rawPrompt {
+		args = append(args, "--raw-prompt")
+	}
 	return args
 }
 
@@ -444,7 +475,7 @@ func validateGenerationOptions(opts GenerationOptions) error {
 }
 
 func generationOptionsSet(opts GenerationOptions) bool {
-	return opts.MaxTokens > 0 || opts.Temperature != nil
+	return opts.MaxTokens > 0 || opts.Temperature != nil || opts.rawPrompt
 }
 
 func doeOptionsCommand(nonce string, opts GenerationOptions) string {
@@ -456,7 +487,11 @@ func doeOptionsCommand(nonce string, opts GenerationOptions) string {
 	if opts.Temperature != nil {
 		temperature = fmt.Sprintf("%.8g", *opts.Temperature)
 	}
-	return fmt.Sprintf("%s %s %d %s", doeOptionsCmd, nonce, maxTokens, temperature)
+	command := fmt.Sprintf("%s %s %d %s", doeOptionsCmd, nonce, maxTokens, temperature)
+	if opts.rawPrompt {
+		command += " raw"
+	}
+	return command
 }
 
 func isDOEOptionsAcknowledgement(line, nonce string, opts GenerationOptions) bool {
@@ -465,9 +500,13 @@ func isDOEOptionsAcknowledgement(line, nonce string, opts GenerationOptions) boo
 	if opts.Temperature != nil {
 		temperature = fmt.Sprintf("%.8g", *opts.Temperature)
 	}
-	return strings.HasPrefix(t, "[generation-options] nonce="+nonce+" ") &&
+	ok := strings.HasPrefix(t, "[generation-options] nonce="+nonce+" ") &&
 		strings.Contains(t, fmt.Sprintf("max=%d", opts.MaxTokens)) &&
 		strings.Contains(t, "temp="+temperature)
+	if opts.rawPrompt {
+		ok = ok && strings.Contains(t, "mode=raw")
+	}
+	return ok
 }
 
 func durationMillis(d time.Duration) int64 {
@@ -701,6 +740,117 @@ func neutralizeDOEPrompt(seed string) string {
 		}
 		return seed
 	}
+}
+
+type preparedDOEPrompt struct {
+	Text string
+	Raw  bool
+}
+
+func (b *DOEBody) preparePrompt(prompt, ctx string, opts GenerationOptions) preparedDOEPrompt {
+	if b != nil && b.cfg.ChatTemplate == DOEChatTemplateMistral &&
+		(len(opts.Dialogue) > 0 || opts.MatchCurrentLanguage) {
+		return preparedDOEPrompt{
+			Text: formatMistralDialoguePrompt(prompt, ctx, opts.Dialogue, opts.MatchCurrentLanguage),
+			Raw:  true,
+		}
+	}
+	return preparedDOEPrompt{Text: formatDOEPrompt(prompt, ctx)}
+}
+
+const doeReplyLanguageContract = "Reply in the language of the current human turn unless it explicitly requests another language."
+
+// formatMistralDialoguePrompt renders actual alternating Mistral turns. DoE
+// still prepends the GGUF BOS token, so the text begins at [INST]. Completed
+// historical pairs end at </s>; the current human turn owns the final [INST].
+func formatMistralDialoguePrompt(prompt, ctx string, dialogue []DialogueMessage, matchLanguage bool) string {
+	prompt = sanitizeMistralContent(prompt)
+	ctx = sanitizeMistralContent(ctx)
+	prefix := ""
+	if matchLanguage {
+		prefix = doeReplyLanguageContract + " "
+	}
+	const (
+		openTurn      = "[INST] "
+		closeTurn     = " [/INST]"
+		contextPrefix = "Private context, not dialogue to continue or quote: "
+		currentPrefix = " Current human: "
+	)
+	// The current human turn is protected. Context is admitted only from the
+	// remaining budget, so an oversized private bundle cannot erase the prompt.
+	promptBudget := maxDOEPromptBytes - len(openTurn) - len(closeTurn) - len(prefix)
+	if len(prompt) > promptBudget {
+		prompt = truncateAtWord(prompt, promptBudget)
+	}
+	current := prefix + prompt
+	if ctx != "" {
+		contextBudget := maxDOEPromptBytes - len(openTurn) - len(closeTurn) - len(prefix) -
+			len(contextPrefix) - len(currentPrefix) - len(prompt)
+		if contextBudget > 0 {
+			current = prefix + contextPrefix + truncateAtWord(ctx, contextBudget) + currentPrefix + prompt
+		}
+	}
+	currentTurn := openTurn + current + closeTurn
+	if len(currentTurn) >= maxDOEPromptBytes {
+		budget := maxDOEPromptBytes - len(openTurn) - len(closeTurn)
+		return neutralizeDOEPrompt(openTurn + truncateAtWord(current, budget) + closeTurn)
+	}
+
+	pairs := completeDialoguePairs(dialogue)
+	remaining := maxDOEPromptBytes - len(currentTurn) - 1
+	selected := make([]string, 0, len(pairs))
+	for i := len(pairs) - 1; i >= 0; i-- {
+		turn := "[INST] " + pairs[i][0] + " [/INST] " + pairs[i][1] + "</s>"
+		if len(turn)+1 > remaining {
+			break
+		}
+		selected = append(selected, turn)
+		remaining -= len(turn) + 1
+	}
+
+	var out strings.Builder
+	for i := len(selected) - 1; i >= 0; i-- {
+		out.WriteString(selected[i])
+		out.WriteByte(' ')
+	}
+	out.WriteString(currentTurn)
+	return neutralizeDOEPrompt(out.String())
+}
+
+func completeDialoguePairs(dialogue []DialogueMessage) [][2]string {
+	pairs := make([][2]string, 0, len(dialogue)/2)
+	pendingHuman := ""
+	for _, message := range dialogue {
+		role := strings.ToLower(strings.TrimSpace(message.Role))
+		content := sanitizeMistralContent(message.Content)
+		if content == "" {
+			continue
+		}
+		switch role {
+		case "user":
+			pendingHuman = content
+		case "assistant":
+			if pendingHuman != "" {
+				pairs = append(pairs, [2]string{pendingHuman, content})
+				pendingHuman = ""
+			}
+		}
+	}
+	return pairs
+}
+
+func compactDOEText(value string) string {
+	return strings.Join(strings.Fields(strings.ToValidUTF8(value, "")), " ")
+}
+
+func sanitizeMistralContent(value string) string {
+	value = compactDOEText(value)
+	return strings.NewReplacer(
+		"[INST]", "[ INST ]",
+		"[/INST]", "[ /INST ]",
+		"</s>", "< /s >",
+		"<s>", "< s >",
+	).Replace(value)
 }
 
 func formatDOEPrompt(prompt, ctx string) string {

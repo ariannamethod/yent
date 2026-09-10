@@ -313,12 +313,18 @@ func (vagusField) Debt() float32     { return 0 }
 func (vagusField) Destiny() float32  { return 0 }
 
 type vagusRouteBody struct {
-	ctx string
+	ctx  string
+	opts yent.GenerationOptions
 }
 
 func (*vagusRouteBody) Name() string { return "nemo12" }
 func (b *vagusRouteBody) Generate(_ string, ctx string) (yent.BodyResult, error) {
 	b.ctx = ctx
+	return yent.BodyResult{Answer: "outward", Confidence: 0.9, ExecutionPath: "fake"}, nil
+}
+func (b *vagusRouteBody) GenerateWithOptions(_ string, ctx string, opts yent.GenerationOptions) (yent.BodyResult, error) {
+	b.ctx = ctx
+	b.opts = opts
 	return yent.BodyResult{Answer: "outward", Confidence: 0.9, ExecutionPath: "fake"}, nil
 }
 
@@ -350,12 +356,12 @@ func TestDockVagusTurnAnswersBeforeOneAsynchronousAfterwave(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Answer != "outward" || result.Body != "nemo12" || !result.Trace.InnerContext {
+	if result.Answer != "outward" || result.Body != "nemo12" || result.Trace.InnerContext {
 		t.Fatalf("turn result = %+v", result)
 	}
-	if strings.Contains(routeBody.ctx, "private field pressure") ||
-		!strings.Contains(routeBody.ctx, "[Yent said earlier]: previous answer") {
-		t.Fatalf("outward body received current private thought or lost dialogue continuity: %q", routeBody.ctx)
+	if routeBody.ctx != "" || !routeBody.opts.MatchCurrentLanguage ||
+		len(routeBody.opts.Dialogue) != 2 || routeBody.opts.Dialogue[1].Content != "previous answer" {
+		t.Fatalf("outward body received flattened context or lost typed dialogue: ctx=%q opts=%+v", routeBody.ctx, routeBody.opts)
 	}
 	select {
 	case <-innerBody.start:
@@ -436,18 +442,22 @@ func TestVagusDialogueContextKeepsNearestHistoryAndIsBounded(t *testing.T) {
 		{Role: "user", Content: strings.Repeat("x", 9000)},
 		{Role: "assistant", Content: "nearest answer"},
 	}
-	got := vagusDialogueContext(history)
-	if !strings.Contains(got, strings.Repeat("x", 100)) {
-		t.Fatalf("bounded history did not retain a compact slice of the nearest long message: %q", got)
+	got := vagusDialogueMessages(history)
+	joined := ""
+	for _, message := range got {
+		joined += message.Role + ":" + message.Content + "\n"
 	}
-	if !strings.Contains(got, "[Yent said earlier]: nearest answer") {
-		t.Fatalf("bounded history lost the nearest fitting message: %q", got)
+	if !strings.Contains(joined, strings.Repeat("x", 100)) {
+		t.Fatalf("bounded history did not retain a compact slice of the nearest long message: %q", joined)
 	}
-	if strings.Index(got, "xxxxxxxx") > strings.Index(got, "nearest answer") {
-		t.Fatalf("dialogue history is not chronological: %q", got)
+	if !strings.Contains(joined, "assistant:nearest answer") {
+		t.Fatalf("bounded history lost the nearest fitting message: %q", joined)
 	}
-	if len(got) > vagusMaxHistoryBytes+180 {
-		t.Fatalf("history context exceeded its bounded payload: %d", len(got))
+	if strings.Index(joined, "xxxxxxxx") > strings.Index(joined, "nearest answer") {
+		t.Fatalf("dialogue history is not chronological: %q", joined)
+	}
+	if len(joined) > vagusMaxHistoryBytes+80 {
+		t.Fatalf("history context exceeded its bounded payload: %d", len(joined))
 	}
 }
 

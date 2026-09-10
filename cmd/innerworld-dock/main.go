@@ -281,6 +281,7 @@ func newBody(name, bin, model, workdir string, args []string) *yent.DOEBody {
 		Name: name, BinPath: bin, ModelPath: model, WorkDir: workdir, Args: args,
 		Timeout:      durationEnv("YENT_DOE_TIMEOUT_SEC"),
 		PrimeTimeout: durationEnv("YENT_DOE_PRIME_TIMEOUT_SEC"),
+		ChatTemplate: yent.DOEChatTemplateMistral,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[dock] build %s body: %v\n", name, err)
