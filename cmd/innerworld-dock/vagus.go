@@ -32,6 +32,7 @@ const (
 	vagusMaxPromptBytes         = 1200
 	vagusMaxHistoryBytes        = 420
 	vagusMaxHistoryMessageBytes = 160
+	vagusDefaultMaxTokens       = 384
 )
 
 type vagusTiming struct {
@@ -423,7 +424,9 @@ func currentVagusRequest(request vagusChatRequest) (vagusTurn, error) {
 	if err != nil {
 		return vagusTurn{}, err
 	}
-	opts := yent.GenerationOptions{Temperature: request.Temperature}
+	// Vagus speech gets a wider default breath than DoE's generic 200-token
+	// runtime default. Private afterwaves keep their explicit small budget.
+	opts := yent.GenerationOptions{Temperature: request.Temperature, MaxTokens: vagusDefaultMaxTokens}
 	if request.MaxTokens != nil {
 		opts.MaxTokens = *request.MaxTokens
 	}

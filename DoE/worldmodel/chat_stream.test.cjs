@@ -30,7 +30,7 @@ async function main() {
   assert.deepEqual(body, {
     messages: [],
     temperature: 0.8,
-    max_tokens: 200
+    max_tokens: 384
   });
 }
 
