@@ -73,7 +73,7 @@
     options = optionTable(options);
     const messages = Array.isArray(options.messages) ? options.messages : [];
     const temperature = clampNumber(options.temperature, 0.8, 0, 2);
-    const maxTokens = clampInteger(options.maxTokens, 512, 1, 512);
+    const maxTokens = clampInteger(options.maxTokens, 200, 1, 512);
     return JSON.stringify({
       messages,
       temperature,

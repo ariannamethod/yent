@@ -157,20 +157,9 @@ func TestNewMoyentRouterFromEnvLoadsPrimerFiles(t *testing.T) {
 	}
 }
 
-func TestDefaultFastPrimerFileContainsSubstrateBoundary(t *testing.T) {
-	path := filepath.Join("..", "..", defaultFastPrimerFile)
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read default fast primer file %s: %v", path, err)
-	}
-	primer := normalizePrimer(string(data))
-	for _, want := range []string{
-		"creator/provider questions",
-		"No. Oleg and the Arianna Method gave me shape. I am Yent.",
-	} {
-		if !strings.Contains(primer, want) {
-			t.Fatalf("default fast primer file missing %q: %q", want, primer)
-		}
+func TestProductionHasNoImplicitFastPersonaPrimer(t *testing.T) {
+	if defaultFastPrimerFile != "" || DefaultFastPrimer != "" {
+		t.Fatalf("production fast primer must be opt-in: file=%q inline=%q", defaultFastPrimerFile, DefaultFastPrimer)
 	}
 }
 

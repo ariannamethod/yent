@@ -92,7 +92,7 @@
     options = options || {};
     const doc = optionDocument(options);
     const temperature = clampNumber(parseFloat(elementValue(doc, 'temp')), 0.8, 0, 2);
-    const maxTokens = clampInteger(parseInt(elementValue(doc, 'max-tokens'), 10), 512, 1, 512);
+    const maxTokens = clampInteger(parseInt(elementValue(doc, 'max-tokens'), 10), 200, 1, 512);
     return { temperature, maxTokens };
   }
 

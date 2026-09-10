@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"mime"
 	"net"
 	"net/http"
@@ -28,19 +29,28 @@ const (
 	// doe_field's current chat wrapper is 2048 bytes. Leave room for the fast
 	// primer and a bounded slice of private reflection instead of accepting a
 	// large turn that the body would silently truncate.
-	vagusMaxPromptBytes  = 1200
-	vagusMaxHistoryBytes = 640
+	vagusMaxPromptBytes         = 1200
+	vagusMaxHistoryBytes        = 420
+	vagusMaxHistoryMessageBytes = 160
 )
+
+type vagusTiming struct {
+	VoiceWaitMS int64 `json:"voice_wait_ms,omitempty"`
+	OutwardMS   int64 `json:"outward_ms,omitempty"`
+	TotalMS     int64 `json:"total_ms,omitempty"`
+}
 
 type vagusTurnResult struct {
 	Answer string
 	Body   string
 	Trace  yent.RouteTrace
+	Timing vagusTiming
 }
 
 type vagusTurn struct {
 	Prompt  string
 	History []vagusChatMessage
+	Options yent.GenerationOptions
 }
 
 type vagusTurner interface {
@@ -71,18 +81,26 @@ func (v dockVagusTurner) Turn(ctx context.Context, turn vagusTurn) (vagusTurnRes
 	if err := ctx.Err(); err != nil {
 		return vagusTurnResult{}, err
 	}
+	started := time.Now()
+	var voiceAcquired time.Time
 	var outcome yent.Outcome
 	answer, err := v.inner.Speak(func() (string, error) {
+		voiceAcquired = time.Now()
 		state := v.state()
 		var routeErr error
-		outcome, routeErr = v.router.RouteWithInnerContext(turn.Prompt, state, vagusDialogueContext(turn.History))
+		outcome, routeErr = v.router.RouteWithInnerContextOptions(turn.Prompt, state, vagusDialogueContext(turn.History), turn.Options)
 		return outcome.Answer, routeErr
 	})
 	if err != nil {
 		return vagusTurnResult{}, err
 	}
 	v.afterwaves.Offer(answer)
-	return vagusTurnResult{Answer: answer, Body: outcome.Body, Trace: outcome.Trace}, nil
+	finished := time.Now()
+	return vagusTurnResult{Answer: answer, Body: outcome.Body, Trace: outcome.Trace, Timing: vagusTiming{
+		VoiceWaitMS: finishedMillis(voiceAcquired.Sub(started)),
+		OutwardMS:   finishedMillis(finished.Sub(voiceAcquired)),
+		TotalMS:     finishedMillis(finished.Sub(started)),
+	}}, nil
 }
 
 // vagusAfterwaves is a one-slot, latest-wins continuation lane. It is modelled
@@ -141,8 +159,10 @@ func (a *vagusAfterwaves) run() {
 			if a.inner == nil || a.state == nil || a.ctx.Err() != nil {
 				continue
 			}
+			started := time.Now()
 			r := a.inner.Afterwave(spoken)
 			persistReflection(a.limpha, "afterwave", "vagus", r, a.state())
+			fmt.Fprintf(os.Stderr, "[vagus] afterwave complete duration_ms=%d circles=%d\n", finishedMillis(time.Since(started)), len(r.Circles))
 		}
 	}
 }
@@ -159,7 +179,7 @@ func vagusDialogueContext(history []vagusChatMessage) string {
 	if len(history) == 0 {
 		return ""
 	}
-	var lines []string
+	var reversed []string
 	total := 0
 	for i := len(history) - 1; i >= 0; i-- {
 		role := strings.ToLower(strings.TrimSpace(history[i].Role))
@@ -167,24 +187,39 @@ func vagusDialogueContext(history []vagusChatMessage) string {
 		if (role != "user" && role != "assistant") || content == "" {
 			continue
 		}
-		prefix := "[" + role + "]: "
+		prefix := "[past human]: "
+		if role == "assistant" {
+			prefix = "[Yent said earlier]: "
+		}
 		available := vagusMaxHistoryBytes - total - len(prefix)
 		if available <= 0 {
 			break
 		}
-		originalLen := len(content)
+		if available > vagusMaxHistoryMessageBytes {
+			available = vagusMaxHistoryMessageBytes
+		}
 		content = compactVagusText(content, available)
 		line := prefix + content
-		lines = append(lines, line)
-		total += len(line)
-		if len(content) < originalLen {
-			break
-		}
+		reversed = append(reversed, line)
+		total += len(line) + 1
 	}
-	if len(lines) == 0 {
+	if len(reversed) == 0 {
 		return ""
 	}
-	return "Recent external dialogue from this local interface, newest first, for continuity only; the current human turn remains authoritative:\n" + strings.Join(lines, "\n")
+	lines := make([]string, len(reversed))
+	for i := range reversed {
+		lines[len(reversed)-1-i] = reversed[i]
+	}
+	return "[BEFORE]\n" +
+		strings.Join(lines, "\n") +
+		"\n[END BEFORE]"
+}
+
+func finishedMillis(d time.Duration) int64 {
+	if d <= 0 {
+		return 0
+	}
+	return d.Milliseconds()
 }
 
 func compactVagusText(value string, maxBytes int) string {
@@ -268,7 +303,7 @@ func (h *vagusHandler) serveStatic(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.URL.Path == "/healthz" {
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"status":"ready","organ":"vagus","delivery":"completed_answer","innerworld":"response_first_afterwave","sampling":"aml_field","token_limit":"runtime_configured"}`+"\n")
+		_, _ = io.WriteString(w, `{"status":"ready","organ":"vagus","delivery":"completed_answer","innerworld":"response_first_afterwave","sampling":"request_or_aml_field","token_limit":"request_or_runtime"}`+"\n")
 		return
 	}
 	path, contentType, ok := vagusStaticPath(h.root, r.URL.Path)
@@ -340,7 +375,7 @@ func (h *vagusHandler) serveChat(w http.ResponseWriter, r *http.Request) {
 		writeVagusJSONError(w, err, "invalid trailing chat data")
 		return
 	}
-	turn, err := currentVagusTurn(request.Messages)
+	turn, err := currentVagusRequest(request)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -364,21 +399,48 @@ func (h *vagusHandler) serveChat(w http.ResponseWriter, r *http.Request) {
 		flushResponse(w)
 		return
 	}
+	samplingTemperature := float64(result.Trace.State.Temperature)
+	if turn.Options.Temperature != nil {
+		samplingTemperature = *turn.Options.Temperature
+	}
 	_ = writeVagusEvent(w, map[string]any{
-		"token":       result.Answer,
-		"body":        result.Body,
-		"delivery":    "completed_answer",
-		"sampling":    "aml_field",
-		"temperature": result.Trace.State.Temperature,
-		"debt":        result.Trace.State.Debt,
+		"token":             result.Answer,
+		"body":              result.Body,
+		"delivery":          "completed_answer",
+		"sampling":          "request_or_aml_field",
+		"temperature":       samplingTemperature,
+		"field_temperature": result.Trace.State.Temperature,
+		"max_tokens":        turn.Options.MaxTokens,
+		"debt":              result.Trace.State.Debt,
+		"timing":            result.Timing,
 	})
 	_ = writeVagusEvent(w, map[string]any{
 		"done":     true,
 		"body":     result.Body,
 		"delivery": "completed_answer",
 		"trace":    result.Trace,
+		"timing":   result.Timing,
 	})
 	flushResponse(w)
+}
+
+func currentVagusRequest(request vagusChatRequest) (vagusTurn, error) {
+	turn, err := currentVagusTurn(request.Messages)
+	if err != nil {
+		return vagusTurn{}, err
+	}
+	opts := yent.GenerationOptions{Temperature: request.Temperature}
+	if request.MaxTokens != nil {
+		opts.MaxTokens = *request.MaxTokens
+	}
+	if opts.Temperature != nil && (math.IsNaN(*opts.Temperature) || math.IsInf(*opts.Temperature, 0) || *opts.Temperature < 0 || *opts.Temperature > 2) {
+		return vagusTurn{}, errors.New("temperature must be within 0..2")
+	}
+	if request.MaxTokens != nil && (opts.MaxTokens < 1 || opts.MaxTokens > 512) {
+		return vagusTurn{}, errors.New("max_tokens must be within 1..512")
+	}
+	turn.Options = opts
+	return turn, nil
 }
 
 func writeVagusJSONError(w http.ResponseWriter, err error, fallback string) {

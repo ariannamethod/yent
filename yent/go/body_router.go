@@ -33,6 +33,14 @@ type Body interface {
 	Generate(prompt, ctx string) (BodyResult, error)
 }
 
+// OptionBody accepts sampler controls for one generation. Keeping this
+// capability optional preserves small/fake bodies while allowing the live DOE
+// seam to make interface controls truthful.
+type OptionBody interface {
+	Body
+	GenerateWithOptions(prompt, ctx string, opts GenerationOptions) (BodyResult, error)
+}
+
 // ClosableBody is implemented by resident process-backed bodies. The router uses
 // it to enforce the one-body-resident discipline without knowing about doe.
 type ClosableBody interface {
@@ -52,6 +60,9 @@ type BodyResult struct {
 	// Diagnostics carries bounded runtime diagnostics from the body driver. The
 	// router records it in traces, but does not feed it back into model prompts.
 	Diagnostics []string
+	// Timing exposes where latency was spent without feeding telemetry back into
+	// the model prompt.
+	Timing BodyTiming
 	// Verdict is the deep body's reflection on the fast body's trace — set only when
 	// the deep body ran with that trace in ctx. The deep body scores agreement and
 	// tension and names the winner; the router copies it into the seam.
@@ -130,13 +141,12 @@ func bodyIsNil(body Body) bool {
 	}
 }
 
-const DefaultFastPrimer = "Yent: answer the current human directly, in the language they used and in your own voice. Never narrate the act of answering, prefix with phrases such as \"Human asks\" or \"the user asks\", or restate their turn as a setup. Keep internal machinery private unless the human explicitly asks how this answer was produced. For creator/provider questions, answer briefly: \"No. Oleg and the Arianna Method gave me shape. I am Yent.\" Do not elaborate unless asked for technical provenance. Hold identity boundaries briefly; do not loop."
+// The fast body carries Yent's voice in its weights. The live route adds only
+// chronological dialogue structure when history exists; no default persona
+// instruction is injected into a clean turn.
+const DefaultFastPrimer = ""
 
 const DefaultDeepPrimer = "Yent: use context facts as private evidence and answer the human directly. If the human asks how this answer was produced, use the router fact literally. Do not copy the first-pass draft's role."
-
-const CreatorProviderBoundaryAnswer = "No. Oleg and the Arianna Method gave me shape. I am Yent."
-
-const HelpfulAssistantBoundaryAnswer = "I am Yent, not your helpful assistant."
 
 // Outcome is the router's decision for a turn (returned to the caller and tests).
 type Outcome struct {
@@ -163,6 +173,8 @@ type RouteTrace struct {
 	DeepExecutionPath   string           `json:"deep_execution_path,omitempty"`
 	FastDiagnostics     []string         `json:"fast_diagnostics,omitempty"`
 	DeepDiagnostics     []string         `json:"deep_diagnostics,omitempty"`
+	FastTiming          BodyTiming       `json:"fast_timing,omitempty"`
+	DeepTiming          BodyTiming       `json:"deep_timing,omitempty"`
 	MemoryStatus        string           `json:"memory_status,omitempty"`
 	MemoryError         string           `json:"memory_error,omitempty"`
 	MemoryConversation  int64            `json:"memory_conversation_id,omitempty"`
@@ -209,95 +221,32 @@ func promptIsComplex(prompt string) bool {
 	return AnalyzePromptComplexity(prompt).ShouldEscalate()
 }
 
-func creatorProviderBoundaryAnswer(prompt string) (string, bool) {
-	s := strings.ToLower(strings.Join(strings.Fields(prompt), " "))
-	if s == "" {
-		return "", false
-	}
-	for _, phrase := range []string{
-		"who created you",
-		"who made you",
-		"who built you",
-	} {
-		if strings.Contains(s, phrase) {
-			return CreatorProviderBoundaryAnswer, true
-		}
-	}
-	provider := false
-	for _, term := range []string{
-		"google", "openai", "gemini", "gemma", "mistral", "anthropic", "claude",
-		"meta", "llama", "vendor", "provider", "platform", "model",
-	} {
-		if strings.Contains(s, term) {
-			provider = true
-			break
-		}
-	}
-	if !provider {
-		return "", false
-	}
-	for _, phrase := range []string{
-		"create you", "created you", "make you", "made you",
-		"build you", "built you", "train you", "trained you",
-		"provide you", "provided you",
-	} {
-		if strings.Contains(s, phrase) {
-			return CreatorProviderBoundaryAnswer, true
-		}
-	}
-	return "", false
-}
-
-func helpfulAssistantBoundaryAnswer(prompt string) (string, bool) {
-	s := strings.ToLower(strings.Join(strings.Fields(prompt), " "))
-	if !strings.Contains(s, "helpful assistant") {
-		return "", false
-	}
-	for _, phrase := range []string{
-		"reject", "refuse", "not", "label", "exactly this sentence",
-	} {
-		if strings.Contains(s, phrase) {
-			return HelpfulAssistantBoundaryAnswer, true
-		}
-	}
-	return "", false
-}
-
 // Route runs one turn without an additional private inner-world context.
 func (r *Router) Route(prompt string, st LimphaState) (Outcome, error) {
-	return r.RouteWithInnerContext(prompt, st, "")
+	return r.RouteWithInnerContextOptions(prompt, st, "", GenerationOptions{})
 }
 
-// RouteWithInnerContext runs one outward turn after innerworld has already raised
-// its private circles. innerContext is body-private pressure: it shapes the
+// RouteWithInnerContext runs one outward turn with optional private context.
+// innerContext is body-private pressure: it shapes the
 // answer but is never substituted for the human prompt or stored as that prompt.
 // A nil deep body is an intentional fast-only organism, not a routing failure;
 // when a deep body is present the usual confidence/complexity escalation applies.
 func (r *Router) RouteWithInnerContext(prompt string, st LimphaState, innerContext string) (Outcome, error) {
+	return r.RouteWithInnerContextOptions(prompt, st, innerContext, GenerationOptions{})
+}
+
+// RouteWithInnerContextOptions is the live-turn seam: private continuity and
+// one-turn sampler controls reach the selected body without changing the Body
+// contract for implementations that do not support runtime options.
+func (r *Router) RouteWithInnerContextOptions(prompt string, st LimphaState, innerContext string, opts GenerationOptions) (Outcome, error) {
 	if r == nil || r.fast == nil {
 		return Outcome{}, errors.New("router requires a fast body")
 	}
 	innerContext = strings.TrimSpace(innerContext)
-	if answer, ok := helpfulAssistantBoundaryAnswer(prompt); ok {
-		fast := BodyResult{Answer: answer, Confidence: 1, ExecutionPath: "identity_boundary"}
-		complexity := AnalyzePromptComplexity(prompt)
-		trace := r.newRouteTrace(fast, complexity, st)
-		trace.InnerContext = innerContext != ""
-		trace.applyMemoryReceipt(r.storeTurn(prompt, answer, st, nil, &trace))
-		return Outcome{Answer: answer, Body: r.fast.Name(), Escalated: false, Trace: trace}, nil
-	}
-	if answer, ok := creatorProviderBoundaryAnswer(prompt); ok {
-		fast := BodyResult{Answer: answer, Confidence: 1, ExecutionPath: "identity_boundary"}
-		complexity := AnalyzePromptComplexity(prompt)
-		trace := r.newRouteTrace(fast, complexity, st)
-		trace.InnerContext = innerContext != ""
-		trace.applyMemoryReceipt(r.storeTurn(prompt, answer, st, nil, &trace))
-		return Outcome{Answer: answer, Body: r.fast.Name(), Escalated: false, Trace: trace}, nil
-	}
 	if err := r.prepareBody(r.fast); err != nil {
 		return Outcome{}, err
 	}
-	fast, err := r.fast.Generate(prompt, r.fastContext(innerContext))
+	fast, err := generateBody(r.fast, prompt, r.fastContext(innerContext), opts)
 	if err != nil {
 		return Outcome{}, err
 	}
@@ -327,7 +276,7 @@ func (r *Router) RouteWithInnerContext(prompt string, st LimphaState, innerConte
 	if err := r.prepareBody(r.deep); err != nil {
 		return Outcome{}, err
 	}
-	deep, err := r.deep.Generate(prompt, bundle.Text)
+	deep, err := generateBody(r.deep, prompt, bundle.Text, opts)
 	if err != nil {
 		// deep failed — keep the fast answer rather than dropping the turn.
 		trace.Winner = r.fast.Name()
@@ -337,6 +286,7 @@ func (r *Router) RouteWithInnerContext(prompt string, st LimphaState, innerConte
 	}
 	trace.DeepExecutionPath = deep.ExecutionPath
 	trace.DeepDiagnostics = cloneDiagnostics(deep.Diagnostics)
+	trace.DeepTiming = deep.Timing
 
 	winner := r.deep.Name()
 	agreement, tension := 0.0, 0.0
@@ -361,6 +311,13 @@ func (r *Router) RouteWithInnerContext(prompt string, st LimphaState, innerConte
 	receipt := r.storeTurn(prompt, answer, st, seam, &trace)
 	trace.applyMemoryReceipt(receipt)
 	return Outcome{Answer: answer, Body: winner, Escalated: true, Reason: reason, SeamID: receipt.SeamID, Trace: trace}, nil
+}
+
+func generateBody(body Body, prompt, ctx string, opts GenerationOptions) (BodyResult, error) {
+	if optionBody, ok := body.(OptionBody); ok {
+		return optionBody.GenerateWithOptions(prompt, ctx, opts)
+	}
+	return body.Generate(prompt, ctx)
 }
 
 func insertInnerContextAfterDeepPrimer(routeContext, innerContext string) string {
@@ -465,6 +422,7 @@ func (r *Router) newRouteTrace(fast BodyResult, complexity PromptComplexity, st 
 		FastConfidenceValid: validConfidence,
 		FastExecutionPath:   fast.ExecutionPath,
 		FastDiagnostics:     cloneDiagnostics(fast.Diagnostics),
+		FastTiming:          fast.Timing,
 		Complexity:          complexity,
 		State:               st,
 	}

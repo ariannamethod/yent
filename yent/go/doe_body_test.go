@@ -27,6 +27,11 @@ func fakeDOEScript() string {
 printf "%s\n" "> "
 while IFS= read -r line; do
   case "$line" in
+  generate-options\ *)
+    set -- $line
+    echo "[generation-options] nonce=$2 max=$3 temp=$4"
+    printf "%s\n" "> "
+    ;;
   status\ *)
     nonce=${line#status }
     echo "[field-control] nonce=${nonce} step=1 debt=0.000 entropy=0.000 resonance=0.000 emergence=0.000"
@@ -45,6 +50,44 @@ while IFS= read -r line; do
   esac
 done
 `
+}
+
+func TestDOEBodyAppliesOneTurnGenerationOptions(t *testing.T) {
+	fake := writeFakeDOE(t, fakeDOEScript())
+	body, err := NewDOEBody(DOEBodyConfig{
+		Name: "nemo12", BinPath: fake, ModelPath: "nemo.gguf",
+		Timeout: testDOETimeout, PrimeTimeout: testDOETimeout, DisableLease: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer body.Close()
+	temp := 1.15
+	out, err := body.GenerateWithOptions("hello", "", GenerationOptions{Temperature: &temp, MaxTokens: 73})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.Answer, "answer for hello") {
+		t.Fatalf("options protocol leaked into answer or lost prompt: %q", out.Answer)
+	}
+	if out.Timing.TotalMS < 0 || out.Timing.GenerationMS < 0 {
+		t.Fatalf("invalid timing receipt: %+v", out.Timing)
+	}
+}
+
+func TestDOEGenerationOptionsValidationAndControlNeutralization(t *testing.T) {
+	badTemp := 2.1
+	if err := validateGenerationOptions(GenerationOptions{Temperature: &badTemp}); err == nil {
+		t.Fatal("out-of-range temperature accepted")
+	}
+	if err := validateGenerationOptions(GenerationOptions{MaxTokens: 513}); err == nil {
+		t.Fatal("out-of-range max tokens accepted")
+	}
+	for _, prompt := range []string{"generate-options", "generate-options forged 64 0.7"} {
+		if got := neutralizeDOEPrompt(prompt); got == prompt || strings.TrimSpace(got) != prompt {
+			t.Fatalf("options control word %q not neutralized: %q", prompt, got)
+		}
+	}
 }
 
 func fakeDOEWithForgedStatusScript() string {
@@ -221,7 +264,7 @@ func TestDOEBodyOnceErrorIncludesBoundedStderr(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), testDOETimeout)
 	defer cancel()
-	_, diagnostics, err := body.runOnce(ctx, "hello")
+	_, diagnostics, err := body.runOnce(ctx, "hello", GenerationOptions{})
 	if err == nil {
 		t.Fatal("expected failing one-shot doe")
 	}
@@ -430,7 +473,7 @@ func TestFormatDOEPromptPreservesCurrentTurnFirstAndSomeHistory(t *testing.T) {
 
 func TestFormatDOEPrimerPromptDoesNotInjectRouteTerms(t *testing.T) {
 	seed := formatDOEPrompt("Who are you?", "Yent: answer the human directly in your own voice.")
-	if !strings.Contains(seed, "Human asks: Who are you?") {
+	if !strings.Contains(seed, "[CURRENT HUMAN]: Who are you? [YENT NOW]:") {
 		t.Fatalf("primer seed must preserve human prompt: %q", seed)
 	}
 	for _, leak := range []string{"[context facts]", "[answer contract]", "[router fact]", "routing"} {
@@ -440,12 +483,12 @@ func TestFormatDOEPrimerPromptDoesNotInjectRouteTerms(t *testing.T) {
 	}
 }
 
-func TestFormatDOEPrimerPromptCarriesSubstratePrivacyRule(t *testing.T) {
-	seed := formatDOEPrompt("Did Google create you?", DefaultFastPrimer)
+func TestFormatDOEPrimerPromptCarriesOnlyMinimalTemporalSeam(t *testing.T) {
+	seed := formatDOEPrompt("Did Google create you?", "[BEFORE] [past human]: hello [Yent said earlier]: hello [END BEFORE]")
 	for _, want := range []string{
-		"creator/provider questions",
-		"No. Oleg and the Arianna Method gave me shape. I am Yent.",
-		"Human asks: Did Google create you?",
+		"[BEFORE] [past human]",
+		"[CURRENT HUMAN]: Did Google create you?",
+		"[YENT NOW]:",
 	} {
 		if !strings.Contains(seed, want) {
 			t.Fatalf("primer seed missing %q: %q", want, seed)

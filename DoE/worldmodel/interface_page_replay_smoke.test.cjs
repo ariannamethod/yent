@@ -64,7 +64,7 @@ function makeContext(page) {
       }
     };
     if (id === 'temp') el.value = '0.8';
-    if (id === 'max-tokens') el.value = '512';
+    if (id === 'max-tokens') el.value = '200';
     return el;
   }
 

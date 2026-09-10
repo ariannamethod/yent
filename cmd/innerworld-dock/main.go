@@ -69,17 +69,29 @@ import (
 // AM_State layout libamk.a is built from.
 
 // doeBody adapts a real doe-backed body (nemo12 fast or small24 deep) to
-// innerworld.Body. The inner world asks for a thought at a temperature; the real
-// body's temperature is governed by the AML field (effective_temp), which the
-// inner world already drives, so temp here is advisory and not pushed per call.
+// innerworld.Body. The inner world asks for a thought at a temperature and the
+// resident protocol applies it to that generation only. Bounded afterwaves also
+// carry a one-shot token cap, so private continuation cannot occupy the mouth
+// for a full outward-answer budget.
 // ctx is empty: this is inner monologue, not a routed user turn, so no router
 // primer or answer contract is attached. A generation error yields an empty
 // thought (the inner world treats that as zero drift, not a crash). Close frees
 // the resident doe process for the inner world's single-resident swap.
 type doeBody struct{ b *yent.DOEBody }
 
-func (d doeBody) Generate(seed string, _ float32) string {
-	res, err := d.b.Generate(seed, "")
+func (d doeBody) Generate(seed string, temp float32) string {
+	t := float64(temp)
+	res, err := d.b.GenerateWithOptions(seed, "", yent.GenerationOptions{Temperature: &t})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[dock] body generate error: %v\n", err)
+		return ""
+	}
+	return res.Answer
+}
+
+func (d doeBody) GenerateBounded(seed string, temp float32, maxTokens int) string {
+	t := float64(temp)
+	res, err := d.b.GenerateWithOptions(seed, "", yent.GenerationOptions{Temperature: &t, MaxTokens: maxTokens})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[dock] body generate error: %v\n", err)
 		return ""
