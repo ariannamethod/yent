@@ -151,6 +151,8 @@ static float g_gen_temp_override = -1.0f; /* <0 uses field effective temperature
 static int g_next_max_new = -1;       /* -1 = command-line/runtime default */
 static float g_next_temp = -1.0f;     /* -1 = field temperature */
 static int g_next_temp_set = 0;
+static int g_next_raw_prompt = 0;     /* one following generation is already chat-templated */
+static int g_gen_raw_prompt = 0;      /* --raw-prompt, used by equivalent --once fallback */
 static int g_once = 0; /* exit after one generated answer; useful for artifact isolation */
 static int g_load_spore = 1;
 static int g_save_spore = 1;
@@ -5296,11 +5298,13 @@ static int doe_generation_options(const char *input) {
     static const char prefix[] = "generate-options ";
     if (!input || strncmp(input, prefix, sizeof(prefix) - 1) != 0) return 0;
 
-    char nonce[129], temp_s[64], extra;
+    char nonce[129], temp_s[64], mode[16] = "auto", extra;
     long max_new = -1;
-    int fields = sscanf(input + sizeof(prefix) - 1, "%128s %ld %63s %c",
-                        nonce, &max_new, temp_s, &extra);
-    if (fields != 3 || !doe_control_nonce_valid(nonce) || max_new < 0 || max_new > 512) {
+    int fields = sscanf(input + sizeof(prefix) - 1, "%128s %ld %63s %15s %c",
+                        nonce, &max_new, temp_s, mode, &extra);
+    if ((fields != 3 && fields != 4) || !doe_control_nonce_valid(nonce) ||
+        max_new < 0 || max_new > 512 ||
+        (strcmp(mode, "auto") != 0 && strcmp(mode, "raw") != 0)) {
         return -1;
     }
 
@@ -5315,7 +5319,8 @@ static int doe_generation_options(const char *input) {
     g_next_max_new = max_new > 0 ? (int)max_new : -1;
     g_next_temp = temp;
     g_next_temp_set = temp_set;
-    printf("[generation-options] nonce=%s max=%ld temp=%s\n", nonce, max_new, temp_s);
+    g_next_raw_prompt = strcmp(mode, "raw") == 0;
+    printf("[generation-options] nonce=%s max=%ld temp=%s mode=%s\n", nonce, max_new, temp_s, mode);
     return 1;
 }
 
@@ -5376,9 +5381,11 @@ static void chat(GGUFIndex *ps) {
 
         int turn_max_new = g_next_max_new > 0 ? g_next_max_new : g_gen_max_new;
         float turn_temp = g_next_temp_set ? g_next_temp : g_gen_temp_override;
+        int turn_raw_prompt = g_next_raw_prompt || g_gen_raw_prompt;
         g_next_max_new = -1;
         g_next_temp = -1.0f;
         g_next_temp_set = 0;
+        g_next_raw_prompt = 0;
 
         /* Reset KV cache */
         memset(is.key_cache, 0, is.kv_bytes);
@@ -5388,7 +5395,12 @@ static void chat(GGUFIndex *ps) {
         char wrapped[sizeof(input) + 128];
         /* Only use chat template if the key special tokens exist in vocab */
         int use_template = 0;
-        switch (ps->chat_style) {
+        if (turn_raw_prompt) {
+            if (!doe_snprintf_checked(wrapped, sizeof(wrapped), "preformatted chat prompt", "%s", input))
+                continue;
+            use_template = 1;
+        }
+        switch (turn_raw_prompt ? 0 : ps->chat_style) {
         case 1: /* ChatML */
             if (tok_lookup(ps, "<|im_start|>", 12) >= 0) {
                 if (!doe_snprintf_checked(wrapped, sizeof(wrapped), "ChatML prompt",
@@ -6726,6 +6738,7 @@ int main(int argc, char **argv) {
             g_gen_temp_override = v;
             if (g_gen_temp_override < 0.0f) g_gen_temp_override = -1.0f;
         }
+        else if (strcmp(argv[i], "--raw-prompt") == 0) { g_gen_raw_prompt = 1; }
         else if (strcmp(argv[i], "--once") == 0) { g_once = 1; }
         else if (strcmp(argv[i], "--rope-norm") == 0) { g_rope_norm = 1; }
         else if (strcmp(argv[i], "--no-load-spore") == 0) { g_load_spore = 0; }
@@ -6758,6 +6771,7 @@ int main(int argc, char **argv) {
             printf("  --max-new N     max generated tokens in chat mode (default: 200)\n");
             printf("  --top-k N       chat sampler top-k (default: 40; 1 with --temp 0 matches greedy probes)\n");
             printf("  --temp F        override chat sampler temperature (default: field temperature; 0 = greedy)\n");
+            printf("  --raw-prompt    input already carries the body-native chat template\n");
             printf("  --once          exit after one generated answer (for artifact-isolation probes)\n\n");
             printf("  --rope-norm     probe llama.cpp NORM RoPE (consecutive head pairs)\n");
             printf("  --no-load-spore skip mycelium restore for isolated probes\n");

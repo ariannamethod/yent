@@ -110,6 +110,7 @@ func NewMoyentRouterFromEnv(limpha *LimphaClient) (*Router, func() error, error)
 		Args:         appendArgs(commonArgs, splitEnvArgs(os.Getenv(envNemoArgs))),
 		Timeout:      timeout,
 		PrimeTimeout: primeTimeout,
+		ChatTemplate: DOEChatTemplateMistral,
 	}
 	deepCfg := DOEBodyConfig{
 		Name:         "small24",
@@ -119,6 +120,7 @@ func NewMoyentRouterFromEnv(limpha *LimphaClient) (*Router, func() error, error)
 		Args:         appendArgs(commonArgs, splitEnvArgs(os.Getenv(envDeepArgs))),
 		Timeout:      timeout,
 		PrimeTimeout: primeTimeout,
+		ChatTemplate: DOEChatTemplateMistral,
 	}
 	if limpha != nil && boolEnv(envAsyncMemory, true) {
 		limpha.StartAsync(256)
