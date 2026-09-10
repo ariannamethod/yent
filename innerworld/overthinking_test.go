@@ -206,7 +206,12 @@ func TestOverthinkEmptyStops(t *testing.T) {
 func TestAfterwaveIsOneUnforcedRippleFromSpokenAnswer(t *testing.T) {
 	body := &afterwaveRecordingBody{}
 	field := &fakeField{}
-	circles := Afterwave("I already said this aloud.", body, field, tempDivergence, DefaultConfig())
+	var divergenceOrigin string
+	div := func(a, b string) float32 {
+		divergenceOrigin = a
+		return tempDivergence(a, b)
+	}
+	circles := Afterwave("  I already said this aloud.  ", body, field, div, DefaultConfig())
 	if len(circles) != 1 {
 		t.Fatalf("afterwave circles = %d, want exactly one", len(circles))
 	}
@@ -216,8 +221,14 @@ func TestAfterwaveIsOneUnforcedRippleFromSpokenAnswer(t *testing.T) {
 	if strings.Contains(body.seeds[0], "Turn the question inward") {
 		t.Fatalf("afterwave reused the pre-answer coercive seed: %q", body.seeds[0])
 	}
+	if !strings.HasPrefix(body.seeds[0], "[private afterwave; outward speech already delivered]") {
+		t.Fatalf("afterwave contract is not protected at the start of its seed: %q", body.seeds[0])
+	}
 	if !strings.Contains(body.seeds[0], "I already said this aloud.") {
 		t.Fatalf("afterwave seed lost the spoken answer: %q", body.seeds[0])
+	}
+	if divergenceOrigin != "I already said this aloud." {
+		t.Fatalf("drift origin was not normalized with the seed: %q", divergenceOrigin)
 	}
 	if circles[0].Temp != DefaultConfig().TempBase {
 		t.Fatalf("afterwave temp = %.2f, want base %.2f", circles[0].Temp, DefaultConfig().TempBase)
