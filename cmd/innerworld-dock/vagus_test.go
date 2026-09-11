@@ -474,6 +474,18 @@ func TestVagusRejectsInvalidSamplerControls(t *testing.T) {
 	}
 }
 
+func TestVagusDefaultsToAFullOutwardBreath(t *testing.T) {
+	turn, err := currentVagusRequest(vagusChatRequest{
+		Messages: []vagusChatMessage{{Role: "user", Content: "hello"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if turn.Options.MaxTokens != vagusDefaultMaxTokens {
+		t.Fatalf("default max tokens = %d, want %d", turn.Options.MaxTokens, vagusDefaultMaxTokens)
+	}
+}
+
 func float64Ptr(v float64) *float64 { return &v }
 func intPtr(v int) *int             { return &v }
 
