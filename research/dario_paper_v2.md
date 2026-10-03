@@ -158,7 +158,7 @@ Sampling is architecture. The same weights produce qualitatively different traje
 
 The seasonal cycle held across a full two-thousand-turn run — all four seasons, beta peaking in spring and alpha in summer; the field laws themselves (the entropy floor, the resonance ceiling, the emergence identity) are carried from the first edition and not re-measured in this pass. The Knowledge Kernel's scoring weights matched the specification to the decimal, and the paper's own draft turned up as the top-ranked chunk for "resonance" — the system had ingested its own description and returned it as field pressure. SARTRE detected its substrate, base and delta separated on the overlay to the byte. The formula θ = ε + γ + αδ is running.
 
-We do not claim Dario is finished. The visual term is a placeholder. There is enough open work to fill a year.
+The visual term is a placeholder. There is enough open work to fill a year.
 
 We were wrong about one thing. We found it ourselves, we rebuilt the system rather than the sentence, and the architecture is stronger for the correction.
 
